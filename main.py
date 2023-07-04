@@ -3,6 +3,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from input_output import IOWindow
 from link_table import LinkTabWindow
 import pandas as pd
+from button_page import ButtonWindow
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -16,21 +17,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.input_feature = None
         self.output_feature = None
 
-    def startUIToolTab(self):
-        self.ToolTab = LinkTabWindow(self, self.getDataFrame())
-        self.setWindowTitle("Связи")
-        self.setCentralWidget(self.ToolTab)
-        self.ToolTab.CPSBTN.clicked.connect(self.startUIWindow)
-        self.show()
-
     def startUIWindow(self):
         self.Window = IOWindow(self, self.getInitialDataframe())
         self.setWindowTitle("Вход-выход")
         self.setCentralWidget(self.Window)
         self.Window.save_button.clicked.connect(self.update)
         self.Window.ToolsBTN.clicked.connect(self.startUIToolTab)
-
         self.show()
+
+    def startUIToolTab(self):
+        self.ToolTab = LinkTabWindow(self, self.getDataFrame())
+        self.setWindowTitle("Связи")
+        self.setCentralWidget(self.ToolTab)
+        self.ToolTab.CPSBTN.clicked.connect(self.startUIWindow)
+        self.ToolTab.NextBTN.clicked.connect(self.startButtonWindow)
+        # self.ToolTab.CPSBTN.clicked.connect(self.startUIWindow)
+        self.show()
+
+
+    def startButtonWindow(self):
+        self.BWindow = ButtonWindow(self, self.getDataFrame())
+        self.setWindowTitle("Кнопки")
+        self.setCentralWidget(self.BWindow)
+        self.BWindow.PreviousBTN.clicked.connect(self.startUIToolTab)
+        # self.BWindow.ToolsBTN.clicked.connect(self.startUIToolTab)
+        self.show()
+
     def update(self):
         self.updateFeaturesList(self.Window.getInputFeature(), self.Window.getOutputFeature())
 
@@ -47,6 +59,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.output_feature = output_features
         print(self.input_feature)
         print(self.output_feature)
+
     def getDataFrame(self):
         df = self.getInitialDataframe()
         print(df)

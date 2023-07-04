@@ -8,6 +8,9 @@ class LinkTabWindow(QtWidgets.QWidget):
         self.CPSBTN = QtWidgets.QPushButton("Назад", self)
         self.CPSBTN.move(100, 350)
 
+        self.NextBTN = QtWidgets.QPushButton("Вперед", self)
+        self.NextBTN.move(100, 350)
+
         self.input_df = input_df
         col_name = input_df.columns
         self.result_df = pd.DataFrame(columns=col_name, index=col_name)
@@ -21,6 +24,7 @@ class LinkTabWindow(QtWidgets.QWidget):
         lay.addWidget(self.tableWidget)
         lay.addWidget(self.save_button)
         lay.addWidget(self.CPSBTN)
+        lay.addWidget(self.NextBTN)
 
         self.tableWidget.setHorizontalHeaderLabels(col_name)
         self.tableWidget.setVerticalHeaderLabels(col_name)
