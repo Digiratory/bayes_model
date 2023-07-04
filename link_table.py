@@ -1,19 +1,17 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QMainWindow
-
+from PyQt5 import QtCore, QtWidgets
 import pandas as pd
 
 
-def read_data(path='data/tmp.csv'):
-    data_input = pd.read_csv(path, index_col=0)
-    return data_input
+class LinkTabWindow(QtWidgets.QWidget):
+    def __init__(self, parent=None, input_df=None):
+        super(LinkTabWindow, self).__init__(parent)
+        self.CPSBTN = QtWidgets.QPushButton("Назад", self)
+        self.CPSBTN.move(100, 350)
 
-
-class Widget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super(Widget, self).__init__(parent)
-        col_name = read_data().columns
+        self.input_df = input_df
+        col_name = input_df.columns
         self.result_df = pd.DataFrame(columns=col_name, index=col_name)
+
         col_name = col_name.insert(0, 'Select ALL')
         self.tableWidget = QtWidgets.QTableWidget(len(col_name), len(col_name))
         self.save_button = QtWidgets.QPushButton("Сохранить")
@@ -22,6 +20,7 @@ class Widget(QtWidgets.QWidget):
         lay = QtWidgets.QVBoxLayout(self)
         lay.addWidget(self.tableWidget)
         lay.addWidget(self.save_button)
+        lay.addWidget(self.CPSBTN)
 
         self.tableWidget.setHorizontalHeaderLabels(col_name)
         self.tableWidget.setVerticalHeaderLabels(col_name)
@@ -37,6 +36,10 @@ class Widget(QtWidgets.QWidget):
 
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_columns)
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_rows)
+
+    def getDataframe(self):
+        # Use this method to retrieve the dataframe
+        return self.dataframe
 
     def select_all_clicked_by_columns(self, row, column):
         if row != 0:
@@ -67,22 +70,6 @@ class Widget(QtWidgets.QWidget):
             items.append(it)
 
         self.result_df.loc[:, :] = items
+        self.result_df = self.result_df.replace({2: 1})
         self.result_df.to_excel('data/link_table.xls')
 
-
-class RealMainWindow(QMainWindow):
-    def __init__(self, parent=None):
-        super(RealMainWindow, self).__init__(parent)
-        self.setWindowTitle("QTableView Example")
-        self.resize(2000, 1000)
-
-        w = Widget()
-        self.setCentralWidget(w)
-
-
-if __name__ == '__main__':
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    win = RealMainWindow()
-    win.show()
-    sys.exit(app.exec_())
