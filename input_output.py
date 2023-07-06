@@ -8,7 +8,7 @@ def read_data(path='data/tmp.csv'):
 
 
 class IOWindow(QtWidgets.QWidget):
-    def __init__(self, parent=None, input_df=None):
+    def __init__(self, parent=None, input_df=None, state=None):
         super(IOWindow, self).__init__(parent)
         # mainwindow.setWindowIcon(QtGui.QIcon('PhotoIcon.png'))
         self.ToolsBTN = QtWidgets.QPushButton('Далее', self)
@@ -24,6 +24,8 @@ class IOWindow(QtWidgets.QWidget):
         self.tableWidget = QtWidgets.QTableWidget(len(col_name), 2)
         self.save_button = QtWidgets.QPushButton("Сохранить")
         self.save_button.clicked.connect(self.save_clicked)
+        self.save_button.clicked.connect(self.saveState)
+
 
         lay = QtWidgets.QVBoxLayout(self)
         lay.addWidget(self.tableWidget)
@@ -32,12 +34,15 @@ class IOWindow(QtWidgets.QWidget):
 
         self.tableWidget.setHorizontalHeaderLabels(['input', 'output'])
         self.tableWidget.setVerticalHeaderLabels(col_name)
-
+        self.state = state if state else self.initState()
+        print(self.state)
+        print(len(self.state))
         for i in range(self.tableWidget.rowCount()):
             for j in range(2):
                 item = QtWidgets.QTableWidgetItem()
                 item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-                item.setCheckState(QtCore.Qt.Unchecked)
+                # item.setCheckState(QtCore.Qt.Unchecked)
+                item.setCheckState(self.state[i][j])
                 self.tableWidget.setItem(i, j, item)
 
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_columns)
@@ -80,8 +85,6 @@ class IOWindow(QtWidgets.QWidget):
                 # item.setCheckState(QtCore.Qt.Unchecked)
                 # item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
 
-
-
     @QtCore.pyqtSlot()
     def save_clicked(self):
         items = []
@@ -106,3 +109,22 @@ class IOWindow(QtWidgets.QWidget):
 
     def getOutputFeature(self):
         return list(self.df_input_output[self.df_input_output['output'] > 0].index)
+
+    def saveState(self):
+        self.state = []
+        for i in range(self.tableWidget.rowCount()):
+            it = []
+            for j in range(self.tableWidget.columnCount()):
+                item = self.tableWidget.item(i, j)
+                it.append(item.checkState())
+            self.state.append(it)
+
+    def initState(self):
+        return [[QtCore.Qt.Unchecked] * 2] * self.tableWidget.rowCount()
+
+    def getState(self):
+        print(self.state)
+        print(len(self.state))
+        return self.state
+
+

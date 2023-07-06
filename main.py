@@ -13,21 +13,27 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.setGeometry(50, 50, 400, 450)
         # self.setFixedSize(400, 450)
         # self.startUIToolTab()
-        self.startUIWindow()
-        # self.resize(2000, 1000)
         self.input_feature = None
         self.output_feature = None
-
+        self.stateIO = None
         self.linkTable = None
 
+        self.startUIWindow()
+        # self.resize(2000, 1000)
+
     def startUIWindow(self):
-        self.Window = IOWindow(self, self.getInitialDataframe())
+        self.Window = IOWindow(self,
+                               input_df=self.getInitialDataframe(),
+                               state=self.getStateIO())
+
         # self.setGeometry(50, 50, 400, 450)
         self.resize(600, 1000)
         self.setWindowTitle("Вход-выход")
         self.setCentralWidget(self.Window)
         self.Window.save_button.clicked.connect(self.update)
+        self.Window.ToolsBTN.clicked.connect(self.updateStateIO)
         self.Window.ToolsBTN.clicked.connect(self.startUIToolTab)
+
         self.show()
 
     def startUIToolTab(self):
@@ -60,22 +66,15 @@ class MainWindow(QtWidgets.QMainWindow):
         data_input = data_input.drop(nan_columns, axis=1)
         return data_input
 
-    def updateDataframe(self, new_df):
-        # This method can be called from IOWindow to update the dataframe in MainWindow
-        print("Updated dataframe:", new_df)
-
     def updateFeaturesList(self, input_features, output_features):
         self.input_feature = input_features
         self.output_feature = output_features
-        print(self.input_feature)
-        print(self.output_feature)
+        # print(self.input_feature)
+        # print(self.output_feature)
 
     def getDataFrame(self):
         df = self.getInitialDataframe()
-        # print(df)
-        # print(self.input_feature, self.output_feature)
         df = df.loc[:, self.input_feature + self.output_feature]
-
         return df
 
     def updateLinkTable(self):
@@ -83,6 +82,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def getLinkTable(self):
         return self.linkTable
+
+    def getStateIO(self):
+        return self.stateIO
+
+    def updateStateIO(self):
+        self.stateIO = self.Window.getState()
 
 
 if __name__ == '__main__':
