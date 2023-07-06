@@ -4,6 +4,11 @@ import pandas as pd
 
 class LinkTabWindow(QtWidgets.QWidget):
     def __init__(self, parent=None, input_df=None):
+        """
+        Для матрицы связей
+        :param parent:
+        :param input_df:
+        """
         super(LinkTabWindow, self).__init__(parent)
         self.CPSBTN = QtWidgets.QPushButton("Назад", self)
         self.CPSBTN.move(100, 350)
@@ -26,6 +31,13 @@ class LinkTabWindow(QtWidgets.QWidget):
         lay.addWidget(self.CPSBTN)
         lay.addWidget(self.NextBTN)
 
+        buttons_widget = QtWidgets.QWidget()
+        buttons_layout = QtWidgets.QHBoxLayout()
+        buttons_widget.setLayout(buttons_layout)
+        buttons_layout.addWidget(self.CPSBTN)
+        buttons_layout.addWidget(self.NextBTN)
+        lay.addWidget(buttons_widget)
+
         self.tableWidget.setHorizontalHeaderLabels(col_name)
         self.tableWidget.setVerticalHeaderLabels(col_name)
 
@@ -40,10 +52,6 @@ class LinkTabWindow(QtWidgets.QWidget):
 
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_columns)
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_rows)
-
-    def getDataframe(self):
-        # Use this method to retrieve the dataframe
-        return self.dataframe
 
     def select_all_clicked_by_columns(self, row, column):
         if row != 0:
@@ -76,4 +84,7 @@ class LinkTabWindow(QtWidgets.QWidget):
         self.result_df.loc[:, :] = items
         self.result_df = self.result_df.replace({2: 1})
         self.result_df.to_excel('data/link_table.xls')
+
+    def getDataFrame(self) -> pd.DataFrame:
+        return self.result_df
 

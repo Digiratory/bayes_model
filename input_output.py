@@ -41,6 +41,7 @@ class IOWindow(QtWidgets.QWidget):
                 self.tableWidget.setItem(i, j, item)
 
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_columns)
+        self.tableWidget.cellChanged.connect(self.turnOffClicked)
 
     def select_all_clicked_by_columns(self, row, column):
         if row != 0:
@@ -51,6 +52,35 @@ class IOWindow(QtWidgets.QWidget):
         for i in range(self.tableWidget.rowCount()):
             item = self.tableWidget.item(i, column)
             item.setCheckState(QtCore.Qt.Checked if state else QtCore.Qt.Unchecked)
+
+    # def turnOffClicked(self, row, column):
+    #     # all_columns = list(range(self.tableWidget.rowCount()))
+    #     # all_columns.remove(column)
+    #
+    #     state = self.tableWidget.item(row, column).checkState()
+    #     for i in range(self.tableWidget.columnCount()):
+    #         item = self.tableWidget.item(row, i)
+    #         if state == QtCore.Qt.Checked:
+    #             item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+    #         else:
+    #             item.setFlags(item.flags() & ~QtCore.Qt.ItemIsUserCheckable)
+
+    def turnOffClicked(self, row, column):
+        state = self.tableWidget.item(row, column).checkState()
+
+        all_columns = list(range(self.tableWidget.columnCount()))
+        all_columns.remove(column)
+
+        for i in all_columns:
+            item = self.tableWidget.item(row, i)
+            if state == QtCore.Qt.Checked:
+                item.setCheckState(QtCore.Qt.Unchecked)
+                # item.setCheckState(QtCore.Qt.Checked)
+            # else:
+                # item.setCheckState(QtCore.Qt.Unchecked)
+                # item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+
+
 
     @QtCore.pyqtSlot()
     def save_clicked(self):

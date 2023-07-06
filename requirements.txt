@@ -1,0 +1,3 @@
+py_banshee
+PyQt5
+pingouin
