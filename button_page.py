@@ -175,7 +175,7 @@ class ButtonWindow(QtWidgets.QWidget):
 
         self.input_df = input_df
 
-        self.PreviousBTN = QtWidgets.QPushButton('Назад', self)
+        # self.PreviousBTN = QtWidgets.QPushButton('Назад', self)
 
         self.corr_button = QtWidgets.QPushButton('Матрица корреляций Спирмена', self)
         self.corr_button.clicked.connect(self.on_pushButton_clicked)
@@ -198,7 +198,7 @@ class ButtonWindow(QtWidgets.QWidget):
         lay.addWidget(self.acycle_button)
         lay.addWidget(self.rankCorrButton)
         lay.addWidget(self.calcInferenceButton)
-        lay.addWidget(self.PreviousBTN)
+        # lay.addWidget(self.PreviousBTN)
 
         self.dialogs = list()
         self.corr_matrix = CorrMatrix(self.input_df).getCorrMatrix()
@@ -244,6 +244,15 @@ class ButtonWindow(QtWidgets.QWidget):
         self.dialogs.append(dialog)
         dialog.show()
         plt.tight_layout()
+
+    def updateDataFrame(self, input_df):
+        self.input_df = input_df
+
+    def updateLinkTable(self, linkTable):
+        self.linkTable = linkTable
+
+    def updateLenInputFeature(self, lenInput):
+        self.len_input = lenInput
 
 
 
