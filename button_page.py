@@ -29,7 +29,6 @@ def find_outliers(vector: pd.Series):
     return list(outliers_index)
 
 
-
 class SubplotWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None, data=None):
@@ -76,6 +75,7 @@ class SubplotWindow(QtWidgets.QMainWindow):
         # plt.tight_layout()
         # print(df.corr()['true'][0])
         return fig
+
 
 class SubplotGraph(SubplotWindow):
     def initFigure(self, G, name):
@@ -288,15 +288,12 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def updateDataFrame(self, input_df):
         self.input_df = input_df
-        print(self.input_df.shape)
 
     def updateLinkTable(self, linkTable):
         self.linkTable = linkTable
-        print(self.linkTable.shape)
 
     def updateLenInputFeature(self, lenInput):
         self.len_input = lenInput
-        print(lenInput)
 
     def update(self):
         self.corr_matrix = CorrMatrix(self.input_df).getCorrMatrix()

@@ -9,6 +9,7 @@ class BansheeCalc:
         ParentCell = [[] for i in ParentCell]
         for v1, v2 in edgeList:
             ParentCell[v2].append(v1)
+        print(ParentCell)
 
         columns_data = df.columns
 
@@ -16,6 +17,7 @@ class BansheeCalc:
         self.R = bn_rankcorr(ParentCell, df,
                              var_names=columns_data,
                              is_data=True, plot=False)
+
 
     def getRankCorr(self):
         return self.R
