@@ -29,7 +29,7 @@ class MainWindow(QWidget):
 
         # общая панель справа
         self.BWindow = ButtonWindow(self, pd.DataFrame(), pd.DataFrame(), 1)
-        self.BWindow.corr_button.clicked.connect(self.update)
+        # self.BWindow.corr_button.clicked.connect(self.update)
         widget_layout.addWidget(self.BWindow)
 
         # self.resize(2000, 1000)
@@ -46,6 +46,7 @@ class MainWindow(QWidget):
 
         self.ToolTab = LinkTabWindow(self, input_df=pd.DataFrame({"1": [0, 0], "2": [0, 0]}))
         self.ToolTab.BackBTN.clicked.connect(self.startUIWindow)
+        self.ToolTab.save_button.clicked.connect(self.updateLinkTable)
         self.ToolTab.save_button.clicked.connect(self.tmp)
         self.stk_w.addWidget(self.ToolTab)
 
@@ -85,7 +86,7 @@ class MainWindow(QWidget):
     def update(self):
         self.updateFeaturesList(self.Window.getInputFeature(), self.Window.getOutputFeature())
 
-    def getInitialDataframe(self, path='data/tmp.csv'):
+    def getInitialDataframe(self, path='data/tmp2.csv'):
         data_input = pd.read_csv(path, index_col=0)
         nan_columns = find_zero_columns(data_input)
         data_input = data_input.drop(nan_columns, axis=1)
@@ -123,6 +124,7 @@ class MainWindow(QWidget):
         self.BWindow.updateDataFrame(self.getDataFrame())
         self.BWindow.updateLinkTable(self.getLinkTable())
         self.BWindow.updateLenInputFeature(len(self.input_feature))
+        self.BWindow.update()
 
 
 if __name__ == "__main__":

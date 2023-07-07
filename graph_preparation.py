@@ -1,5 +1,4 @@
 import networkx as nx
-import matplotlib.pyplot as plt
 
 
 def melt_matrix(matrix):
@@ -19,12 +18,12 @@ class GraphPreparation:
     def __init__(self, corr_matrix, table_connection):
         self.corr_matrix = corr_matrix
         self.table_connection = table_connection
-        code_columns = {num: i for i, num in enumerate(table_connection)}
+        self.code_columns = {num: i for i, num in enumerate(table_connection)}
 
         weight_matrix = self.corr_matrix * self.table_connection
 
-        weight_matrix = weight_matrix.rename(code_columns, axis=0)
-        weight_matrix = weight_matrix.rename(code_columns, axis=1)
+        weight_matrix = weight_matrix.rename(self.code_columns, axis=0)
+        weight_matrix = weight_matrix.rename(self.code_columns, axis=1)
 
         # подготовить матрицу к таблице
         self.N = melt_matrix(weight_matrix)
@@ -37,11 +36,6 @@ class GraphPreparation:
         e = [tuple([int(i[0]), int(i[1]), round(i[2], 3)]) for i in self.N.values]
 
         self.G.add_weighted_edges_from(e)
-
-    def plot_graph(self):
-        plt.figure()
-        nx.draw_networkx(self.G, arrows=True)
-        plt.show()
 
     def drop_cycle(self):
         while True:
@@ -66,3 +60,11 @@ class GraphPreparation:
 
     def getEdgeList(self):
         return self.G.edges
+
+    def getGraph(self):
+        return self.G
+
+    def renaming(self):
+        k = {val: key for key, val in self.code_columns.items()}
+
+        return nx.relabel_nodes(self.G, k)

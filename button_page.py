@@ -1,7 +1,6 @@
 from PyQt5 import QtCore, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import seaborn as sns
-import matplotlib.pyplot as plt
 import pandas as pd
 import pingouin as pg
 import numpy as np
@@ -10,7 +9,9 @@ from pyBansheeCalculation import BansheeCalc
 from textwrap import wrap
 from sklearn.metrics import r2_score, mean_absolute_error
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
+import networkx as nx
+import matplotlib.pyplot as plt
+import copy
 
 
 def test(y_pred, y_true):
@@ -26,6 +27,7 @@ def find_outliers(vector: pd.Series):
     outliers_index = vector.loc[(vector > vector.std()*3 + vector.mean()) |
                                 (vector < vector.mean() - vector.std()*3)].index
     return list(outliers_index)
+
 
 
 class SubplotWindow(QtWidgets.QMainWindow):
@@ -44,6 +46,7 @@ class SubplotWindow(QtWidgets.QMainWindow):
             layoutVert[i] = QtWidgets.QVBoxLayout(self._main)
             layout_widget[i].setLayout(layoutVert[i])
             fig = self.initFigure(data[i], i)
+            fig.tight_layout()
             canvas = FigureCanvas(fig)
 
             layoutVert[i].addWidget(NavigationToolbar(canvas, self))
@@ -52,6 +55,8 @@ class SubplotWindow(QtWidgets.QMainWindow):
             layout.addWidget(layout_widget[i])
 
     def initFigure(self, df, name):
+        plt.rcParams.update({'figure.autolayout': True})
+        name = '\n'.join(wrap(name, 30))
         fig = plt.figure()
         out = find_outliers(df['true']-df['pred'])
         df_drop_out = df[~df.index.isin(out)]
@@ -68,7 +73,38 @@ class SubplotWindow(QtWidgets.QMainWindow):
         plt.grid()
         plt.title(fr'$R^2$ {round(r2, 3)}->{round(r2_drop_out, 3)}')
         # plt.show()
-        print(df.corr()['true'][0])
+        # plt.tight_layout()
+        # print(df.corr()['true'][0])
+        return fig
+
+class SubplotGraph(SubplotWindow):
+    def initFigure(self, G, name):
+        fig = plt.figure()
+        elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] > 0.5]
+        esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] <= 0.5]
+
+        pos = nx.spring_layout(G, seed=10, k=3)  # positions for all nodes - seed for reproducibility
+        # pos = nx.circular_layout(G)
+
+        # nodes
+        nx.draw_networkx_nodes(G, pos, node_size=5)
+
+        # edges
+        nx.draw_networkx_edges(G, pos, edgelist=elarge, width=2, alpha=0.4)
+        nx.draw_networkx_edges(
+            G, pos, edgelist=esmall, width=2, alpha=0.4, edge_color="b", style="dashed"
+        )
+
+        # node labels
+        nx.draw_networkx_labels(G, pos, font_size=8, font_family="sans-serif", verticalalignment='bottom')
+        # edge weight labels
+        edge_labels = nx.get_edge_attributes(G, "weight")
+        nx.draw_networkx_edge_labels(G, pos, edge_labels, font_size=8)
+
+        ax = plt.gca()
+        ax.margins(0.08)
+        plt.axis("off")
+        plt.tight_layout()
         return fig
 
 
@@ -226,7 +262,12 @@ class ButtonWindow(QtWidgets.QWidget):
     def on_acycle_graph(self):
         self.graph = GraphPreparation(self.corr_matrix, self.linkTable)
         # удалить циклы в графе
+        G_before = copy.deepcopy(self.graph.renaming())
         self.graph.drop_cycle()
+        d = {'Before': G_before, 'After': self.graph.renaming()}
+        dialog = SubplotGraph(data=d)
+        self.dialogs.append(dialog)
+        dialog.show()
 
     def onRankCorrBanshee(self):
         self.banshee = BansheeCalc(self.graph.getNodeList(), self.graph.getEdgeList(), self.input_df)
@@ -247,12 +288,21 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def updateDataFrame(self, input_df):
         self.input_df = input_df
+        print(self.input_df.shape)
 
     def updateLinkTable(self, linkTable):
         self.linkTable = linkTable
+        print(self.linkTable.shape)
 
     def updateLenInputFeature(self, lenInput):
         self.len_input = lenInput
+        print(lenInput)
+
+    def update(self):
+        self.corr_matrix = CorrMatrix(self.input_df).getCorrMatrix()
+        self.partCorrMatrix = PartCorrMatrix(self.input_df).getCorrMatrix()
+
+        self.y_true = self.input_df.iloc[:, self.len_input:]
 
 
 
