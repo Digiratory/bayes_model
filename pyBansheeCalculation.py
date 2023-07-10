@@ -12,12 +12,17 @@ class BansheeCalc:
             ParentCell[v2].append(v1)
         print(ParentCell)
 
-        columns_data = df.columns
+        columns_data = list(df.columns)
 
         self.df = df
         self.R = bn_rankcorr(ParentCell, df,
                              var_names=columns_data,
                              is_data=True, plot=False)
+        fig_name = 'bn_tmp2'
+        bn_visualize(ParentCell,    
+             self.R,                
+             columns_data,         
+             fig_name = fig_name)  
 
     def getRankCorr(self):
         return self.R
