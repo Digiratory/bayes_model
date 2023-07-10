@@ -1,4 +1,5 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
+
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import seaborn as sns
 import pandas as pd
@@ -12,6 +13,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 import networkx as nx
 import matplotlib.pyplot as plt
 import copy
+
 
 
 def test(y_pred, y_true):
@@ -163,10 +165,16 @@ class CorrMatrix:
         :param df:
         """
         self.df = df
+        print(df.info(), 'sdf')
         self.corr = self.df.corr(method='spearman')
 
     def getCorrMatrix(self, roundOrder=2):
-        return self.corr.round(roundOrder)
+        # return self.corr.round(roundOrder)
+        return self.corr
+
+    def updateTable(self, df):
+        self.df = df
+        self.corr = self.df.corr(method='spearman')
 
 
 class PartCorrMatrix:
@@ -208,8 +216,9 @@ class PartCorrMatrix:
 class ButtonWindow(QtWidgets.QWidget):
     def __init__(self, parent=None, input_df=None, linkTable=None, len_input=None):
         super(ButtonWindow, self).__init__(parent)
-
         self.input_df = input_df
+        self.setFixedSize(400, 500)
+        self.move(0, 0)
 
         # self.PreviousBTN = QtWidgets.QPushButton('Назад', self)
 
@@ -228,13 +237,46 @@ class ButtonWindow(QtWidgets.QWidget):
         self.calcInferenceButton = QtWidgets.QPushButton('Запуск инференса Banshee', self)
         self.calcInferenceButton.clicked.connect(self.onInferenceButton)
 
-        lay = QtWidgets.QVBoxLayout(self)
-        lay.addWidget(self.corr_button)
-        lay.addWidget(self.part_corr_button)
-        lay.addWidget(self.acycle_button)
-        lay.addWidget(self.rankCorrButton)
-        lay.addWidget(self.calcInferenceButton)
+        self.thresholdEdit = QtWidgets.QLineEdit(self, placeholderText='0.0')
+        validator = QtGui.QDoubleValidator()  # Создание валидатора.
+        validator.setRange(0.0, 1.0, 2)  # Установка диапазона значений.
+        validator.setLocale(QtCore.QLocale("en_US"))
+        self.thresholdEdit.setValidator(validator)  # Установка валидатора для поля ввода
+        self.thresholdEdit.textChanged[str].connect(self.onChanged)
+
+        # self.thresholdEdit.setValidator(validator)  # Set validator.
+
+        lay = QtWidgets.QGridLayout()
+        lay.setSpacing(0)
+        lay.setContentsMargins(0, -1, 0, -1)
+
+        # grid.addWidget(title, 1, 0)
+        # grid.addWidget(titleEdit, 1, 1)
+        #
+        # grid.addWidget(author, 2, 0)
+        # grid.addWidget(authorEdit, 2, 1)
+
+        # lay = QtWidgets.QVBoxLayout(self)
+        # lay.setSpacing(0)
+        # lay.setContentsMargins(-1, -1, -1, -1)
+
+        # self.formLayoutWidget = QtWidgets.QWidget()
+        # self.formLayout = QtWidgets.QHBoxLayout()
+        # self.formLayoutWidget.setContentsMargins(-1, -1, -1, -1)
+        # self.formLayoutWidget.setLayout(self.formLayout)
+
+        # formLayout = QtWidgets.QHBoxLayout(self)
+        lay.addWidget(QtWidgets.QLabel("Threshold"), 1, 0)
+        lay.addWidget(self.thresholdEdit, 1, 1)
+        # lay.addWidget(self.formLayoutWidget)
+        lay.addWidget(self.corr_button, 2, 0, 1, 2)
+        lay.addWidget(self.part_corr_button, 3, 0, 1, 2)
+
+        lay.addWidget(self.acycle_button, 4, 0, 1, 2)
+        lay.addWidget(self.rankCorrButton, 5, 0, 1, 2)
+        lay.addWidget(self.calcInferenceButton, 6, 0, 1, 2)
         # lay.addWidget(self.PreviousBTN)
+        self.setLayout(lay)
 
         self.dialogs = list()
         self.corr_matrix = CorrMatrix(self.input_df).getCorrMatrix()
@@ -243,10 +285,20 @@ class ButtonWindow(QtWidgets.QWidget):
         self.linkTable = linkTable
         self.len_input = len_input
 
+        print(self.len_input)
+
         self.y_true = self.input_df.iloc[:, self.len_input:]
+
+        # self.setGeometry(300, 300, 350, 300)
+
+        self.thresholdValue = 0.0
+
+    def onChanged(self, text):
+        self.thresholdValue = float(text)
 
     @QtCore.pyqtSlot()
     def on_pushButton_clicked(self):
+        print(self.corr_matrix)
         dialog = PlotWindows(self, self.corr_matrix)
         self.dialogs.append(dialog)
         dialog.show()
@@ -280,7 +332,21 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def onInferenceButton(self):
         y_predict = self.banshee.getInference(self.len_input)
-        dictPredict = test(y_predict, self.y_true)
+
+        self.columnsForPredict = self.input_df.columns[self.len_input:]
+        self.columnsFeatures = self.input_df.columns[:self.len_input]
+
+        pred_column = ['Predict '+i for i in self.columnsForPredict]
+        res = pd.DataFrame(y_predict, index=self.input_df.index, columns=pred_column)
+
+        df = self.input_df.join(res)
+
+        df.to_csv('data/result.csv')
+
+        # df = df.dropna(subset=self.columnsFeatures)
+
+        # dictPredict = test(y_predict, self.y_true)
+        dictPredict = test(df[pred_column].values, df[self.columnsForPredict])
         dialog = SubplotWindow(data=dictPredict)
         self.dialogs.append(dialog)
         dialog.show()
@@ -295,11 +361,16 @@ class ButtonWindow(QtWidgets.QWidget):
     def updateLenInputFeature(self, lenInput):
         self.len_input = lenInput
 
-    def update(self):
+    def updateMatrix(self):
+        print(self.input_df)
+        print('Update_matrix')
         self.corr_matrix = CorrMatrix(self.input_df).getCorrMatrix()
         self.partCorrMatrix = PartCorrMatrix(self.input_df).getCorrMatrix()
 
         self.y_true = self.input_df.iloc[:, self.len_input:]
+
+    def getThresholdVal(self):
+        return self.thresholdValue
 
 
 

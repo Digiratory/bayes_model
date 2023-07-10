@@ -5,6 +5,7 @@ from py_banshee.prediction import inference, conditional_margins_hist
 
 class BansheeCalc:
     def __init__(self, nodeList, edgeList, df):
+
         ParentCell = [None] * (max(nodeList) + 1)
         ParentCell = [[] for i in ParentCell]
         for v1, v2 in edgeList:
@@ -18,7 +19,6 @@ class BansheeCalc:
                              var_names=columns_data,
                              is_data=True, plot=False)
 
-
     def getRankCorr(self):
         return self.R
 
@@ -29,8 +29,6 @@ class BansheeCalc:
         sampleSize = 10000  # draw 10,000 samples when conditionalizing the BN
         interp = 'next'  # use the 'next' method to interpolate the empirical
         interp = 'linear'
-
-        print(len_input_list)
 
         F = inference(Nodes=nodes,
                       Values=values,

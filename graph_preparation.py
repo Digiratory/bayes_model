@@ -15,7 +15,8 @@ def melt_matrix(matrix):
 
 
 class GraphPreparation:
-    def __init__(self, corr_matrix, table_connection):
+    def __init__(self, corr_matrix, table_connection, threshold=0):
+        self.threshold = threshold
         self.corr_matrix = corr_matrix
         self.table_connection = table_connection
         self.code_columns = {num: i for i, num in enumerate(table_connection)}
@@ -27,7 +28,7 @@ class GraphPreparation:
 
         # подготовить матрицу к таблице
         self.N = melt_matrix(weight_matrix)
-
+        self.N = self.N[(abs(self.N['value']) > threshold)]
         self.N[['row', 'column']] = self.N[['row', 'column']].astype(int)
 
         # Создание взвешенного графа

@@ -13,6 +13,7 @@ class LinkTabWindow(QtWidgets.QWidget):
         self.BackBTN = QtWidgets.QPushButton("Назад", self)
         self.BackBTN.move(100, 350)
 
+
         # self.NextBTN = QtWidgets.QPushButton("Вперед", self)
         # self.NextBTN.move(100, 350)
 
@@ -87,8 +88,6 @@ class LinkTabWindow(QtWidgets.QWidget):
         return self.result_df
 
     def updateInput(self, input_df):
-        print('tu')
-
         # self.lay.deleteLater()
         # self.lay.addWidget(self.tableWidget)
 
