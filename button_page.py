@@ -317,7 +317,9 @@ class ButtonWindow(QtWidgets.QWidget):
         df = self.input_df.join(res)
         df.to_csv('data/result.csv')
 
-        # df = df.dropna(subset=self.columnsFeatures)
+        df = df.dropna(subset=self.columnsFeatures)
+        df.to_csv('data/result2.csv')
+        # print(df.shape)
 
         # dictPredict = test(y_predict, self.y_true)
         dictPredict = test(df[pred_column].values, df[self.columnsForPredict])
