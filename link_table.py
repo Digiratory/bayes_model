@@ -30,7 +30,6 @@ class LinkTabWindow(QtWidgets.QWidget):
                 self.tableWidget.setItem(i, j, item)
 
         self.lay = QtWidgets.QVBoxLayout(self)
-        self.state = []
 
     def select_all_clicked_by_columns(self, row, column):
         if row != 0:
@@ -47,6 +46,7 @@ class LinkTabWindow(QtWidgets.QWidget):
         for i in range(self.tableWidget.columnCount()):
             item = self.tableWidget.item(row, i)
             item.setCheckState(QtCore.Qt.Checked if state else QtCore.Qt.Unchecked)
+
 
     @QtCore.pyqtSlot()
     def save_clicked(self):
@@ -105,9 +105,7 @@ class LinkTabWindow(QtWidgets.QWidget):
 
     def updateState(self, input_vector):
         new_vector = [[QtCore.Qt.Unchecked] * self.tableWidget.columnCount() for _ in range(self.tableWidget.rowCount())]
-        print(self.tableWidget.rowCount())
-        print(self.tableWidget.columnCount())
-        print(len(input_vector), len(input_vector[0]))
+
         for i in range(0, len(input_vector)):
             for j in range(0, len(input_vector[0])):
                 new_vector[i+1][j] = QtCore.Qt.Checked if input_vector[i][j] > 0 else QtCore.Qt.Unchecked

@@ -65,6 +65,7 @@ class MyTableWidget(QWidget):
         self.tabs.addTab(self.linkTab, "Связи")
         self.tabs.addTab(self.buttonTab, "Расчеты")
         self.tabs.currentChanged.connect(self.on_click)  # changed!
+        self.blockButtonTab()
 
         # Add tabs to widget
         self.layout.addWidget(self.tabs)
@@ -83,13 +84,21 @@ class MyTableWidget(QWidget):
             self.ioTab.saveState()
             self.update()
             self.updateStateIO()
-            # Perform actions specific to Tab 2
+            self.linkTab.saveState()
+            self.blockButtonTab()
+
 
         elif index == 2:
             self.linkTab.save_clicked()
             self.updateStateLink()
             self.updateLinkTable()
             self.tmp()
+
+    def blockButtonTab(self):
+        if sum([sum(i) for i in self.stateIO]) > 2:
+            self.tabs.setTabEnabled(2, True)
+        else:
+            self.tabs.setTabEnabled(2, False)
 
     @pyqtSlot()
     def update(self):
@@ -150,7 +159,6 @@ class MyTableWidget(QWidget):
         if os.path.exists(self.pathLinkFile):
             df = pd.read_excel(self.pathLinkFile, index_col=0)
             df.insert(loc=0, column='Select All', value=[0]*len(df))
-            print(df.shape)
             return df.values
         else:
             return None
