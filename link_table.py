@@ -1,5 +1,6 @@
 from PyQt5 import QtCore, QtWidgets
 import pandas as pd
+import numpy as np
 
 
 class LinkTabWindow(QtWidgets.QWidget):
@@ -10,11 +11,6 @@ class LinkTabWindow(QtWidgets.QWidget):
         :param input_df:
         """
         super(LinkTabWindow, self).__init__(parent)
-        # self.BackBTN = QtWidgets.QPushButton("Назад", self)
-        # self.BackBTN.move(100, 350)
-
-        # self.save_button = QtWidgets.QPushButton("Сохранить")
-        # self.save_button.clicked.connect(self.save_clicked)
 
         self.widget_page = QtWidgets.QWidget()
         self.input_df = input_df
@@ -24,7 +20,7 @@ class LinkTabWindow(QtWidgets.QWidget):
         self.columnNames.insert(0, 'Select ALL')
         self.tableWidget = QtWidgets.QTableWidget(len(self.columnNames), len(self.columnNames))
 
-        self.state = state if state else self.initState()
+        self.state = self.updateState(state) if state is not None and (len(state)+1 == len(self.columnNames)) else self.initState()
         for i in range(self.tableWidget.rowCount()):
             for j in range(self.tableWidget.columnCount()):
                 item = QtWidgets.QTableWidgetItem()
@@ -34,16 +30,12 @@ class LinkTabWindow(QtWidgets.QWidget):
                 self.tableWidget.setItem(i, j, item)
 
         self.lay = QtWidgets.QVBoxLayout(self)
-
-        # self.lay.addWidget(self.save_button)
-        # self.lay.addWidget(self.BackBTN)
         self.state = []
 
     def select_all_clicked_by_columns(self, row, column):
         if row != 0:
             return 0
         state = self.tableWidget.item(0, column).checkState()
-        print(state)
         for i in range(self.tableWidget.rowCount()):
             item = self.tableWidget.item(i, column)
             item.setCheckState(QtCore.Qt.Checked if state else QtCore.Qt.Unchecked)
@@ -84,9 +76,9 @@ class LinkTabWindow(QtWidgets.QWidget):
 
         self.tableWidget.setHorizontalHeaderLabels(self.columnNames)
         self.tableWidget.setVerticalHeaderLabels(self.columnNames)
-        if state:
-            if len(state) == self.tableWidget.rowCount():
-                self.state = state
+        if state is not None:
+            if (type(state[0][0]) == np.int64) & (len(state) + 1 == self.tableWidget.rowCount()):
+                self.state = self.updateState(state)
             else:
                 self.state = self.initState()
         else:
@@ -105,12 +97,21 @@ class LinkTabWindow(QtWidgets.QWidget):
 
         self.lay.addWidget(self.tableWidget)
 
-
     def removeTableWidget(self):
         self.tableWidget.deleteLater()
 
     def initState(self):
         return [[QtCore.Qt.Unchecked] * self.tableWidget.columnCount()] * self.tableWidget.rowCount()
+
+    def updateState(self, input_vector):
+        new_vector = [[QtCore.Qt.Unchecked] * self.tableWidget.columnCount() for _ in range(self.tableWidget.rowCount())]
+        print(self.tableWidget.rowCount())
+        print(self.tableWidget.columnCount())
+        print(len(input_vector), len(input_vector[0]))
+        for i in range(0, len(input_vector)):
+            for j in range(0, len(input_vector[0])):
+                new_vector[i+1][j] = QtCore.Qt.Checked if input_vector[i][j] > 0 else QtCore.Qt.Unchecked
+        return new_vector
 
     def getColumnNames(self):
         return self.columnNames[1:]

@@ -2,11 +2,6 @@ import pandas as pd
 from PyQt5 import QtCore, QtWidgets
 
 
-def read_data(path='data/tmp.csv'):
-    data_input = pd.read_csv(path, index_col=0)
-    return data_input
-
-
 class IOWindow(QtWidgets.QWidget):
     def __init__(self, parent=None, input_df=None, state=None):
         super(IOWindow, self).__init__(parent)
@@ -22,12 +17,12 @@ class IOWindow(QtWidgets.QWidget):
 
         self.tableWidget.setHorizontalHeaderLabels(['input', 'output'])
         self.tableWidget.setVerticalHeaderLabels(col_name)
-        self.state = state if state else self.initState()
+        self.state = self.updateState(state) if state is not None else self.initState()
+
         for i in range(self.tableWidget.rowCount()):
             for j in range(2):
                 item = QtWidgets.QTableWidgetItem()
                 item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-                # item.setCheckState(QtCore.Qt.Unchecked)
                 item.setCheckState(self.state[i][j])
                 self.tableWidget.setItem(i, j, item)
 
@@ -38,22 +33,9 @@ class IOWindow(QtWidgets.QWidget):
         if row != 0:
             return 0
         state = self.tableWidget.item(0, column).checkState()
-        # state = self.tableWidget.state()
         for i in range(self.tableWidget.rowCount()):
             item = self.tableWidget.item(i, column)
             item.setCheckState(QtCore.Qt.Checked if state else QtCore.Qt.Unchecked)
-
-    # def turnOffClicked(self, row, column):
-    #     # all_columns = list(range(self.tableWidget.rowCount()))
-    #     # all_columns.remove(column)
-    #
-    #     state = self.tableWidget.item(row, column).checkState()
-    #     for i in range(self.tableWidget.columnCount()):
-    #         item = self.tableWidget.item(row, i)
-    #         if state == QtCore.Qt.Checked:
-    #             item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-    #         else:
-    #             item.setFlags(item.flags() & ~QtCore.Qt.ItemIsUserCheckable)
 
     def turnOffClicked(self, row, column):
         state = self.tableWidget.item(row, column).checkState()
@@ -105,7 +87,14 @@ class IOWindow(QtWidgets.QWidget):
             self.state.append(it)
 
     def initState(self):
-        return [[QtCore.Qt.Unchecked] * 2] * self.tableWidget.rowCount()
+        return [[QtCore.Qt.Unchecked] * 2 for _ in range(self.tableWidget.rowCount())]
+
+    def updateState(self, input_vector):
+        new_vector = [[QtCore.Qt.Unchecked] * 2 for _ in range(self.tableWidget.rowCount())]
+        for i in range(len(input_vector)):
+            for j in range(len(input_vector[i])):
+                new_vector[i][j] = QtCore.Qt.Checked if input_vector[i][j] > 0 else QtCore.Qt.Unchecked
+        return new_vector
 
     def getState(self):
         return self.state
