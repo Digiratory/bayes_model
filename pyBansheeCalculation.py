@@ -39,17 +39,16 @@ class BansheeCalc:
             self.R = None
             return 1
 
-
     def getRankCorr(self):
         return self.R
 
     def getInference(self, len_input_list):
         nodes = list(range(len_input_list))  # all variables except for value of interest
-        values = self.df.iloc[:, nodes].to_numpy() # data for predictions
+        values = self.df.iloc[:, nodes].to_numpy()  # data for predictions
         output = 'mean'  # show only mean of the uncertainty distribution
         sampleSize = 10000  # draw 10,000 samples when conditionalizing the BN
-        # interp = 'next'  # use the 'next' method to interpolate the empirical
-        interp = 'linear'
+        interp = 'nearest'  # use the 'next' method to interpolate the empirical
+        # interp = 'linear'
 
         F = inference(Nodes=nodes,
                       Values=values,

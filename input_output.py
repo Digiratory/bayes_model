@@ -10,26 +10,15 @@ def read_data(path='data/tmp.csv'):
 class IOWindow(QtWidgets.QWidget):
     def __init__(self, parent=None, input_df=None, state=None):
         super(IOWindow, self).__init__(parent)
-        # mainwindow.setWindowIcon(QtGui.QIcon('PhotoIcon.png'))
-        self.ToolsBTN = QtWidgets.QPushButton('Далее', self)
-        # self.ToolsBTN.move(50, 350)
-
         self.input_table = input_df
-
         col_name = self.input_table.columns
 
         self.df_input_output = pd.DataFrame(columns=['input', 'output'], index=col_name)
         col_name = col_name.insert(0, 'Select ALL')
 
         self.tableWidget = QtWidgets.QTableWidget(len(col_name), 2)
-        self.save_button = QtWidgets.QPushButton("Сохранить")
-        self.save_button.clicked.connect(self.save_clicked)
-        self.save_button.clicked.connect(self.saveState)
-
         lay = QtWidgets.QVBoxLayout(self)
         lay.addWidget(self.tableWidget)
-        lay.addWidget(self.save_button)
-        lay.addWidget(self.ToolsBTN)
 
         self.tableWidget.setHorizontalHeaderLabels(['input', 'output'])
         self.tableWidget.setVerticalHeaderLabels(col_name)

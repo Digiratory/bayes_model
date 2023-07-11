@@ -3,31 +3,41 @@ import pandas as pd
 
 
 class LinkTabWindow(QtWidgets.QWidget):
-    def __init__(self, parent=None, input_df=None):
+    def __init__(self, parent=None, input_df=None, state=None):
         """
         Для матрицы связей
         :param parent:
         :param input_df:
         """
         super(LinkTabWindow, self).__init__(parent)
-        self.BackBTN = QtWidgets.QPushButton("Назад", self)
-        self.BackBTN.move(100, 350)
+        # self.BackBTN = QtWidgets.QPushButton("Назад", self)
+        # self.BackBTN.move(100, 350)
 
-        self.save_button = QtWidgets.QPushButton("Сохранить")
-        self.save_button.clicked.connect(self.save_clicked)
+        # self.save_button = QtWidgets.QPushButton("Сохранить")
+        # self.save_button.clicked.connect(self.save_clicked)
 
         self.widget_page = QtWidgets.QWidget()
         self.input_df = input_df
-        col_name = input_df.columns
-        self.result_df = pd.DataFrame(columns=col_name, index=col_name)
+        self.columnNames = list(input_df.columns)
+        self.result_df = pd.DataFrame(columns=self.columnNames, index=self.columnNames)
 
-        col_name = col_name.insert(0, 'Select ALL')
-        self.tableWidget = QtWidgets.QTableWidget(len(col_name), len(col_name))
+        self.columnNames.insert(0, 'Select ALL')
+        self.tableWidget = QtWidgets.QTableWidget(len(self.columnNames), len(self.columnNames))
+
+        self.state = state if state else self.initState()
+        for i in range(self.tableWidget.rowCount()):
+            for j in range(self.tableWidget.columnCount()):
+                item = QtWidgets.QTableWidgetItem()
+                item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+                # item.setCheckState(QtCore.Qt.Unchecked)
+                item.setCheckState(self.state[i][j])
+                self.tableWidget.setItem(i, j, item)
 
         self.lay = QtWidgets.QVBoxLayout(self)
 
-        self.lay.addWidget(self.save_button)
-        self.lay.addWidget(self.BackBTN)
+        # self.lay.addWidget(self.save_button)
+        # self.lay.addWidget(self.BackBTN)
+        self.state = []
 
     def select_all_clicked_by_columns(self, row, column):
         if row != 0:
@@ -63,34 +73,55 @@ class LinkTabWindow(QtWidgets.QWidget):
     def getDataFrame(self) -> pd.DataFrame:
         return self.result_df
 
-    def updateInput(self, input_df):
+    def updateInput(self, input_df, state=None):
         self.input_df = input_df
 
-        col_name = input_df.columns
-        self.result_df = pd.DataFrame(columns=col_name, index=col_name)
+        self.columnNames = input_df.columns
+        self.result_df = pd.DataFrame(columns=self.columnNames, index=self.columnNames)
 
-        col_name = col_name.insert(0, 'Select ALL')
-        self.tableWidget = QtWidgets.QTableWidget(len(col_name), len(col_name))
+        self.columnNames = self.columnNames.insert(0, 'Select ALL')
+        self.tableWidget = QtWidgets.QTableWidget(len(self.columnNames), len(self.columnNames))
 
-        self.tableWidget.setHorizontalHeaderLabels(col_name)
-        self.tableWidget.setVerticalHeaderLabels(col_name)
+        self.tableWidget.setHorizontalHeaderLabels(self.columnNames)
+        self.tableWidget.setVerticalHeaderLabels(self.columnNames)
+        if state:
+            if len(state) == self.tableWidget.rowCount():
+                self.state = state
+            else:
+                self.state = self.initState()
+        else:
+            self.state = self.initState()
 
         for i in range(self.tableWidget.rowCount()):
             for j in range(self.tableWidget.columnCount()):
                 item = QtWidgets.QTableWidgetItem()
                 item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-                item.setCheckState(QtCore.Qt.Unchecked)
+                # item.setCheckState(QtCore.Qt.Unchecked)
+                item.setCheckState(self.state[i][j])
                 self.tableWidget.setItem(i, j, item)
 
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_columns)
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_rows)
 
         self.lay.addWidget(self.tableWidget)
-        self.lay.addWidget(self.save_button)
-        self.lay.addWidget(self.BackBTN)
+
 
     def removeTableWidget(self):
         self.tableWidget.deleteLater()
 
+    def initState(self):
+        return [[QtCore.Qt.Unchecked] * self.tableWidget.columnCount()] * self.tableWidget.rowCount()
+
+    def getColumnNames(self):
+        return self.columnNames[1:]
+
+    def saveState(self):
+        self.state = []
+        for i in range(self.tableWidget.rowCount()):
+            it = []
+            for j in range(self.tableWidget.columnCount()):
+                item = self.tableWidget.item(i, j)
+                it.append(item.checkState())
+            self.state.append(it)
 
 
