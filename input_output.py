@@ -26,7 +26,6 @@ class IOWindow(QtWidgets.QWidget):
         self.save_button.clicked.connect(self.save_clicked)
         self.save_button.clicked.connect(self.saveState)
 
-
         lay = QtWidgets.QVBoxLayout(self)
         lay.addWidget(self.tableWidget)
         lay.addWidget(self.save_button)
@@ -35,8 +34,6 @@ class IOWindow(QtWidgets.QWidget):
         self.tableWidget.setHorizontalHeaderLabels(['input', 'output'])
         self.tableWidget.setVerticalHeaderLabels(col_name)
         self.state = state if state else self.initState()
-        print(self.state)
-        print(len(self.state))
         for i in range(self.tableWidget.rowCount()):
             for j in range(2):
                 item = QtWidgets.QTableWidgetItem()
@@ -53,7 +50,6 @@ class IOWindow(QtWidgets.QWidget):
             return 0
         state = self.tableWidget.item(0, column).checkState()
         # state = self.tableWidget.state()
-        print(state)
         for i in range(self.tableWidget.rowCount()):
             item = self.tableWidget.item(i, column)
             item.setCheckState(QtCore.Qt.Checked if state else QtCore.Qt.Unchecked)
@@ -123,8 +119,6 @@ class IOWindow(QtWidgets.QWidget):
         return [[QtCore.Qt.Unchecked] * 2] * self.tableWidget.rowCount()
 
     def getState(self):
-        print(self.state)
-        print(len(self.state))
         return self.state
 
 

@@ -56,7 +56,6 @@ class LinkTabWindow(QtWidgets.QWidget):
                 it.append(item.checkState())
             items.append(it)
 
-        print(items)
         self.result_df.loc[:, :] = items
         self.result_df = self.result_df.replace({2: 1})
         self.result_df.to_excel('data/link_table.xls')

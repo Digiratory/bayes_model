@@ -168,7 +168,6 @@ class CorrMatrix:
         :param df:
         """
         self.df = df
-        print(df.info(), 'sdf')
         self.corr = self.df.corr(method='spearman')
 
     def getCorrMatrix(self, roundOrder=2):

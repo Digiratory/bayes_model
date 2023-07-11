@@ -74,7 +74,6 @@ class MainWindow(QWidget):
 
     def getDataFrame(self):
         df = self.getInitialDataframe()
-        print(self.input_feature, self.output_feature)
         df = df.loc[:, self.input_feature + self.output_feature]
         return df
 
