@@ -8,6 +8,7 @@ import pandas as pd
 from button_page import ButtonWindow
 from utils import find_zero_columns
 import numpy as np
+import os
 
 
 class App(QMainWindow):
@@ -34,32 +35,37 @@ class MyTableWidget(QWidget):
         super(QWidget, self).__init__(parent)
         self.layout = QVBoxLayout(self)
 
+        self.pathIOFile = 'data/io_table.csv'
+        self.pathLinkFile = 'data/link_table.xls'
+        self.pathInputFile = 'data/tmp2.csv'
+
         self.input_feature = None
         self.output_feature = None
-        self.stateIO = None
-        self.stateLink = None
+        self.stateIO = self.initStateIO()
+        self.stateLink = self.initStateLinkTable()
         self.linkTable = None
 
         self.setWindowTitle("Bayes inference")
 
         # Initialize tab screen
         self.tabs = QTabWidget()
+        self.tabs.resize(300, 200)
 
+        # Initialize Widgets for tabs
         self.ioTab = IOWindow(self,
                               input_df=self.getInitialDataframe(),
                               state=self.getStateIO())
+        self.update()
 
-        self.linkTab = LinkTabWindow(self, input_df=pd.DataFrame({"1": [0, 0], "2": [0, 0]}))
-
+        self.linkTab = LinkTabWindow(self, input_df=self.getDataFrame(), state=self.stateLink)
         self.buttonTab = ButtonWindow(self, pd.DataFrame(), pd.DataFrame(), 1)
-
-        self.tabs.resize(300, 200)
 
         # Add tabs
         self.tabs.addTab(self.ioTab, "Вход-выход")
         self.tabs.addTab(self.linkTab, "Связи")
         self.tabs.addTab(self.buttonTab, "Расчеты")
         self.tabs.currentChanged.connect(self.on_click)  # changed!
+        self.blockButtonTab()
 
         # Add tabs to widget
         self.layout.addWidget(self.tabs)
@@ -78,7 +84,9 @@ class MyTableWidget(QWidget):
             self.ioTab.saveState()
             self.update()
             self.updateStateIO()
-            # Perform actions specific to Tab 2
+            self.linkTab.saveState()
+            self.blockButtonTab()
+
 
         elif index == 2:
             self.linkTab.save_clicked()
@@ -86,15 +94,24 @@ class MyTableWidget(QWidget):
             self.updateLinkTable()
             self.tmp()
 
+    def blockButtonTab(self):
+        if sum([sum(i) for i in self.stateIO]) > 2:
+            self.tabs.setTabEnabled(2, True)
+        else:
+            self.tabs.setTabEnabled(2, False)
+
+    @pyqtSlot()
     def update(self):
         self.updateFeaturesList(self.ioTab.getInputFeature(), self.ioTab.getOutputFeature())
 
-    def getInitialDataframe(self, path='data/tmp2.csv'):
-        data_input = pd.read_csv(path, index_col=0)
+    def getInitialDataframe(self):
+        data_input = pd.read_csv(self.pathInputFile, index_col=0)
         data_input = data_input.replace('[^0-9]+', np.nan, regex=True)
         data_input = data_input.astype(float)
         nan_columns = find_zero_columns(data_input)
         data_input = data_input.drop(nan_columns, axis=1)
+        # if not self.input_feature is None:
+        #     data_input = data_input.loc[:, self.input_feature + self.output_feature]
         return data_input
 
     def updateFeaturesList(self, input_features, output_features):
@@ -123,6 +140,28 @@ class MyTableWidget(QWidget):
         if set(self.linkTab.getColumnNames()) != set(self.input_feature + self.output_feature):
             self.linkTab.removeTableWidget()
             self.linkTab.updateInput(self.getDataFrame(), self.getStateLink())
+        self.saveStateIO()
+
+    def saveStateIO(self):
+        df = pd.DataFrame(columns=['input', 'output'],
+                          index=['Select ALL'] + list(self.getInitialDataframe().columns),
+                          data=self.stateIO)
+        df.to_csv(self.pathIOFile)
+
+    def initStateIO(self):
+        if os.path.exists(self.pathIOFile):
+            df = pd.read_csv(self.pathIOFile, index_col=0)
+            return df.values
+        else:
+            return None
+
+    def initStateLinkTable(self):
+        if os.path.exists(self.pathLinkFile):
+            df = pd.read_excel(self.pathLinkFile, index_col=0)
+            df.insert(loc=0, column='Select All', value=[0]*len(df))
+            return df.values
+        else:
+            return None
 
     def updateStateLink(self):
         self.stateLink = self.linkTab.state
