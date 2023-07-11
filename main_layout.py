@@ -53,10 +53,6 @@ class MainWindow(QWidget):
         widget_layout.addWidget(self.stk_w)
         self.setLayout(widget_layout)
 
-        # self.ToolTab.save_button.clicked.connect(self.BWindow.updateLenInputFeature(self.input_feature))
-        # self.ToolTab.save_button.clicked.connect(self.BWindow.updateDataFrame(self.getDataFrame()))
-        # self.ToolTab.save_button.clicked.connect(self.BWindow.updateLinkTable(self.getLinkTable()))
-
     def startUIWindow(self):
         self.stk_w.setCurrentWidget(self.Window)
         self.ToolTab.removeTableWidget()
@@ -75,8 +71,6 @@ class MainWindow(QWidget):
     def updateFeaturesList(self, input_features, output_features):
         self.input_feature = input_features
         self.output_feature = output_features
-        # print(self.input_feature)
-        # print(self.output_feature)
 
     def getDataFrame(self):
         df = self.getInitialDataframe()
@@ -97,7 +91,6 @@ class MainWindow(QWidget):
         self.stateIO = self.Window.getState()
 
         self.ToolTab.updateInput(self.getDataFrame())
-        # self.stk_w.setCurrentIndex(1)
         self.stk_w.setCurrentWidget(self.ToolTab)
 
     def tmp(self):

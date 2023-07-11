@@ -3,3 +3,9 @@
 predict 307
 
 func_i = interp1d(fe, xe, kind=way, fill_value="extrapolate")  # interpolation fill_value="extrapolate"
+
+
+
+## bn_visualize
+
+turn off ```plt.show```

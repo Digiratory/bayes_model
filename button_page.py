@@ -13,7 +13,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 import networkx as nx
 import matplotlib.pyplot as plt
 import copy
-
+from matplotlib.figure import Figure
 
 
 def test(y_pred, y_true):
@@ -73,9 +73,6 @@ class SubplotWindow(QtWidgets.QMainWindow):
         plt.ylabel(f'predict, {name}')
         plt.grid()
         plt.title(fr'$R^2$ {round(r2, 3)}->{round(r2_drop_out, 3)}')
-        # plt.show()
-        # plt.tight_layout()
-        # print(df.corr()['true'][0])
         return fig
 
 
@@ -99,6 +96,7 @@ class SubplotGraph(SubplotWindow):
 
         # node labels
         nx.draw_networkx_labels(G, pos, font_size=8, font_family="sans-serif", verticalalignment='bottom')
+
         # edge weight labels
         edge_labels = nx.get_edge_attributes(G, "weight")
         nx.draw_networkx_edge_labels(G, pos, edge_labels, font_size=8)
@@ -126,12 +124,14 @@ class PlotWindows(QtWidgets.QMainWindow):
         self.resize(2000, 1000)
 
         self.data = data
+        self.fig = Figure()
 
-        self.fig = self.initFigure()
+        self.initFigure()
+
         self.canvas = FigureCanvas(self.fig)
 
         self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                      QtWidgets.QSizePolicy.Expanding)
+                                  QtWidgets.QSizePolicy.Expanding)
         self.canvas.updateGeometry()
         self.label = QtWidgets.QLabel("A plot:")
         toolbar = NavigationToolbar(self.canvas, self)
@@ -143,19 +143,22 @@ class PlotWindows(QtWidgets.QMainWindow):
 
         self.setCentralWidget(self.main_widget)
         self.show()
+        self.fig.tight_layout()
 
     def initFigure(self):
-        fig, ax = plt.subplots(figsize=(30, 30))
+        ax = self.fig.add_subplot(111)
+        # discards the old graph
+        ax.clear()
+
         column_name = ['\n'.join(wrap(text, 30)) for text in self.data.columns.values]
         im = sns.heatmap(self.data,
                          xticklabels=column_name,
                          yticklabels=column_name,
                          annot=True,
                          ax=ax, annot_kws={"size": 8})
-        plt.yticks(rotation=0, fontsize=8, horizontalalignment='right')
-        plt.xticks(rotation=30, fontsize=8, horizontalalignment='right')
-        # fig.tight_layout()
-        return fig
+
+        ax.set_xticklabels(column_name, rotation=45, ha='right', fontsize=8)
+        ax.set_yticklabels(column_name, rotation=0, ha='right', fontsize=8)
 
 
 class CorrMatrix:
@@ -220,8 +223,6 @@ class ButtonWindow(QtWidgets.QWidget):
         self.setFixedSize(400, 500)
         self.move(0, 0)
 
-        # self.PreviousBTN = QtWidgets.QPushButton('Назад', self)
-
         self.corr_button = QtWidgets.QPushButton('Матрица корреляций Спирмена', self)
         self.corr_button.clicked.connect(self.on_pushButton_clicked)
 
@@ -244,28 +245,10 @@ class ButtonWindow(QtWidgets.QWidget):
         self.thresholdEdit.setValidator(validator)  # Установка валидатора для поля ввода
         self.thresholdEdit.textChanged[str].connect(self.onChanged)
 
-        # self.thresholdEdit.setValidator(validator)  # Set validator.
-
         lay = QtWidgets.QGridLayout()
         lay.setSpacing(0)
         lay.setContentsMargins(0, -1, 0, -1)
 
-        # grid.addWidget(title, 1, 0)
-        # grid.addWidget(titleEdit, 1, 1)
-        #
-        # grid.addWidget(author, 2, 0)
-        # grid.addWidget(authorEdit, 2, 1)
-
-        # lay = QtWidgets.QVBoxLayout(self)
-        # lay.setSpacing(0)
-        # lay.setContentsMargins(-1, -1, -1, -1)
-
-        # self.formLayoutWidget = QtWidgets.QWidget()
-        # self.formLayout = QtWidgets.QHBoxLayout()
-        # self.formLayoutWidget.setContentsMargins(-1, -1, -1, -1)
-        # self.formLayoutWidget.setLayout(self.formLayout)
-
-        # formLayout = QtWidgets.QHBoxLayout(self)
         lay.addWidget(QtWidgets.QLabel("Threshold"), 1, 0)
         lay.addWidget(self.thresholdEdit, 1, 1)
         # lay.addWidget(self.formLayoutWidget)
@@ -275,7 +258,6 @@ class ButtonWindow(QtWidgets.QWidget):
         lay.addWidget(self.acycle_button, 4, 0, 1, 2)
         lay.addWidget(self.rankCorrButton, 5, 0, 1, 2)
         lay.addWidget(self.calcInferenceButton, 6, 0, 1, 2)
-        # lay.addWidget(self.PreviousBTN)
         self.setLayout(lay)
 
         self.dialogs = list()
@@ -284,8 +266,6 @@ class ButtonWindow(QtWidgets.QWidget):
 
         self.linkTable = linkTable
         self.len_input = len_input
-
-        print(self.len_input)
 
         self.y_true = self.input_df.iloc[:, self.len_input:]
 
@@ -298,21 +278,18 @@ class ButtonWindow(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def on_pushButton_clicked(self):
-        print(self.corr_matrix)
         dialog = PlotWindows(self, self.corr_matrix)
         self.dialogs.append(dialog)
         dialog.show()
-        plt.tight_layout()
 
     @QtCore.pyqtSlot()
     def on_part_corr_button_clicked(self):
         dialog = PlotWindows(self, self.partCorrMatrix)
         self.dialogs.append(dialog)
         dialog.show()
-        plt.tight_layout()
 
     def on_acycle_graph(self):
-        self.graph = GraphPreparation(self.corr_matrix, self.linkTable)
+        self.graph = GraphPreparation(self.corr_matrix, self.linkTable, self.thresholdValue)
         # удалить циклы в графе
         G_before = copy.deepcopy(self.graph.renaming())
         self.graph.drop_cycle()
@@ -338,9 +315,7 @@ class ButtonWindow(QtWidgets.QWidget):
 
         pred_column = ['Predict '+i for i in self.columnsForPredict]
         res = pd.DataFrame(y_predict, index=self.input_df.index, columns=pred_column)
-
         df = self.input_df.join(res)
-
         df.to_csv('data/result.csv')
 
         # df = df.dropna(subset=self.columnsFeatures)
@@ -362,11 +337,8 @@ class ButtonWindow(QtWidgets.QWidget):
         self.len_input = lenInput
 
     def updateMatrix(self):
-        print(self.input_df)
-        print('Update_matrix')
         self.corr_matrix = CorrMatrix(self.input_df).getCorrMatrix()
         self.partCorrMatrix = PartCorrMatrix(self.input_df).getCorrMatrix()
-
         self.y_true = self.input_df.iloc[:, self.len_input:]
 
     def getThresholdVal(self):

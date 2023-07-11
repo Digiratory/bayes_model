@@ -13,16 +13,6 @@ class LinkTabWindow(QtWidgets.QWidget):
         self.BackBTN = QtWidgets.QPushButton("Назад", self)
         self.BackBTN.move(100, 350)
 
-
-        # self.NextBTN = QtWidgets.QPushButton("Вперед", self)
-        # self.NextBTN.move(100, 350)
-
-        # self.input_df = input_df
-        # col_name = input_df.columns
-        # self.result_df = pd.DataFrame(columns=col_name, index=col_name)
-        #
-        # col_name = col_name.insert(0, 'Select ALL')
-        # self.tableWidget = QtWidgets.QTableWidget(len(col_name), len(col_name))
         self.save_button = QtWidgets.QPushButton("Сохранить")
         self.save_button.clicked.connect(self.save_clicked)
 
@@ -38,24 +28,11 @@ class LinkTabWindow(QtWidgets.QWidget):
 
         self.lay.addWidget(self.save_button)
         self.lay.addWidget(self.BackBTN)
-        # self.lay.addWidget(self.tableWidget)
-
-        # lay.addWidget(self.NextBTN)
-
-        # self.buttons_widget = QtWidgets.QWidget()
-        # self.buttons_layout = QtWidgets.QHBoxLayout()
-        # self.buttons_widget.setLayout(self.buttons_layout)
-        # self.buttons_layout.addWidget(self.BackBTN)
-        # self.buttons_layout.addWidget(self.NextBTN)
-        # self.lay.addWidget(self.buttons_widget)
-        # self.widget_page.setLayout(self.lay)
-        # self.setCentralWidget(self.widget_page)
 
     def select_all_clicked_by_columns(self, row, column):
         if row != 0:
             return 0
         state = self.tableWidget.item(0, column).checkState()
-        # state = self.tableWidget.state()
         print(state)
         for i in range(self.tableWidget.rowCount()):
             item = self.tableWidget.item(i, column)
@@ -88,9 +65,6 @@ class LinkTabWindow(QtWidgets.QWidget):
         return self.result_df
 
     def updateInput(self, input_df):
-        # self.lay.deleteLater()
-        # self.lay.addWidget(self.tableWidget)
-
         self.input_df = input_df
 
         col_name = input_df.columns
@@ -108,8 +82,6 @@ class LinkTabWindow(QtWidgets.QWidget):
                 item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
                 item.setCheckState(QtCore.Qt.Unchecked)
                 self.tableWidget.setItem(i, j, item)
-
-        # self.tableWidget.cellChanged.connect(self.select_all_clicked)
 
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_columns)
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_rows)
