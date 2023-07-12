@@ -95,10 +95,13 @@ class MyTableWidget(QWidget):
             self.tmp()
 
     def blockButtonTab(self):
-        if sum([sum(i) for i in self.stateIO]) > 2:
-            self.tabs.setTabEnabled(2, True)
-        else:
+        if self.stateIO is None:
             self.tabs.setTabEnabled(2, False)
+        else:
+            if sum([sum(i) for i in self.stateIO]) > 2:
+                self.tabs.setTabEnabled(2, True)
+            else:
+                self.tabs.setTabEnabled(2, False)
 
     @pyqtSlot()
     def update(self):
