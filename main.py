@@ -55,8 +55,7 @@ class MyTableWidget(QWidget):
 
         self.buttonTab = ButtonWindow(self, pd.DataFrame(), pd.DataFrame(), 1)
 
-        self.jointgridTab = jointgridWindow(self,
-                              input_df=self.getInitialDataframe())
+        self.jointgridTab = jointgridWindow(self, data=self.getInitialDataframe())
 
         self.tabs.resize(300, 200)
 
