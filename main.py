@@ -3,6 +3,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QWidget
 import sys
 from input_output import IOWindow
+from jointgrid import jointgridWindow
 from link_table import LinkTabWindow
 import pandas as pd
 from button_page import ButtonWindow
@@ -44,6 +45,7 @@ class MyTableWidget(QWidget):
         self.stateIO = self.initStateIO()
         self.stateLink = self.initStateLinkTable()
         self.linkTable = None
+        self.stateJointplot = None
 
         self.setWindowTitle("Bayes inference")
 
@@ -60,10 +62,15 @@ class MyTableWidget(QWidget):
         self.linkTab = LinkTabWindow(self, input_df=self.getDataFrame(), state=self.stateLink)
         self.buttonTab = ButtonWindow(self, pd.DataFrame(), pd.DataFrame(), 1)
 
+        self.jointgridTab = jointgridWindow(self, data=self.getInitialDataframe())
+
+        self.tabs.resize(300, 200)
+
         # Add tabs
         self.tabs.addTab(self.ioTab, "Вход-выход")
         self.tabs.addTab(self.linkTab, "Связи")
         self.tabs.addTab(self.buttonTab, "Расчеты")
+        self.tabs.addTab(self.jointgridTab, "График двух переменных")
         self.tabs.currentChanged.connect(self.on_click)  # changed!
         self.blockButtonTab()
 
@@ -134,6 +141,9 @@ class MyTableWidget(QWidget):
 
     def getStateIO(self):
         return self.stateIO
+    
+    def getStateJointplot(self):
+        return self.stateJointplot
 
     def getStateLink(self):
         return self.stateLink
