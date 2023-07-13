@@ -1,5 +1,4 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
-
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import seaborn as sns
 import pandas as pd
@@ -72,7 +71,7 @@ class SubplotWindow(QtWidgets.QMainWindow):
         plt.xlabel(f'true, {name}')
         plt.ylabel(f'predict, {name}')
         plt.grid()
-        plt.title(fr'$R^2$ {round(r2, 3)}->{round(r2_drop_out, 3)}')
+        plt.title(fr'$R$ {round(r2, 3)}$\rightarrow${round(r2_drop_out, 3)}')
         return fig
 
 
@@ -106,11 +105,6 @@ class SubplotGraph(SubplotWindow):
         plt.axis("off")
         plt.tight_layout()
         return fig
-
-
-def preparing_df(df):
-    df = df.replace('[^0-9]+', np.nan, regex=True)
-    return df
 
 
 class PlotWindows(QtWidgets.QMainWindow):
@@ -318,8 +312,6 @@ class ButtonWindow(QtWidgets.QWidget):
         df.to_csv('data/result.csv')
 
         df = df.dropna(subset=self.columnsFeatures)
-        df.to_csv('data/result2.csv')
-        # print(df.shape)
 
         # dictPredict = test(y_predict, self.y_true)
         dictPredict = test(df[pred_column].values, df[self.columnsForPredict])
