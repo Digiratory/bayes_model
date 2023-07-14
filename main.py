@@ -60,7 +60,9 @@ class MyTableWidget(QWidget):
         self.update()
 
         self.linkTab = LinkTabWindow(self, input_df=self.getDataFrame(), state=self.stateLink)
+
         self.buttonTab = ButtonWindow(self, pd.DataFrame(), pd.DataFrame(), 1)
+        self.buttonTab.acycle_button.clicked.connect(self.updateLinkTableFromAcyclic)
 
         self.jointgridTab = jointgridWindow(self, data=self.getInitialDataframe())
 
@@ -93,7 +95,6 @@ class MyTableWidget(QWidget):
             self.updateStateIO()
             self.linkTab.saveState()
             self.blockButtonTab()
-
 
         elif index == 2:
             self.linkTab.save_clicked()
@@ -136,6 +137,13 @@ class MyTableWidget(QWidget):
     def updateLinkTable(self):
         self.linkTable = self.linkTab.getDataFrame()
 
+    def updateLinkTableFromAcyclic(self):
+        if self.buttonTab.updLinkTable is not None:
+            self.linkTable = self.buttonTab.getNewLinkTab()
+        self.stateLink = self.linkTable.values
+        self.linkTab.removeTableWidget()
+        self.linkTab.updateInput(self.getDataFrame(), self.getStateLink())
+
     def getLinkTable(self):
         return self.linkTable
 
@@ -171,7 +179,7 @@ class MyTableWidget(QWidget):
     def initStateLinkTable(self):
         if os.path.exists(self.pathLinkFile):
             df = pd.read_excel(self.pathLinkFile, index_col=0)
-            df.insert(loc=0, column='Select All', value=[0]*len(df))
+            # df.insert(loc=0, column='Select All', value=[0]*len(df))
             return df.values
         else:
             return None
