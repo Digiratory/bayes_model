@@ -108,7 +108,7 @@ class LinkTabWindow(QtWidgets.QWidget):
 
         for i in range(0, len(input_vector)):
             for j in range(0, len(input_vector[0])):
-                new_vector[i+1][j] = QtCore.Qt.Checked if input_vector[i][j] > 0 else QtCore.Qt.Unchecked
+                new_vector[i+1][j+1] = QtCore.Qt.Checked if input_vector[i][j] > 0 else QtCore.Qt.Unchecked
         return new_vector
 
     def getColumnNames(self):

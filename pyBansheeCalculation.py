@@ -1,6 +1,6 @@
 from py_banshee.rankcorr import bn_rankcorr
 from py_banshee.bn_plot import bn_visualize
-from py_banshee.prediction import inference
+from py_banshee.prediction import inference, conditional_margins_hist
 import matplotlib.pyplot as plt
 
 
@@ -17,6 +17,7 @@ class BansheeCalc:
 
         self.df = df
         self.R = None
+        self.F = None
         error = self.calcRankCorr()
 
         plt.close()
@@ -57,4 +58,12 @@ class BansheeCalc:
                       Output=output,
                       SampleSize=sampleSize,
                       Interp=interp)
+        self.F = F
+        self.plotHist(len_input_list)
         return F
+
+    def plotHist(self, len_input_list):
+        nodes = list(range(len_input_list))  # all variables except for value of interest
+        values = self.df.iloc[:, nodes].to_numpy()  # data for predictions
+
+        conditional_margins_hist(F=self.F, DATA=self.df, names=self.df.columns, condition_nodes=nodes)

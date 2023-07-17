@@ -266,6 +266,8 @@ class ButtonWindow(QtWidgets.QWidget):
 
         self.thresholdValue = 0.0
 
+        self.updLinkTable = None
+
     def onChanged(self, text):
         self.thresholdValue = float(text)
 
@@ -283,9 +285,13 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def on_acycle_graph(self):
         self.graph = GraphPreparation(self.corr_matrix, self.linkTable, self.thresholdValue)
+
         # удалить циклы в графе
         G_before = copy.deepcopy(self.graph.renaming())
         self.graph.drop_cycle()
+
+        self.changeLinkTable()
+
         d = {'Before': G_before, 'After': self.graph.renaming()}
         dialog = SubplotGraph(data=d)
         self.dialogs.append(dialog)
@@ -325,6 +331,7 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def updateLinkTable(self, linkTable):
         self.linkTable = linkTable
+        self.updLinkTable = None
 
     def updateLenInputFeature(self, lenInput):
         self.len_input = lenInput
@@ -336,6 +343,17 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def getThresholdVal(self):
         return self.thresholdValue
+
+    def changeLinkTable(self):
+        newLinkTab = pd.DataFrame(columns=self.input_df.columns, index=self.input_df.columns)
+
+        for i in self.graph.renaming().edges(data=True):
+            newLinkTab.loc[i[0], i[1]] = 1
+        newLinkTab = newLinkTab.fillna(0)
+        self.updLinkTable = newLinkTab
+
+    def getNewLinkTab(self):
+        return self.updLinkTable
 
 
 
