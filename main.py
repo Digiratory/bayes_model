@@ -11,7 +11,6 @@ from utils import find_zero_columns
 import numpy as np
 import os
 
-
 class App(QMainWindow):
 
     def __init__(self):
@@ -72,7 +71,7 @@ class MyTableWidget(QWidget):
         self.tabs.addTab(self.buttonTab, "Расчеты")
         self.tabs.addTab(self.jointgridTab, "График двух переменных")
         self.tabs.currentChanged.connect(self.on_click)  # changed!
-        self.blockButtonTab()
+        self.ioTab.block_signal.connect(self.blockButtonTab)
 
         # Add tabs to widget
         self.layout.addWidget(self.tabs)
@@ -87,13 +86,7 @@ class MyTableWidget(QWidget):
             # Perform actions specific to Tab 1
 
         elif index == 1:
-            self.ioTab.save_clicked()
-            self.ioTab.saveState()
-            self.update()
-            self.updateStateIO()
-            self.linkTab.saveState()
-            self.blockButtonTab()
-
+            pass
 
         elif index == 2:
             self.linkTab.save_clicked()
@@ -101,11 +94,19 @@ class MyTableWidget(QWidget):
             self.updateLinkTable()
             self.tmp()
 
-    def blockButtonTab(self):
+    @pyqtSlot()
+    def blockButtonTab(self):       
+        self.ioTab.save_clicked()
+        self.ioTab.saveState()
+        self.update()
+        self.updateStateIO()
+
         if self.stateIO is None:
             self.tabs.setTabEnabled(2, False)
         else:
-            if sum([sum(i) for i in self.stateIO]) > 2:
+            # the value of each tick is 2
+            # in order for the calculations tab to be opened, you need to click at least 2 "in" and 1 "out" checkboxes
+            if sum([i[0] for i in self.stateIO]) >= 4 and sum([i[1] for i in self.stateIO])>=2:
                 self.tabs.setTabEnabled(2, True)
             else:
                 self.tabs.setTabEnabled(2, False)
