@@ -2,7 +2,9 @@ import pandas as pd
 from PyQt5 import QtCore, QtWidgets
 
 
+
 class IOWindow(QtWidgets.QWidget):
+    block_signal = QtCore.pyqtSignal()
     def __init__(self, parent=None, input_df=None, state=None):
         super(IOWindow, self).__init__(parent)
         self.input_table = input_df
@@ -26,8 +28,13 @@ class IOWindow(QtWidgets.QWidget):
                 item.setCheckState(self.state[i][j])
                 self.tableWidget.setItem(i, j, item)
 
+
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_columns)
         self.tableWidget.cellChanged.connect(self.turnOffClicked)
+        self.tableWidget.cellChanged.connect(self.block_signal)
+
+    def send_block_signal(self):
+        self.block_signal.emit()
 
     def select_all_clicked_by_columns(self, row, column):
         if row != 0:
@@ -51,7 +58,7 @@ class IOWindow(QtWidgets.QWidget):
             # else:
                 # item.setCheckState(QtCore.Qt.Unchecked)
                 # item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-
+        
     @QtCore.pyqtSlot()
     def save_clicked(self):
         items = []
@@ -98,5 +105,4 @@ class IOWindow(QtWidgets.QWidget):
 
     def getState(self):
         return self.state
-
 

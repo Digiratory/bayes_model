@@ -50,8 +50,9 @@ class jointgridWindow(QtWidgets.QWidget):
     def __init__(self, parent=None, data=None,):
         super(jointgridWindow, self).__init__(parent)
 
-        self.data = data
-        col_name = self.data.columns
+        self.df = data
+        col_name = self.df.columns
+
         self.df_select = pd.DataFrame(columns=['select'], index=col_name)
         self.tableWidget = QtWidgets.QTableWidget(len(col_name), 1)
         self.build_button = QtWidgets.QPushButton("Построить")
@@ -109,14 +110,11 @@ class jointgridWindow(QtWidgets.QWidget):
 
     def on_pushButton_clicked(self):
         if len(self.selected_items)==self.num_of_selected_items:
-            df = self.data
-            df = df.replace('[^0-9]+', np.nan, regex=True)
-            df = df.astype(float)
             column_name1 = self.selected_items_names[0]
             column_name2 = self.selected_items_names[1]
-            df_without_nan = df.dropna(subset=[column_name1, column_name2])
+            df_without_nan = self.df.dropna(subset=[column_name1, column_name2])
             r, _ = stats.pearsonr(df_without_nan[column_name1], df_without_nan[column_name2])
-            x, y = df[column_name1], df[column_name2] 
+            x, y = self.df[column_name1], self.df[column_name2] 
 
             g = sns.JointGrid()
             g.fig.set_size_inches((8, 8))
