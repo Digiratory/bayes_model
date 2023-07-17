@@ -88,7 +88,7 @@ class MyTableWidget(QWidget):
             # Perform actions specific to Tab 1
 
         elif index == 1:
-            pass
+            self.blockButtonTab()
 
         elif index == 2:
             self.linkTab.save_clicked()
@@ -119,6 +119,8 @@ class MyTableWidget(QWidget):
 
     def getInitialDataframe(self):
         data_input = pd.read_csv(self.pathInputFile, index_col=0)
+        add_quotes = lambda x: f'"{x}"'
+        data_input.columns=list(map(add_quotes,data_input.columns))
         data_input = data_input.replace('[^0-9]+', np.nan, regex=True)
         data_input = data_input.astype(float)
         nan_columns = find_zero_columns(data_input)

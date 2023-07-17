@@ -66,4 +66,4 @@ class BansheeCalc:
         nodes = list(range(len_input_list))  # all variables except for value of interest
         values = self.df.iloc[:, nodes].to_numpy()  # data for predictions
 
-        conditional_margins_hist(F=self.F, DATA=self.df, names=self.df.columns, condition_nodes=nodes)
+        #conditional_margins_hist(F=self.F, DATA=self.df, names=self.df.columns, condition_nodes=nodes)
