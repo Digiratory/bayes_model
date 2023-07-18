@@ -82,6 +82,7 @@ class SubplotGraph(SubplotWindow):
         esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] <= 0.5]
 
         pos = nx.spring_layout(G, seed=10, k=3)  # positions for all nodes - seed for reproducibility
+        # pos = nx.fruchterman_reingold_layout(G)  # positions for all nodes - seed for reproducibility
         # pos = nx.circular_layout(G)
 
         # nodes

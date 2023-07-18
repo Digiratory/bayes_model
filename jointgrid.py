@@ -6,7 +6,7 @@ import seaborn as sns
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from PyQt5 import QtCore, QtWidgets, QtGui
-
+from utils import get_index_outliers, get_outliers_cooks
 
 
 class JointGridWidget(FigureCanvas):
@@ -52,7 +52,6 @@ class jointgridWindow(QtWidgets.QWidget):
 
         self.df = data
         col_name = self.df.columns
-
         self.df_select = pd.DataFrame(columns=['select'], index=col_name)
         self.tableWidget = QtWidgets.QTableWidget(len(col_name), 1)
         self.build_button = QtWidgets.QPushButton("Построить")
@@ -73,8 +72,7 @@ class jointgridWindow(QtWidgets.QWidget):
 
         self.selected_items = []
         self.selected_items_names = []
-        self.num_of_selected_items=2
-        
+        self.num_of_selected_items = 2
 
         self.tableWidget.setHorizontalHeaderLabels(['select'])
         self.tableWidget.setVerticalHeaderLabels(col_name)
@@ -107,25 +105,46 @@ class jointgridWindow(QtWidgets.QWidget):
             self.selected_items.pop(delete_index)
             self.selected_items_names.pop(delete_index)
 
-
     def on_pushButton_clicked(self):
-        if len(self.selected_items)==self.num_of_selected_items:
+      
+        if len(self.selected_items) == self.num_of_selected_items:
             column_name1 = self.selected_items_names[0]
             column_name2 = self.selected_items_names[1]
             df_without_nan = self.df.dropna(subset=[column_name1, column_name2])
+
+            # нахождение выбросов
+            # outliers_index = get_index_outliers(df_without_nan[[column_name1, column_name2]])
+            outliers_index = get_outliers_cooks(df_without_nan[[column_name1, column_name2]])
+
+            # датафрейм выбросов и без выбросов
+            df_outliers = df_without_nan.loc[outliers_index]
+            df_without_outliers = df_without_nan.drop(outliers_index)
+
+            # корреляция полного датафрейма и без выбросов
             r, _ = stats.pearsonr(df_without_nan[column_name1], df_without_nan[column_name2])
-            x, y = self.df[column_name1], self.df[column_name2] 
+            r_w, _ = stats.pearsonr(df_without_outliers[column_name1], df_without_outliers[column_name2])
+
+            # точки где нет выбросов, точки с выбросами
+            x, y = df_without_outliers[column_name1], df_without_outliers[column_name2]
+            x_outlier, y_outlier = df_outliers[column_name1], df_outliers[column_name2]
 
             g = sns.JointGrid()
             g.fig.set_size_inches((8, 8))
-            sns.scatterplot(x=x, y=y, s=100, linewidth=1.5, ax=g.ax_joint)
-            sns.regplot(x=x, y=y, ax=g.ax_joint)
+            sns.scatterplot(x=x, y=y, s=100, linewidth=1.5, ax=g.ax_joint, color='b')
+            sns.scatterplot(x=x_outlier, y=y_outlier, s=100, linewidth=1.5, ax=g.ax_joint, color='r')
+
+            sns.regplot(x=df_without_nan[column_name1], y=df_without_nan[column_name2],
+                        ax=g.ax_joint, color='r', scatter=False, line_kws={'linewidth': 1})
+            sns.regplot(x=x, y=y, ax=g.ax_joint, color='black', scatter=False)
             g.ax_marg_x.set_xlim(0)
             sns.kdeplot(y=y, linewidth=2, ax=g.ax_marg_y)
             sns.kdeplot(x=x, linewidth=2, ax=g.ax_marg_x)
-            g.ax_joint.annotate(f'$R = {r:.3f}$',
+            g.ax_joint.annotate(f'$R = {r:.3f}$ - все точки',
                                 xy=(0.1, 0.9), xycoords='axes fraction',
-                                ha='left', va='center',
-                                bbox={'boxstyle': 'round', 'fc': 'powderblue', 'ec': 'navy'})
+                                ha='left', va='center', color='red')
+
+            g.ax_joint.annotate(f'$R = {r_w:.3f}$ - без выбросов',
+                                xy=(0.1, 0.85), xycoords='axes fraction',
+                                ha='left', va='center')
             plt.show()
-          
+
