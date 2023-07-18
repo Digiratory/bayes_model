@@ -106,6 +106,7 @@ class jointgridWindow(QtWidgets.QWidget):
             self.selected_items_names.pop(delete_index)
 
     def on_pushButton_clicked(self):
+      
         if len(self.selected_items) == self.num_of_selected_items:
             column_name1 = self.selected_items_names[0]
             column_name2 = self.selected_items_names[1]
