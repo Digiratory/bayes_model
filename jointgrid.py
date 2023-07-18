@@ -6,8 +6,7 @@ import seaborn as sns
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from PyQt5 import QtCore, QtWidgets, QtGui
-from utils import get_index_outliers
-
+from utils import get_index_outliers, get_outliers_cooks
 
 
 class JointGridWidget(FigureCanvas):
@@ -107,7 +106,6 @@ class jointgridWindow(QtWidgets.QWidget):
             self.selected_items.pop(delete_index)
             self.selected_items_names.pop(delete_index)
 
-
     def on_pushButton_clicked(self):
         if len(self.selected_items) == self.num_of_selected_items:
             df = self.data
@@ -116,7 +114,8 @@ class jointgridWindow(QtWidgets.QWidget):
             column_name1 = self.selected_items_names[0]
             column_name2 = self.selected_items_names[1]
             df_without_nan = df.dropna(subset=[column_name1, column_name2])
-            outliers_index = get_index_outliers(df_without_nan[[column_name1, column_name2]])
+            # outliers_index = get_index_outliers(df_without_nan[[column_name1, column_name2]])
+            outliers_index = get_outliers_cooks(df_without_nan[[column_name1, column_name2]])
 
             df_outliers = df_without_nan.loc[outliers_index]
             df_without_outliers = df_without_nan.drop(outliers_index)
@@ -139,13 +138,10 @@ class jointgridWindow(QtWidgets.QWidget):
             sns.kdeplot(x=x, linewidth=2, ax=g.ax_marg_x)
             g.ax_joint.annotate(f'$R = {r:.3f}$ - все точки',
                                 xy=(0.1, 0.9), xycoords='axes fraction',
-                                ha='left', va='center',
-                                color='red',
-                                bbox={'boxstyle': 'round', 'fc': 'powderblue', 'ec': 'navy'})
+                                ha='left', va='center', color='red')
 
-            g.ax_joint.annotate(f'$R = {r_w:.3f}$ - после удаления выбросов',
-                                xy=(0.1, 0.95), xycoords='axes fraction',
-                                ha='left', va='center',
-                                bbox={'boxstyle': 'round', 'fc': 'powderblue', 'ec': 'navy'})
+            g.ax_joint.annotate(f'$R = {r_w:.3f}$ - без выбросов',
+                                xy=(0.1, 0.85), xycoords='axes fraction',
+                                ha='left', va='center')
             plt.show()
 
