@@ -48,8 +48,9 @@ class BansheeCalc:
         values = self.df.iloc[:, nodes].to_numpy()  # data for predictions
         output = 'mean'  # show only mean of the uncertainty distribution
         sampleSize = 10000  # draw 10,000 samples when conditionalizing the BN
-        interp = 'nearest'  # use the 'next' method to interpolate the empirical
-        # interp = 'linear'
+        # interp = 'next'  # use the 'next' method to interpolate the empirical
+        interp = 'linear'
+        # interp = 'nearest'
 
         F = inference(Nodes=nodes,
                       Values=values,
@@ -59,11 +60,11 @@ class BansheeCalc:
                       SampleSize=sampleSize,
                       Interp=interp)
         self.F = F
-        self.plotHist(len_input_list)
+        # self.plotHist(len_input_list)
         return F
 
     def plotHist(self, len_input_list):
         nodes = list(range(len_input_list))  # all variables except for value of interest
         values = self.df.iloc[:, nodes].to_numpy()  # data for predictions
 
-        #conditional_margins_hist(F=self.F, DATA=self.df, names=self.df.columns, condition_nodes=nodes)
+        conditional_margins_hist(F=self.F, DATA=self.df, names=self.df.columns, condition_nodes=nodes)

@@ -11,6 +11,7 @@ from utils import find_zero_columns
 import numpy as np
 import os
 
+
 class App(QMainWindow):
 
     def __init__(self):
@@ -63,7 +64,9 @@ class MyTableWidget(QWidget):
         self.buttonTab = ButtonWindow(self, pd.DataFrame(), pd.DataFrame(), 1)
         self.buttonTab.acycle_button.clicked.connect(self.updateLinkTableFromAcyclic)
 
-        self.jointgridTab = jointgridWindow(self, data=self.getInitialDataframe())
+        self.jointgridTab = jointgridWindow(self,
+                                            data=self.getInitialDataframe(),
+                                            predicted_data=self.buttonTab.getPrediction())
 
         self.tabs.resize(300, 200)
 
@@ -81,11 +84,13 @@ class MyTableWidget(QWidget):
 
     @pyqtSlot()
     def on_click(self):
+        """
+        action between tabs
+        """
         index = self.tabs.currentIndex()
         if index == 0:
             # print("Switched to Tab 1")
             return 1
-            # Perform actions specific to Tab 1
 
         elif index == 1:
             self.blockButtonTab()
@@ -95,6 +100,10 @@ class MyTableWidget(QWidget):
             self.updateStateLink()
             self.updateLinkTable()
             self.tmp()
+
+        elif index == 3:
+            self.jointgridTab.removeTableWidget()
+            self.jointgridTab.updateData(self.buttonTab.getPrediction())
 
     @pyqtSlot()
     def blockButtonTab(self):       
@@ -120,7 +129,7 @@ class MyTableWidget(QWidget):
     def getInitialDataframe(self):
         data_input = pd.read_csv(self.pathInputFile, index_col=0)
         add_quotes = lambda x: f'"{x}"'
-        data_input.columns=list(map(add_quotes,data_input.columns))
+        data_input.columns = list(map(add_quotes, data_input.columns))
         data_input = data_input.replace('[^0-9]+', np.nan, regex=True)
         data_input = data_input.astype(float)
         nan_columns = find_zero_columns(data_input)

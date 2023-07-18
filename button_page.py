@@ -19,6 +19,19 @@ def test(y_pred, y_true):
     columns_list = y_true.columns
     result_list = {}
     for num, column_name in enumerate(columns_list):
+        k = y_true.iloc[:, num].dropna()
+        upper, lower = k.max(), k.min()
+
+        xmin, xmax = np.min(y_pred[:, num]), np.max(y_pred[:, num])  # get max and min from input array
+        print(upper, lower)
+
+        print(y_true.iloc[:, num])
+        print(y_true.info)
+
+        y_pred[:, num] = [(x - xmin) / (xmax - xmin) for x in y_pred[:, num]]
+
+        y_pred[:, num] = [lower + (upper - lower) * x for x in y_pred[:, num]]
+
         df_result = pd.DataFrame(data={'pred': y_pred[:, num], 'true': y_true.iloc[:, num]}, index=y_true.index)
         result_list[column_name] = df_result
     return result_list
@@ -60,16 +73,29 @@ class SubplotWindow(QtWidgets.QMainWindow):
         fig = plt.figure()
         out = find_outliers(df['true']-df['pred'])
         df_drop_out = df[~df.index.isin(out)]
+
+        df_drop_out = df_drop_out.dropna()
+        b, a = np.polyfit(df_drop_out['true'], df_drop_out['pred'], deg=1)
+        # sns.regplot(x=df_drop_out['true'], y=df_drop_out['pred'], color='tab:blue',
+        #             scatter=False, line_kws={'linewidth': 1})
+
+        xseq = np.linspace(df['true'].min()-5, df['true'].max()+5, num=100)
         plt.scatter(df_drop_out['true'], df_drop_out['pred'])
+        plt.plot(xseq, a + b * xseq, lw=1)
+
+        # ci = 1.96 * np.std(a + b * xseq) / np.sqrt(len(xseq))
+        # plt.fill_between(xseq, (a + b * xseq - ci), (a + b * xseq + ci), color='b', alpha=.1)
+
         r2 = df['true'].corr(df['pred'])
         r2_drop_out = df_drop_out['true'].corr(df_drop_out['pred'])
 
         if len(out):
             k = df.loc[out]
+            # add linear regression
             plt.scatter(k['true'], k['pred'], color='r')
 
-        plt.xlabel(f'true, {name}')
-        plt.ylabel(f'predict, {name}')
+        plt.xlabel(f'Observed, {name}')
+        plt.ylabel(f'Predicted, {name}')
         plt.grid()
         plt.title(fr'$R$ {round(r2, 3)}$\rightarrow${round(r2_drop_out, 3)}')
         return fig
@@ -268,6 +294,7 @@ class ButtonWindow(QtWidgets.QWidget):
         self.thresholdValue = 0.0
 
         self.updLinkTable = None
+        self.df_predicted = pd.DataFrame()
 
     def onChanged(self, text):
         self.thresholdValue = float(text)
@@ -313,9 +340,10 @@ class ButtonWindow(QtWidgets.QWidget):
         self.columnsForPredict = self.input_df.columns[self.len_input:]
         self.columnsFeatures = self.input_df.columns[:self.len_input]
 
-        pred_column = ['Predict '+i for i in self.columnsForPredict]
-        res = pd.DataFrame(y_predict, index=self.input_df.index, columns=pred_column)
-        df = self.input_df.join(res)
+        pred_column = ['Predicted ' + i for i in self.columnsForPredict]
+        self.df_predicted = pd.DataFrame(y_predict, index=self.input_df.index, columns=pred_column)
+        df = self.input_df.join(self.df_predicted)
+
         df.to_csv('data/result.csv')
 
         df = df.dropna(subset=self.columnsFeatures)
@@ -355,6 +383,9 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def getNewLinkTab(self):
         return self.updLinkTable
+
+    def getPrediction(self):
+        return self.df_predicted
 
 
 
