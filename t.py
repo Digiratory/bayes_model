@@ -4,5 +4,5 @@ from pyModbusTCP.client import ModbusClient
 c = ModbusClient(host="192.168.3.18", auto_open=True, debug=True)
 print(c)
 if c.open():
-    regs = c.read_holding_registers(4, 2)
+    regs = c.read_holding_registers(0, 2)
     c.close()

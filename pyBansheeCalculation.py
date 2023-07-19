@@ -18,27 +18,30 @@ class BansheeCalc:
         self.df = df
         self.R = None
         self.F = None
-        error = self.calcRankCorr()
-
-        plt.close()
-        plt.cla()
-        plt.clf()
-        fig_name = 'bn_tmp2'
-        if not error:
-            bn_visualize(self.ParentCell,
-                         self.R,
-                         self.columns_data,
-                         fig_name=fig_name)
+        self.calcRankCorr()
 
     def calcRankCorr(self):
         try:  # можно ли как-то избежать try/except, для случая когда много пропусков и функция не работает
             self.R = bn_rankcorr(self.ParentCell, self.df,
                                  var_names=self.columns_data,
                                  is_data=True, plot=False)
-            return 0
         except:
             self.R = None
-            return 1
+
+    def saveGraph(self):
+
+        plt.close()
+        plt.cla()
+        plt.clf()
+
+        fig_name = 'graph'
+
+        columns_with_com = list(map(lambda x: f'"{x}"', self.columns_data))
+
+        bn_visualize(self.ParentCell,
+                     self.R,
+                     columns_with_com,
+                     fig_name=fig_name)
 
     def getRankCorr(self):
         return self.R

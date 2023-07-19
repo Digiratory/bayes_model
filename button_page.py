@@ -15,6 +15,15 @@ import copy
 from matplotlib.figure import Figure
 
 
+def rescale_feature(input_vector, lower, upper):
+    xmin, xmax = np.min(input_vector), np.max(input_vector)  # get max and min from input array
+
+    input_vector = [(x - xmin) / (xmax - xmin) for x in input_vector]
+
+    input_vector = [lower + (upper - lower) * x for x in input_vector]
+    return input_vector
+
+
 def test(y_pred, y_true):
     columns_list = y_true.columns
     result_list = {}
@@ -22,15 +31,12 @@ def test(y_pred, y_true):
         k = y_true.iloc[:, num].dropna()
         upper, lower = k.max(), k.min()
 
-        xmin, xmax = np.min(y_pred[:, num]), np.max(y_pred[:, num])  # get max and min from input array
-        print(upper, lower)
-
-        print(y_true.iloc[:, num])
-        print(y_true.info)
-
-        y_pred[:, num] = [(x - xmin) / (xmax - xmin) for x in y_pred[:, num]]
-
-        y_pred[:, num] = [lower + (upper - lower) * x for x in y_pred[:, num]]
+        # xmin, xmax = np.min(y_pred[:, num]), np.max(y_pred[:, num])  # get max and min from input array
+        #
+        # y_pred[:, num] = [(x - xmin) / (xmax - xmin) for x in y_pred[:, num]]
+        #
+        # y_pred[:, num] = [lower + (upper - lower) * x for x in y_pred[:, num]]
+        # y_pred[:, num] = rescale_feature(y_pred[:, num], lower, upper)
 
         df_result = pd.DataFrame(data={'pred': y_pred[:, num], 'true': y_true.iloc[:, num]}, index=y_true.index)
         result_list[column_name] = df_result
@@ -75,13 +81,15 @@ class SubplotWindow(QtWidgets.QMainWindow):
         df_drop_out = df[~df.index.isin(out)]
 
         df_drop_out = df_drop_out.dropna()
-        b, a = np.polyfit(df_drop_out['true'], df_drop_out['pred'], deg=1)
+
         # sns.regplot(x=df_drop_out['true'], y=df_drop_out['pred'], color='tab:blue',
         #             scatter=False, line_kws={'linewidth': 1})
 
         xseq = np.linspace(df['true'].min()-5, df['true'].max()+5, num=100)
         plt.scatter(df_drop_out['true'], df_drop_out['pred'])
-        plt.plot(xseq, a + b * xseq, lw=1)
+        if len(df_drop_out) > 1:
+            b, a = np.polyfit(df_drop_out['true'], df_drop_out['pred'], deg=1)
+            plt.plot(xseq, a + b * xseq, lw=1)
 
         # ci = 1.96 * np.std(a + b * xseq) / np.sqrt(len(xseq))
         # plt.fill_between(xseq, (a + b * xseq - ci), (a + b * xseq + ci), color='b', alpha=.1)
@@ -136,10 +144,10 @@ class SubplotGraph(SubplotWindow):
 
 class PlotWindows(QtWidgets.QMainWindow):
 
-    def __init__(self, parent=None, data=None):
+    def __init__(self, parent=None, data=None, title='Матрица'):
         super(PlotWindows, self).__init__(parent)
 
-        self.setWindowTitle('Матрица')
+        self.setWindowTitle(title)
 
         self.main_widget = QtWidgets.QWidget(self)
         self.resize(2000, 1000)
@@ -154,12 +162,12 @@ class PlotWindows(QtWidgets.QMainWindow):
         self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                                   QtWidgets.QSizePolicy.Expanding)
         self.canvas.updateGeometry()
-        self.label = QtWidgets.QLabel("A plot:")
+        # self.label = QtWidgets.QLabel("A plot:")
         toolbar = NavigationToolbar(self.canvas, self)
 
         self.layout = QtWidgets.QGridLayout(self.main_widget)
         self.layout.addWidget(toolbar)
-        self.layout.addWidget(self.label)
+        # self.layout.addWidget(self.label)
         self.layout.addWidget(self.canvas)
 
         self.setCentralWidget(self.main_widget)
@@ -243,20 +251,22 @@ class ButtonWindow(QtWidgets.QWidget):
         self.setFixedSize(400, 500)
         self.move(0, 0)
 
-        self.corr_button = QtWidgets.QPushButton('Матрица корреляций Спирмена', self)
+        self.corr_button = QtWidgets.QPushButton('Full Spearman\'s Correlation', self)
         self.corr_button.clicked.connect(self.on_pushButton_clicked)
 
-        self.part_corr_button = QtWidgets.QPushButton('Матрица частных корреляций Спирмена', self)
+        self.part_corr_button = QtWidgets.QPushButton('Partial Spearman\'s Correlation', self)
         self.part_corr_button.clicked.connect(self.on_part_corr_button_clicked)
 
-        self.acycle_button = QtWidgets.QPushButton('Найти ациклический граф', self)
+        self.acycle_button = QtWidgets.QPushButton('Searching acyclic graph', self)
         self.acycle_button.clicked.connect(self.on_acycle_graph)
 
-        self.rankCorrButton = QtWidgets.QPushButton('Матрица ранговых корреляция Banshee', self)
+        self.rankCorrButton = QtWidgets.QPushButton('Reconstruction of the correlation (Banshee)', self)
         self.rankCorrButton.clicked.connect(self.onRankCorrBanshee)
+        self.rankCorrButton.setEnabled(False)
 
-        self.calcInferenceButton = QtWidgets.QPushButton('Запуск инференса Banshee', self)
+        self.calcInferenceButton = QtWidgets.QPushButton('Calculating Bayesian model inference (Banshee)', self)
         self.calcInferenceButton.clicked.connect(self.onInferenceButton)
+        self.calcInferenceButton.setEnabled(False)
 
         self.thresholdEdit = QtWidgets.QLineEdit(self, placeholderText='0.0')
         validator = QtGui.QDoubleValidator()  # Создание валидатора.
@@ -295,6 +305,7 @@ class ButtonWindow(QtWidgets.QWidget):
 
         self.updLinkTable = None
         self.df_predicted = pd.DataFrame()
+        self.error_dialog = QtWidgets.QErrorMessage()
 
     def onChanged(self, text):
         self.thresholdValue = float(text)
@@ -324,25 +335,45 @@ class ButtonWindow(QtWidgets.QWidget):
         dialog = SubplotGraph(data=d)
         self.dialogs.append(dialog)
         dialog.show()
+        self.rankCorrButton.setEnabled(True)
 
     def onRankCorrBanshee(self):
         self.banshee = BansheeCalc(self.graph.getNodeList(), self.graph.getEdgeList(), self.input_df)
         self.R = self.banshee.getRankCorr()
+        if self.R is None:
+            self.error_dialog.showMessage('Error in the reconstruction of the correlation matrix')
+        else:
+            self.banshee.saveGraph()
+
         column_name = self.input_df.columns
         dialog = PlotWindows(self, data=pd.DataFrame(self.R, columns=column_name, index=column_name))
         self.dialogs.append(dialog)
         dialog.show()
         plt.tight_layout()
+        self.calcInferenceButton.setEnabled(True)
 
     def onInferenceButton(self):
         y_predict = self.banshee.getInference(self.len_input)
 
         self.columnsForPredict = self.input_df.columns[self.len_input:]
         self.columnsFeatures = self.input_df.columns[:self.len_input]
+        print(y_predict)
+        print(y_predict.shape)
 
         pred_column = ['Predicted ' + i for i in self.columnsForPredict]
         self.df_predicted = pd.DataFrame(y_predict, index=self.input_df.index, columns=pred_column)
         df = self.input_df.join(self.df_predicted)
+
+        df_tmp = df.copy(deep=True)
+        df_tmp = df_tmp.dropna(subset=self.columnsFeatures)
+
+        for col_name in self.columnsForPredict:
+            lower, upper = self.input_df[col_name].min(), self.input_df[col_name].max()
+            df_tmp.loc[:, 'Predicted ' + col_name] = rescale_feature(df_tmp.loc[:, 'Predicted ' + col_name], lower, upper)
+
+
+        df = self.input_df.join(df_tmp[pred_column])
+        self.df_predicted = df[pred_column]
 
         df.to_csv('data/result.csv')
 

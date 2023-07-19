@@ -47,7 +47,6 @@ class LinkTabWindow(QtWidgets.QWidget):
             item = self.tableWidget.item(row, i)
             item.setCheckState(QtCore.Qt.Checked if state else QtCore.Qt.Unchecked)
 
-
     @QtCore.pyqtSlot()
     def save_clicked(self):
         items = []
@@ -60,7 +59,8 @@ class LinkTabWindow(QtWidgets.QWidget):
 
         self.result_df.loc[:, :] = items
         self.result_df = self.result_df.replace({2: 1})
-        self.result_df.to_excel('data/link_table.xls')
+        if len(self.result_df) > 1:
+            self.result_df.to_excel('data/link_table.xlsx', engine='openpyxl')
 
     def getDataFrame(self) -> pd.DataFrame:
         return self.result_df
