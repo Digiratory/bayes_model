@@ -13,6 +13,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import copy
 from matplotlib.figure import Figure
+from utils import get_outliers_cooks
 
 
 def rescale_feature(input_vector, lower, upper):
@@ -28,16 +29,8 @@ def test(y_pred, y_true):
     columns_list = y_true.columns
     result_list = {}
     for num, column_name in enumerate(columns_list):
-        k = y_true.iloc[:, num].dropna()
-        upper, lower = k.max(), k.min()
-
-        # xmin, xmax = np.min(y_pred[:, num]), np.max(y_pred[:, num])  # get max and min from input array
-        #
-        # y_pred[:, num] = [(x - xmin) / (xmax - xmin) for x in y_pred[:, num]]
-        #
-        # y_pred[:, num] = [lower + (upper - lower) * x for x in y_pred[:, num]]
-        # y_pred[:, num] = rescale_feature(y_pred[:, num], lower, upper)
-
+        # k = y_true.iloc[:, num].dropna()
+        # upper, lower = k.max(), k.min()
         df_result = pd.DataFrame(data={'pred': y_pred[:, num], 'true': y_true.iloc[:, num]}, index=y_true.index)
         result_list[column_name] = df_result
     return result_list
@@ -73,10 +66,54 @@ class SubplotWindow(QtWidgets.QMainWindow):
 
             layout.addWidget(layout_widget[i])
 
+
+
+        # self.resize(2000, 1000)
+
+        # layout_widget = QtWidgets.QWidget()
+        # layoutVert = QtWidgets.QVBoxLayout()
+        # self.setCentralWidget(layout_widget)
+        #
+        # # layout_widget = {}
+        # # layoutVert = {}
+        # m = len(data)
+        # if m <= 4:
+        #     layout_widget_H = QtWidgets.QWidget()
+        #     layoutHor = QtWidgets.QHBoxLayout(layout_widget_H)
+        #     for i in data:
+        #         widgTmp = QtWidgets.QWidget()
+        #         layoutUn = QtWidgets.QVBoxLayout(widgTmp)
+        #         fig = self.initFigure(data[i], i)
+        #         fig.tight_layout()
+        #         canvas = FigureCanvas(fig)
+        #         layoutUn.addWidget(NavigationToolbar(canvas, self))
+        #         layoutUn.addWidget(canvas)
+        #         layoutHor.addWidget(widgTmp)
+        #
+        #     layout_widget.setLayout(layoutHor)
+        #     layoutVert.addWidget(layout_widget)
+        # # else:
+        # #     for i in range(m//4):
+        # #         k_start = i * 4
+        # #         for k in range(k_start, k_start+4):
+        # #             if k > len(data):
+        # #                 break
+        # #             i = data.keys()[k]
+        # #             layout_widget[i] = QtWidgets.QWidget()
+        # #             layoutVert[i] = QtWidgets.QVBoxLayout(self._main)
+        # #             layout_widget[i].setLayout(layoutVert[i])
+        # #             fig = self.initFigure(data[i], i)
+        # #             fig.tight_layout()
+        # #             canvas = FigureCanvas(fig)
+        # #
+        # #             layoutVert[i].addWidget(NavigationToolbar(canvas, self))
+        # #             layoutVert[i].addWidget(canvas)
+
+
     def initFigure(self, df, name):
-        plt.rcParams.update({'figure.autolayout': True})
+        # plt.rcParams.update({'figure.autolayout': True})
         name = '\n'.join(wrap(name, 30))
-        fig = plt.figure()
+        fig = plt.figure(layout='tight')
         out = find_outliers(df['true']-df['pred'])
         df_drop_out = df[~df.index.isin(out)]
 
@@ -144,7 +181,7 @@ class SubplotGraph(SubplotWindow):
 
 class PlotWindows(QtWidgets.QMainWindow):
 
-    def __init__(self, parent=None, data=None, title='Матрица'):
+    def __init__(self, parent=None, data=None, title='Matrix'):
         super(PlotWindows, self).__init__(parent)
 
         self.setWindowTitle(title)
@@ -188,6 +225,77 @@ class PlotWindows(QtWidgets.QMainWindow):
 
         ax.set_xticklabels(column_name, rotation=45, ha='right', fontsize=8)
         ax.set_yticklabels(column_name, rotation=0, ha='right', fontsize=8)
+
+
+class PlotInferenceResult(QtWidgets.QMainWindow):
+    def __init__(self, parent=None, data=None, name=None, title='Matrix'):
+        super(PlotInferenceResult, self).__init__(parent)
+
+        self.setWindowTitle(title)
+
+        self.main_widget = QtWidgets.QWidget(self)
+        self.resize(800, 400)
+
+        self.data = data
+        self.fig = Figure()
+
+        self.initFigure(self.data, name)
+
+        self.canvas = FigureCanvas(self.fig)
+
+        self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                                  QtWidgets.QSizePolicy.Expanding)
+        self.canvas.updateGeometry()
+        # self.label = QtWidgets.QLabel("A plot:")
+        toolbar = NavigationToolbar(self.canvas, self)
+
+        self.layout = QtWidgets.QGridLayout(self.main_widget)
+        self.layout.addWidget(toolbar)
+        # self.layout.addWidget(self.label)
+        self.layout.addWidget(self.canvas)
+
+        self.setCentralWidget(self.main_widget)
+        self.show()
+        self.fig.tight_layout()
+
+    def initFigure(self, df, name):
+        # plt.rcParams.update({'figure.autolayout': True})
+        name = '\n'.join(wrap(name, 30))
+        ax = self.fig.add_subplot(111)
+        ax.grid()
+        # out = find_outliers(df['true']-df['pred'])
+
+        out = get_outliers_cooks(df.dropna())
+
+        df_drop_out = df[~df.index.isin(out)]
+
+        df_drop_out = df_drop_out.dropna()
+
+        # sns.regplot(x=df_drop_out['true'], y=df_drop_out['pred'], color='tab:blue',
+        #             scatter=False, line_kws={'linewidth': 1})
+
+        xseq = np.linspace(df['true'].min()-5, df['true'].max()+5, num=100)
+        ax.scatter(df_drop_out['true'], df_drop_out['pred'])
+        if len(df_drop_out) > 1:
+            b, a = np.polyfit(df_drop_out['true'], df_drop_out['pred'], deg=1)
+            ax.plot(xseq, a + b * xseq, lw=1)
+
+        # ci = 1.96 * np.std(a + b * xseq) / np.sqrt(len(xseq))
+        # plt.fill_between(xseq, (a + b * xseq - ci), (a + b * xseq + ci), color='b', alpha=.1)
+
+        r2 = df['true'].corr(df['pred'])
+        r2_drop_out = df_drop_out['true'].corr(df_drop_out['pred'])
+
+        if len(out):
+            k = df.loc[out]
+            # add linear regression
+            ax.scatter(k['true'], k['pred'], color='r')
+
+        ax.set_xlabel(f'Observed, {name}')
+        ax.set_ylabel(f'Predicted, {name}')
+
+        ax.set_title(fr'$R$ {round(r2, 3)}$\rightarrow${round(r2_drop_out, 3)}')
+        # return fig
 
 
 class CorrMatrix:
@@ -318,9 +426,12 @@ class ButtonWindow(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def on_part_corr_button_clicked(self):
-        dialog = PlotWindows(self, self.partCorrMatrix)
-        self.dialogs.append(dialog)
-        dialog.show()
+        if len(self.partCorrMatrix.dropna()) < 1:
+            self.error_dialog.showMessage('Error of the correlation matrix')
+        else:
+            dialog = PlotWindows(self, self.partCorrMatrix)
+            self.dialogs.append(dialog)
+            dialog.show()
 
     def on_acycle_graph(self):
         self.graph = GraphPreparation(self.corr_matrix, self.linkTable, self.thresholdValue)
@@ -357,8 +468,6 @@ class ButtonWindow(QtWidgets.QWidget):
 
         self.columnsForPredict = self.input_df.columns[self.len_input:]
         self.columnsFeatures = self.input_df.columns[:self.len_input]
-        print(y_predict)
-        print(y_predict.shape)
 
         pred_column = ['Predicted ' + i for i in self.columnsForPredict]
         self.df_predicted = pd.DataFrame(y_predict, index=self.input_df.index, columns=pred_column)
@@ -371,7 +480,6 @@ class ButtonWindow(QtWidgets.QWidget):
             lower, upper = self.input_df[col_name].min(), self.input_df[col_name].max()
             df_tmp.loc[:, 'Predicted ' + col_name] = rescale_feature(df_tmp.loc[:, 'Predicted ' + col_name], lower, upper)
 
-
         df = self.input_df.join(df_tmp[pred_column])
         self.df_predicted = df[pred_column]
 
@@ -381,10 +489,12 @@ class ButtonWindow(QtWidgets.QWidget):
 
         # dictPredict = test(y_predict, self.y_true)
         dictPredict = test(df[pred_column].values, df[self.columnsForPredict])
-        dialog = SubplotWindow(data=dictPredict)
-        self.dialogs.append(dialog)
-        dialog.show()
-        plt.tight_layout()
+        # dialog = SubplotWindow(data=dictPredict)
+        for i in dictPredict:
+            dialog = PlotInferenceResult(data=dictPredict[i], name=i)
+            self.dialogs.append(dialog)
+            dialog.show()
+            plt.tight_layout()
 
     def updateDataFrame(self, input_df):
         self.input_df = input_df

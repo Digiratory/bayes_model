@@ -29,6 +29,10 @@ class App(QMainWindow):
 
         self.show()
 
+    def closeEvent(self, event):
+        for window in QApplication.topLevelWidgets():
+            window.close()
+
 
 class MyTableWidget(QWidget):
 
