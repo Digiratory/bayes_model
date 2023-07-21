@@ -18,27 +18,30 @@ class BansheeCalc:
         self.df = df
         self.R = None
         self.F = None
-        error = self.calcRankCorr()
-
-        plt.close()
-        plt.cla()
-        plt.clf()
-        fig_name = 'bn_tmp2'
-        if not error:
-            bn_visualize(self.ParentCell,
-                         self.R,
-                         self.columns_data,
-                         fig_name=fig_name)
+        self.calcRankCorr()
 
     def calcRankCorr(self):
         try:  # можно ли как-то избежать try/except, для случая когда много пропусков и функция не работает
             self.R = bn_rankcorr(self.ParentCell, self.df,
                                  var_names=self.columns_data,
                                  is_data=True, plot=False)
-            return 0
         except:
             self.R = None
-            return 1
+
+    def saveGraph(self):
+
+        plt.close()
+        plt.cla()
+        plt.clf()
+
+        fig_name = 'graph'
+
+        columns_with_com = list(map(lambda x: f'"{x}"', self.columns_data))
+
+        bn_visualize(self.ParentCell,
+                     self.R,
+                     columns_with_com,
+                     fig_name=fig_name)
 
     def getRankCorr(self):
         return self.R
@@ -48,8 +51,9 @@ class BansheeCalc:
         values = self.df.iloc[:, nodes].to_numpy()  # data for predictions
         output = 'mean'  # show only mean of the uncertainty distribution
         sampleSize = 10000  # draw 10,000 samples when conditionalizing the BN
-        interp = 'nearest'  # use the 'next' method to interpolate the empirical
-        # interp = 'linear'
+        # interp = 'next'  # use the 'next' method to interpolate the empirical
+        interp = 'linear'
+        # interp = 'nearest'
 
         F = inference(Nodes=nodes,
                       Values=values,
@@ -59,11 +63,11 @@ class BansheeCalc:
                       SampleSize=sampleSize,
                       Interp=interp)
         self.F = F
-        self.plotHist(len_input_list)
+        # self.plotHist(len_input_list)
         return F
 
     def plotHist(self, len_input_list):
         nodes = list(range(len_input_list))  # all variables except for value of interest
         values = self.df.iloc[:, nodes].to_numpy()  # data for predictions
 
-        #conditional_margins_hist(F=self.F, DATA=self.df, names=self.df.columns, condition_nodes=nodes)
+        conditional_margins_hist(F=self.F, DATA=self.df, names=self.df.columns, condition_nodes=nodes)

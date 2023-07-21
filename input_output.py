@@ -2,7 +2,6 @@ import pandas as pd
 from PyQt5 import QtCore, QtWidgets
 
 
-
 class IOWindow(QtWidgets.QWidget):
     block_signal = QtCore.pyqtSignal()
     def __init__(self, parent=None, input_df=None, state=None):

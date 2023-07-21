@@ -7,9 +7,10 @@ from jointgrid import jointgridWindow
 from link_table import LinkTabWindow
 import pandas as pd
 from button_page import ButtonWindow
-from utils import find_zero_columns
+from utils import find_zero_columns, check_non_select_table
 import numpy as np
 import os
+
 
 class App(QMainWindow):
 
@@ -28,6 +29,10 @@ class App(QMainWindow):
 
         self.show()
 
+    def closeEvent(self, event):
+        for window in QApplication.topLevelWidgets():
+            window.close()
+
 
 class MyTableWidget(QWidget):
 
@@ -36,7 +41,7 @@ class MyTableWidget(QWidget):
         self.layout = QVBoxLayout(self)
 
         self.pathIOFile = 'data/io_table.csv'
-        self.pathLinkFile = 'data/link_table.xls'
+        self.pathLinkFile = 'data/link_table.xlsx'
         self.pathInputFile = 'data/tmp2.csv'
 
         self.input_feature = None
@@ -63,15 +68,17 @@ class MyTableWidget(QWidget):
         self.buttonTab = ButtonWindow(self, pd.DataFrame(), pd.DataFrame(), 1)
         self.buttonTab.acycle_button.clicked.connect(self.updateLinkTableFromAcyclic)
 
-        self.jointgridTab = jointgridWindow(self, data=self.getInitialDataframe())
+        self.jointgridTab = jointgridWindow(self,
+                                            data=self.getInitialDataframe(),
+                                            predicted_data=self.buttonTab.getPrediction())
 
         self.tabs.resize(300, 200)
 
         # Add tabs
-        self.tabs.addTab(self.ioTab, "Вход-выход")
-        self.tabs.addTab(self.linkTab, "Связи")
-        self.tabs.addTab(self.buttonTab, "Расчеты")
-        self.tabs.addTab(self.jointgridTab, "График двух переменных")
+        self.tabs.addTab(self.ioTab, "Input-Output")
+        self.tabs.addTab(self.linkTab, "Links")
+        self.tabs.addTab(self.buttonTab, "Calculation")
+        self.tabs.addTab(self.jointgridTab, "Plot")
         self.tabs.currentChanged.connect(self.on_click)  # changed!
         self.ioTab.block_signal.connect(self.blockButtonTab)
 
@@ -81,20 +88,36 @@ class MyTableWidget(QWidget):
 
     @pyqtSlot()
     def on_click(self):
+        """
+        action between tabs
+        """
         index = self.tabs.currentIndex()
         if index == 0:
             # print("Switched to Tab 1")
             return 1
-            # Perform actions specific to Tab 1
 
         elif index == 1:
             self.blockButtonTab()
 
         elif index == 2:
+
             self.linkTab.save_clicked()
             self.updateStateLink()
             self.updateLinkTable()
+
+            # проверить выделены ли хоть какие-то связи
+
+            if check_non_select_table(self.linkTable):
+                self.buttonTab.acycle_button.setEnabled(False)
+                self.buttonTab.rankCorrButton.setEnabled(False)
+                self.buttonTab.calcInferenceButton.setEnabled(False)
+            else:
+                self.buttonTab.acycle_button.setEnabled(True)
             self.tmp()
+
+        elif index == 3:
+            self.jointgridTab.removeTableWidget()
+            self.jointgridTab.updateData(self.buttonTab.getPrediction())
 
     @pyqtSlot()
     def blockButtonTab(self):       
@@ -108,7 +131,7 @@ class MyTableWidget(QWidget):
         else:
             # the value of each tick is 2
             # in order for the calculations tab to be opened, you need to click at least 2 "in" and 1 "out" checkboxes
-            if sum([i[0] for i in self.stateIO]) >= 4 and sum([i[1] for i in self.stateIO])>=2:
+            if sum([i[0] for i in self.stateIO]) >= 4 and sum([i[1] for i in self.stateIO]) >= 2:
                 self.tabs.setTabEnabled(2, True)
             else:
                 self.tabs.setTabEnabled(2, False)
@@ -119,8 +142,8 @@ class MyTableWidget(QWidget):
 
     def getInitialDataframe(self):
         data_input = pd.read_csv(self.pathInputFile, index_col=0)
-        add_quotes = lambda x: f'"{x}"'
-        data_input.columns=list(map(add_quotes,data_input.columns))
+        # add_quotes = lambda x: f'"{x}"'
+        # data_input.columns = list(map(add_quotes, data_input.columns))
         data_input = data_input.replace('[^0-9]+', np.nan, regex=True)
         data_input = data_input.astype(float)
         nan_columns = find_zero_columns(data_input)

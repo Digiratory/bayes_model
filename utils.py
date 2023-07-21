@@ -1,9 +1,16 @@
 from scipy.special import erfcinv
 import statsmodels.api as sm
 import pandas as pd
+import numpy as np
 
 F = -1 / (2 ** (1 / 2) * erfcinv(3 / 2))
 
+
+def check_non_select_table(df):
+    k = []
+    for i in df.columns:
+        k.append((df[i] == 0).all())
+    return np.all(k)
 
 def find_zero_columns(df):
     """
