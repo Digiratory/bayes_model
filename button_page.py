@@ -66,8 +66,6 @@ class SubplotWindow(QtWidgets.QMainWindow):
 
             layout.addWidget(layout_widget[i])
 
-
-
         # self.resize(2000, 1000)
 
         # layout_widget = QtWidgets.QWidget()
@@ -109,7 +107,6 @@ class SubplotWindow(QtWidgets.QMainWindow):
         # #             layoutVert[i].addWidget(NavigationToolbar(canvas, self))
         # #             layoutVert[i].addWidget(canvas)
 
-
     def initFigure(self, df, name):
         # plt.rcParams.update({'figure.autolayout': True})
         name = '\n'.join(wrap(name, 30))
@@ -148,21 +145,26 @@ class SubplotWindow(QtWidgets.QMainWindow):
 
 class SubplotGraph(SubplotWindow):
     def initFigure(self, G, name):
-        fig = plt.figure()
+        fig = plt.figure(figsize=(20, 20))
         elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] > 0.5]
         esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] <= 0.5]
 
-        pos = nx.spring_layout(G, seed=10, k=3)  # positions for all nodes - seed for reproducibility
+        # pos = nx.spring_layout(G, seed=10, iterations=200)  # positions for all nodes - seed for reproducibility
         # pos = nx.fruchterman_reingold_layout(G)  # positions for all nodes - seed for reproducibility
         # pos = nx.circular_layout(G)
+        # pos = nx.spectral_layout(G)
+        # pos = nx.multipartite_layout(G)
+        # pos = nx.planar_layout(G)
+        # pos = nx.drawing.nx_agraph.graphviz_layout(G)
+        pos = nx.drawing.nx_agraph.graphviz_layout(G, prog='dot')
 
         # nodes
         nx.draw_networkx_nodes(G, pos, node_size=5)
 
         # edges
-        nx.draw_networkx_edges(G, pos, edgelist=elarge, width=2, alpha=0.4)
+        nx.draw_networkx_edges(G, pos, edgelist=elarge, width=1, alpha=0.4)
         nx.draw_networkx_edges(
-            G, pos, edgelist=esmall, width=2, alpha=0.4, edge_color="b", style="dashed"
+            G, pos, edgelist=esmall, width=1, alpha=0.4, edge_color="b", style="dashed"
         )
 
         # node labels
@@ -176,6 +178,7 @@ class SubplotGraph(SubplotWindow):
         ax.margins(0.08)
         plt.axis("off")
         plt.tight_layout()
+        plt.savefig("imagenet_layout.eps")
         return fig
 
 
@@ -438,11 +441,15 @@ class ButtonWindow(QtWidgets.QWidget):
 
         # удалить циклы в графе
         G_before = copy.deepcopy(self.graph.renaming())
-        self.graph.drop_cycle()
 
+        self.graph.drop_cycle()
         self.changeLinkTable()
 
         d = {'Before': G_before, 'After': self.graph.renaming()}
+        # import pickle
+        # pickle.dump(self.graph, open('graph.txt', 'w'))
+        # print(self.graph.G.nodes())
+        nx.write_gpickle(self.graph.renaming(), 'graph.txt')
         dialog = SubplotGraph(data=d)
         self.dialogs.append(dialog)
         dialog.show()

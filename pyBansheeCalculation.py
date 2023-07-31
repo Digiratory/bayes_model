@@ -29,7 +29,6 @@ class BansheeCalc:
             self.R = None
 
     def saveGraph(self):
-
         plt.close()
         plt.cla()
         plt.clf()

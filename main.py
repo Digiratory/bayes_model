@@ -46,6 +46,7 @@ class MyTableWidget(QWidget):
 
         self.input_feature = None
         self.output_feature = None
+        self.lenCheck = len(pd.read_csv(self.pathInputFile, index_col=0).columns)
         self.stateIO = self.initStateIO()
         self.stateLink = self.initStateLinkTable()
         self.linkTable = None
@@ -199,6 +200,8 @@ class MyTableWidget(QWidget):
     def initStateIO(self):
         if os.path.exists(self.pathIOFile):
             df = pd.read_csv(self.pathIOFile, index_col=0)
+            if self.lenCheck != len(df.index):
+                return None
             return df.values
         else:
             return None
@@ -206,7 +209,10 @@ class MyTableWidget(QWidget):
     def initStateLinkTable(self):
         if os.path.exists(self.pathLinkFile):
             df = pd.read_excel(self.pathLinkFile, index_col=0)
-            # df.insert(loc=0, column='Select All', value=[0]*len(df))
+            # print(self.stateIO.)
+            # # df.insert(loc=0, column='Select All', value=[0]*len(df))
+            # if self.lenCheck != len(df.columns):
+            #     return None
             return df.values
         else:
             return None

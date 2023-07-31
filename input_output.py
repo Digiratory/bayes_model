@@ -27,7 +27,6 @@ class IOWindow(QtWidgets.QWidget):
                 item.setCheckState(self.state[i][j])
                 self.tableWidget.setItem(i, j, item)
 
-
         self.tableWidget.cellChanged.connect(self.select_all_clicked_by_columns)
         self.tableWidget.cellChanged.connect(self.turnOffClicked)
         self.tableWidget.cellChanged.connect(self.block_signal)
