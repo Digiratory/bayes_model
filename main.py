@@ -42,7 +42,7 @@ class MyTableWidget(QWidget):
 
         self.pathIOFile = 'data/io_table.csv'
         self.pathLinkFile = 'data/link_table.xlsx'
-        self.pathInputFile = 'data/tmp2.csv'
+        self.pathInputFile = 'data/data_2.csv'
 
         self.input_feature = None
         self.output_feature = None

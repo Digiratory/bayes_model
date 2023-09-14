@@ -220,6 +220,7 @@ class PlotWindows(QtWidgets.QMainWindow):
         ax.clear()
 
         column_name = ['\n'.join(wrap(text, 30)) for text in self.data.columns.values]
+        print(self.data)
         im = sns.heatmap(self.data,
                          xticklabels=column_name,
                          yticklabels=column_name,
@@ -515,7 +516,7 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def updateMatrix(self):
         self.corr_matrix = CorrMatrix(self.input_df).getCorrMatrix()
-        self.partCorrMatrix = PartCorrMatrix(self.input_df).getCorrMatrix()
+        # self.partCorrMatrix = PartCorrMatrix(self.input_df).getCorrMatrix()
         self.y_true = self.input_df.iloc[:, self.len_input:]
 
     def getThresholdVal(self):
