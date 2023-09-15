@@ -238,7 +238,7 @@ class PlotInferenceResult(QtWidgets.QMainWindow):
         self.setWindowTitle(title)
 
         self.main_widget = QtWidgets.QWidget(self)
-        self.resize(800, 400)
+        self.resize(600, 400)
 
         self.data = data
         self.fig = Figure()
@@ -278,10 +278,10 @@ class PlotInferenceResult(QtWidgets.QMainWindow):
         # sns.regplot(x=df_drop_out['true'], y=df_drop_out['pred'], color='tab:blue',
         #             scatter=False, line_kws={'linewidth': 1})
 
-        xseq = np.linspace(df['true'].min()-5, df['true'].max()+5, num=100)
-        ax.scatter(df_drop_out['true'], df_drop_out['pred'])
+        xseq = np.linspace(df['pred'].min()-5, df['pred'].max()+5, num=100)
+        ax.scatter(df_drop_out['pred'], df_drop_out['true'])
         if len(df_drop_out) > 1:
-            b, a = np.polyfit(df_drop_out['true'], df_drop_out['pred'], deg=1)
+            b, a = np.polyfit(df_drop_out['pred'], df_drop_out['true'], deg=1)
             ax.plot(xseq, a + b * xseq, lw=1)
 
         # ci = 1.96 * np.std(a + b * xseq) / np.sqrt(len(xseq))
@@ -293,10 +293,11 @@ class PlotInferenceResult(QtWidgets.QMainWindow):
         if len(out):
             k = df.loc[out]
             # add linear regression
-            ax.scatter(k['true'], k['pred'], color='r')
+            ax.scatter(k['pred'], k['true'], color='r')
 
-        ax.set_xlabel(f'Observed, {name}')
-        ax.set_ylabel(f'Predicted, {name}')
+        ax.set_xlabel(f'Predicted, {name}')
+        ax.set_ylabel(f'Observed, {name}')
+
 
         ax.set_title(fr'$R$ {round(r2, 3)}$\rightarrow${round(r2_drop_out, 3)}')
         # return fig
