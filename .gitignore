@@ -2,3 +2,7 @@
 *.csv
 *.xls
 *.pdf
+poetry.lock
+data/*
+graph.txt
+imagenet_layout.eps

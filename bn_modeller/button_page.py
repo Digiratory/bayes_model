@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PySide6 import QtCore, QtWidgets, QtGui
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import seaborn as sns
 import pandas as pd
@@ -423,13 +423,13 @@ class ButtonWindow(QtWidgets.QWidget):
     def onChanged(self, text):
         self.thresholdValue = float(text)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def on_pushButton_clicked(self):
         dialog = PlotWindows(self, self.corr_matrix)
         self.dialogs.append(dialog)
         dialog.show()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def on_part_corr_button_clicked(self):
         if len(self.partCorrMatrix.dropna()) < 1:
             self.error_dialog.showMessage('Error of the correlation matrix')
@@ -451,7 +451,8 @@ class ButtonWindow(QtWidgets.QWidget):
         # import pickle
         # pickle.dump(self.graph, open('graph.txt', 'w'))
         # print(self.graph.G.nodes())
-        nx.write_gpickle(self.graph.renaming(), 'graph.txt')
+        
+        nx.write_adjlist(self.graph.renaming(), 'graph.txt')
         dialog = SubplotGraph(data=d)
         self.dialogs.append(dialog)
         dialog.show()

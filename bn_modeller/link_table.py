@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 import pandas as pd
 import numpy as np
 
@@ -47,7 +47,7 @@ class LinkTabWindow(QtWidgets.QWidget):
             item = self.tableWidget.item(row, i)
             item.setCheckState(QtCore.Qt.Checked if state else QtCore.Qt.Unchecked)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def save_clicked(self):
         items = []
         for i in range(1, self.tableWidget.rowCount()):

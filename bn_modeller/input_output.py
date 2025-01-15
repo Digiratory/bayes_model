@@ -1,9 +1,9 @@
 import pandas as pd
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 
 class IOWindow(QtWidgets.QWidget):
-    block_signal = QtCore.pyqtSignal()
+    block_signal = QtCore.Signal()
     def __init__(self, parent=None, input_df=None, state=None):
         super(IOWindow, self).__init__(parent)
         self.input_table = input_df
@@ -57,7 +57,7 @@ class IOWindow(QtWidgets.QWidget):
                 # item.setCheckState(QtCore.Qt.Unchecked)
                 # item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
         
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def save_clicked(self):
         items = []
         for i in range(1, self.tableWidget.rowCount()):
@@ -77,10 +77,10 @@ class IOWindow(QtWidgets.QWidget):
         self.input_table = df
 
     def getInputFeature(self):
-        return list(self.df_input_output[self.df_input_output['input'] > 0].index)
+        return list(self.df_input_output[self.df_input_output['input'].map(lambda x: x.value if isinstance(x, QtCore.Qt.CheckState) else x) > 0].index)
 
     def getOutputFeature(self):
-        return list(self.df_input_output[self.df_input_output['output'] > 0].index)
+        return list(self.df_input_output[self.df_input_output['output'].map(lambda x: x.value if isinstance(x, QtCore.Qt.CheckState) else x) > 0].index)
 
     def saveState(self):
         self.state = []

@@ -1,0 +1,22 @@
+[project]
+name = "bn_modeller"
+version = "0.1.0"
+description = "A program to represents a set of variables and their conditional dependencies via a directed acyclic graph."
+authors = [
+    {name = "Aleksandr Sinitca", email = "amsinitca@etu.ru"},
+    {name = "Irina Shpakovskaya"},
+    {name = "Tarapata Svetlana"}
+]
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "pyside6 (>=6.8.1.1,<7.0.0.0)",
+    "py-banshee (>=1.1.2,<2.0.0)",
+    "openpyxl (>=3.1.5,<4.0.0)",
+    "pygraphviz (>=1.14,<2.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
