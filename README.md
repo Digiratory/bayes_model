@@ -12,7 +12,29 @@ predict 307
 
 func_i = interp1d(fe, xe, kind=way, fill_value="extrapolate")  # interpolation fill_value="extrapolate"
 
+## Instalation
 
+### Graphviz
+
+A Graphviz error could arise. 
+To solve the problem add the Graphviz executables on your systems' PATH as follows:
+ 
+1. Install windows package from: https://graphviz.org/download/ (Linux and Mac instructions can be found here as well)
+2. Install python graphviz package
+3. Press the Windows key 
+4. Type in the search box: edit environment variables for your account 
+5. Select Path 
+6. Click Edit… button  
+7. Click New 
+8. Add 'bin' folder to User path in environment variables manager (e.g: C:\Program Files (x86)\Graphviz2.38\bin)
+9. Add location dot.exe to System Path (e.g: C:\Program Files (x86)\Graphviz2.38\bin\dot.exe)
+10. Click OK and OK again 
+
+Once have done that, restart your python IDE (if it is open). If this was running in a CMD prompt (e.g. 
+Anaconda Command prompt), restart this prompt as well to make sure the prompt finds the new
+environment variables.
+
+https://pygraphviz.github.io/documentation/stable/install.html
 
 ## bn_visualize
 

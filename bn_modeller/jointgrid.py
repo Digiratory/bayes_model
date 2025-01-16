@@ -2,7 +2,7 @@ import pandas as pd
 import scipy.stats as stats
 import seaborn as sns
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 from utils import get_index_outliers, get_outliers_cooks
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar

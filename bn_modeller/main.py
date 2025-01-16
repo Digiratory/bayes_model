@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QMainWindow, QApplication, QTabWidget, QVBoxLayout
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QWidget
+from PySide6.QtWidgets import QMainWindow, QApplication, QTabWidget, QVBoxLayout
+from PySide6.QtCore import Slot
+from PySide6.QtWidgets import QWidget
 import sys
 from input_output import IOWindow
 from jointgrid import jointgridWindow
@@ -37,7 +37,7 @@ class App(QMainWindow):
 class MyTableWidget(QWidget):
 
     def __init__(self, parent):
-        super(QWidget, self).__init__(parent)
+        super().__init__(parent)
         self.layout = QVBoxLayout(self)
 
         self.pathIOFile = 'data/io_table.csv'
@@ -87,7 +87,7 @@ class MyTableWidget(QWidget):
         self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
 
-    @pyqtSlot()
+    @Slot()
     def on_click(self):
         """
         action between tabs
@@ -120,7 +120,7 @@ class MyTableWidget(QWidget):
             self.jointgridTab.removeTableWidget()
             self.jointgridTab.updateData(self.buttonTab.getPrediction())
 
-    @pyqtSlot()
+    @Slot()
     def blockButtonTab(self):       
         self.ioTab.save_clicked()
         self.ioTab.saveState()
@@ -132,12 +132,12 @@ class MyTableWidget(QWidget):
         else:
             # the value of each tick is 2
             # in order for the calculations tab to be opened, you need to click at least 2 "in" and 1 "out" checkboxes
-            if sum([i[0] for i in self.stateIO]) >= 4 and sum([i[1] for i in self.stateIO]) >= 2:
+            if sum([i[0].value for i in self.stateIO]) >= 4 and sum([i[1].value for i in self.stateIO]) >= 2:
                 self.tabs.setTabEnabled(2, True)
             else:
                 self.tabs.setTabEnabled(2, False)
 
-    @pyqtSlot()
+    @Slot()
     def update(self):
         self.updateFeaturesList(self.ioTab.getInputFeature(), self.ioTab.getOutputFeature())
 
@@ -230,4 +230,4 @@ class MyTableWidget(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = App()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
