@@ -31,11 +31,11 @@ class BaseWindow(QMainWindow):
     @Slot()
     def home_clicked(self):
         raise NotImplementedError()
-    
+
     @Slot()
     def exit_clicked(self):
         return
-    
+
     @Slot()
     def close_app(self):
         QCoreApplication.instance().quit()

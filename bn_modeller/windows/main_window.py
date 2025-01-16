@@ -1,8 +1,9 @@
-from PySide6.QtWidgets import QWidget, QStackedWidget
+from PySide6.QtWidgets import QWidget, QStackedWidget, QApplication
 from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtGui import QGuiApplication
 
 from bn_modeller.windows.base_window import BaseWindow
-
+from bn_modeller.widgets.project_wizard import ProjectLoadWizard
 
 class MainWindow(BaseWindow):
     go_back = Signal()
@@ -18,6 +19,9 @@ class MainWindow(BaseWindow):
         self._init_ui()
 
         self._views_history: list[QWidget] = []
+        self._project_path = None
+
+        QGuiApplication.instance().applicationStateChanged.connect(self.application_state_changed)
 
     def _init_ui(self):
         self._main_widget = QStackedWidget()
@@ -46,3 +50,12 @@ class MainWindow(BaseWindow):
         self._main_widget.setCurrentWidget(self._homepageWidget)
         self.setCentralTitle('', '')
         self.go_back.emit()
+
+    @Slot(Qt.ApplicationState)
+    def application_state_changed(self, state: Qt.ApplicationState):
+        if self._project_path is None:
+            wizard = ProjectLoadWizard()
+            wizard_ret = wizard.exec()
+            if wizard_ret != 1:
+                self.close_app()            
+            self._project_path = wizard.get_project_path()
