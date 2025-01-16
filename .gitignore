@@ -6,3 +6,4 @@ poetry.lock
 data/*
 graph.txt
 imagenet_layout.eps
+.env
