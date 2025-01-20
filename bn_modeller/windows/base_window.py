@@ -14,16 +14,19 @@ class BaseWindow(QMainWindow):
         self.setWindowTitle(title)
 
     def setup_toolbar(self):
-        toolbar = QToolBar(self.tr('Main ToolBar'))
+        self._toolbar = QToolBar(self.tr('Main ToolBar'))
 
         back_action = QAction(self.style().standardIcon(
             QStyle.StandardPixmap.SP_ArrowBack), '&Back', self)
         back_action.setStatusTip(self.tr('Go Back'))
         back_action.triggered.connect(self.go_back_clicked)
 
-        self.addToolBar(toolbar)
-        toolbar.addAction(back_action)
+        self.addToolBar(self._toolbar)
+        self._toolbar.addAction(back_action)
 
+    def getMainToolBar(self) -> QToolBar:
+        return self._toolbar
+    
     @Slot()
     def go_back_clicked(self):
         raise NotImplementedError()

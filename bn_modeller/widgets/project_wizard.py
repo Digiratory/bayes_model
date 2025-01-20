@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QDialog,
 )
-from PySide6.QtCore import QRegularExpression, Signal, Slot, QPoint, Qt
+from PySide6.QtCore import QRegularExpression, Signal, Slot, QPoint, Qt, QSettings, QStandardPaths
 from PySide6.QtGui import (
     QPixmap,
     QPainter,
@@ -30,13 +30,15 @@ class DataSourcePage(QWizardPage):
         super().__init__(parent)
         self.setTitle(self.tr("Select Data Source"))
 
-        self.path_edit: QLineEdit
+        self.path_edit: FilePathWidget
         self._init_ui()
 
     def _init_ui(self):
         main_layout = QVBoxLayout()
 
         self.path_edit = FilePathWidget()
+        self.path_edit.file_path = QSettings().value("projectLoadWizard/dataSourceDir",
+                                                     QStandardPaths.standardLocations(QStandardPaths.StandardLocation.DocumentsLocation)[0])
         main_layout.addWidget(self.path_edit)
 
         self.setLayout(main_layout)
