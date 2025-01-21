@@ -6,7 +6,7 @@ from bn_modeller.windows.main_window import MainWindow
 
 
 def create_application(argv: list[str]) -> QApplication:
-    if "-no-gui" in argv:
+    if "no-gui" in argv:
         app = QCoreApplication(argv)
     else:
         app = QApplication(argv)
@@ -19,7 +19,7 @@ def manage_cli_args(app: QCoreApplication) -> QCommandLineParser:
     cl_parser.addHelpOption()
     cl_parser.addVersionOption()
 
-    no_gui = QCommandLineOption("no-gui", "Launch in headless mode")
+    no_gui = QCommandLineOption("nogui", "Launch in headless mode")
     cl_parser.process(app)
 
     return cl_parser
