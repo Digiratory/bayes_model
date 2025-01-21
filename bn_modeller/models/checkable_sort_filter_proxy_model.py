@@ -38,6 +38,7 @@ class CheckableSortFilterProxyModel(QSortFilterProxyModel):
     def setData(self, index: QModelIndex, value, role: int = Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.CheckStateRole:
             self.booleanSet[index.row()] = bool(value)
+            self.dataChanged.emit(index, index, [role])
             return True
         else:
             return super().setData(self.mapToSource(index), value, role)
