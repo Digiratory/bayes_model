@@ -52,10 +52,9 @@ class CheckableSortFilterProxyModel(QSortFilterProxyModel):
             return Qt.ItemFlag.ItemIsEnabled
 
         return (Qt.ItemFlag.ItemIsUserCheckable
-                | Qt.ItemFlag.ItemIsEnabled                 
+                | Qt.ItemFlag.ItemIsEnabled
                 | super().flags(self.mapToSource(index))
                 & ~Qt.ItemFlag.ItemIsEditable)
-
 
     def setSourceModel(self, sourceModel):
         self.booleanSet = [False for _ in range(sourceModel.rowCount())]
