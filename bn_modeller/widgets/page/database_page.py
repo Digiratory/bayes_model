@@ -1,9 +1,12 @@
-from PySide6.QtWidgets import QWidget, QTableView, QVBoxLayout
+from PySide6.QtWidgets import QWidget, QTableView, QHBoxLayout
 from PySide6.QtCore import QAbstractItemModel, Qt, Signal, Slot
 
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
-from bn_modeller.widgets.all_samples_view import AllSamplesView
+from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
+from bn_modeller.models import CheckableSortFilterProxyModel
 
+from bn_modeller.widgets.all_samples_view import AllSamplesView
+from bn_modeller.widgets.selectable_list_view import SelectableListView
 
 class DatabasePageWidget(QWidget):
     def __init__(self, parent: QWidget | None = None, f=Qt.WindowType()):
@@ -11,14 +14,25 @@ class DatabasePageWidget(QWidget):
         self._init_ui()
 
     def _init_ui(self):
-        self.mainLayout = QVBoxLayout(self)
+        self.mainLayout = QHBoxLayout(self)
+
+        self.featureSelectorView = SelectableListView()
+        self.mainLayout.addWidget(self.featureSelectorView)
 
         self.databaseView = AllSamplesView()
         self.mainLayout.addWidget(self.databaseView)
 
         self.setLayout(self.mainLayout)
 
-    def setModels(self, sampleSqlTableModel: SampleSqlTableModel):
+    def setModels(self,
+                  featureSqlTableModel: FeatureSqlTableModel,
+                  sampleSqlTableModel: SampleSqlTableModel):
         self._sampleSqlTableModel = sampleSqlTableModel
+        self._featureSqlTableModel = featureSqlTableModel
+
+        self._featureCheckableSortFilterProxyModel = CheckableSortFilterProxyModel()
+        self._featureCheckableSortFilterProxyModel.setSourceModel(self._featureSqlTableModel)        
+        self.featureSelectorView.setModel(self._featureCheckableSortFilterProxyModel)
+        self.featureSelectorView.setModelColumn(featureSqlTableModel.fieldIndex(featureSqlTableModel.column_name))
 
         self.databaseView.setModel(self._sampleSqlTableModel)

@@ -13,6 +13,7 @@ from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 from bn_modeller.widgets.page.database_page import DatabasePageWidget
 from bn_modeller.utils.db_model_handler import add_values_from_csv
 
+
 class MainWindow(BaseWindow):
     go_back = Signal()
 
@@ -47,6 +48,7 @@ class MainWindow(BaseWindow):
         self.sampleSqlTableModel.select()
 
         self.databasePageWidget.setModels(
+            featureSqlTableModel=self.featureSqlTableModel,
             sampleSqlTableModel=self.sampleSqlTableModel)
 
     def _init_ui(self):
@@ -73,7 +75,8 @@ class MainWindow(BaseWindow):
 
     @Slot()
     def add_data_clicked(self):
-        add_values_from_csv(r"data\data_2.csv", self.featureSqlTableModel, self.sampleSqlTableModel)
+        add_values_from_csv(
+            r"data\data_2.csv", self.featureSqlTableModel, self.sampleSqlTableModel)
 
     @Slot()
     def go_back_clicked(self):
