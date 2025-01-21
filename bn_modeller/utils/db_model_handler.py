@@ -89,7 +89,7 @@ def add_values_from_csv(csv_file_path: str,
                                        FeatureSqlTableModel.column_id)).data()
                                    )
                 rowRecord.setValue(
-                    SampleSqlTableModel.column_sample_id, int(new_sample))
+                    SampleSqlTableModel.column_sample_id, int(index))
                 rowRecord.setValue(
                     SampleSqlTableModel.column_value, float(row_pd[col]))
                 sampleSqlTableModel.insertRecord(-1, rowRecord)
