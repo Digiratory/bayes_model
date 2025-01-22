@@ -13,7 +13,7 @@ class SampleSqlTableModel(QSqlRelationalTableModel):
     def __init__(self, parent: QObject = None, db: QSqlDatabase = None):
         super().__init__(parent, db)
         
-        self.setTable(SampleSqlTableModel.table_name)
+        
         self.setRelation(2, QSqlRelation(aTableName=FeatureSqlTableModel.table_name, 
                                          indexCol=SampleSqlTableModel.column_feature_id,
                                          displayCol=FeatureSqlTableModel.column_name))
@@ -30,6 +30,7 @@ class SampleSqlTableModel(QSqlRelationalTableModel):
         
         if not query.exec():
             raise RuntimeError(f"Unable to connect to DB: {query.lastError()}")
+        self.setTable(SampleSqlTableModel.table_name)
         
     def insertRowIntoTable(self, values):
         return super().insertRowIntoTable(values)

@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, QSortFilterProxyModel, QObject, QModelIndex, QPer
 class CheckableSortFilterProxyModel(QSortFilterProxyModel):
     def __init__(self, parent: QObject = None):
         super().__init__(parent)
-        self.booleanSet: list[bool] = []
+        self.booleanSet: dict[int, bool] = {}
 
     def mapFromSource(self, sourceIndex: QModelIndex | QPersistentModelIndex):
         if sourceIndex.isValid():
@@ -22,11 +22,11 @@ class CheckableSortFilterProxyModel(QSortFilterProxyModel):
             return super().mapToSource(proxyIndex)
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
-        if not index.isValid():
+        if not index.isValid() or index.row() == -1:
             return None
 
         if role == Qt.ItemDataRole.CheckStateRole:
-            return Qt.CheckState.Checked if self.booleanSet[index.row()] else Qt.CheckState.Unchecked
+            return Qt.CheckState.Checked if self.booleanSet.get(index.row(), False) else Qt.CheckState.Unchecked
         elif role == Qt.ItemDataRole.DisplayRole:
             i = self.mapToSource(index)
             r = super().data(self.mapToSource(index), role)
@@ -43,11 +43,6 @@ class CheckableSortFilterProxyModel(QSortFilterProxyModel):
         else:
             return super().setData(self.mapToSource(index), value, role)
 
-    def setParameters(self, booleanSet: list[str]):
-        self.booleanSet.clear()
-        self.booleanSet = [{"index": idx, "title": title}
-                           for idx, title in enumerate(booleanSet)]
-
     def flags(self, index: QModelIndex):
         if not index.isValid():
             return Qt.ItemFlag.ItemIsEnabled
@@ -58,5 +53,5 @@ class CheckableSortFilterProxyModel(QSortFilterProxyModel):
                 & ~Qt.ItemFlag.ItemIsEditable)
 
     def setSourceModel(self, sourceModel):
-        self.booleanSet = [False for _ in range(sourceModel.rowCount())]
+        self.booleanSet = {i: False for i in range(sourceModel.rowCount())}
         return super().setSourceModel(sourceModel)

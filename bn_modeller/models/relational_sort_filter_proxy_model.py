@@ -29,7 +29,7 @@ class RelationalSortFilterProxyModel(QSortFilterProxyModel):
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex | QPersistentModelIndex):
         index = self.sourceModel().index(source_row, self.filterKeyColumn(), source_parent)
-        return self._filter_cache[index.data()]
+        return self._filter_cache.get(index.data(), False)
 
     @Slot(QModelIndex, QModelIndex, "QList<int>")
     def invalidateCache(self, topLeft: QModelIndex = None, bottomRight: QModelIndex = None, roles: list[int] = None):

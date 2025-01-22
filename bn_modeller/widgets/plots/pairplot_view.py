@@ -42,40 +42,46 @@ class PairplotView(QFrame):
             self._model.filterInvalidated.disconnect(self.updateVisualization)
         self._model = model
         self._model.filterInvalidated.connect(self.updateVisualization)
-
-        filterModel: CheckableSortFilterProxyModel = model.filterModel()
-        self._filter_labels = {}
+        
         self._value_col = value_col
         self._sample_id_col = sample_id_col
         self._hue_id_col = hue_id_col
+        self._hue_names_col = hue_names_col
 
-        for rowIdx in range(filterModel.rowCount()):
-            k = filterModel.data(
-                filterModel.index(rowIdx, self._model.filterValueColumn()))
-            v = filterModel.data(filterModel.index(
-                rowIdx, hue_names_col))
-            self._filter_labels[k] = v
 
     # @Slot("QList<QPersistentModelIndex>", QAbstractItemModel.LayoutChangeHint)
     # def updateVisualization(self, parents: list[QPersistentModelIndex] = [],
     #                         hint: QAbstractItemModel.LayoutChangeHint = QAbstractItemModel.LayoutChangeHint.NoLayoutChangeHint):
+
     # @Slot(QModelIndex, QModelIndex, "QList<int>")
     # def updateVisualization(self, topLeft: QModelIndex = None, bottomRight: QModelIndex = None, roles: list[int] = None):
+
     @Slot()
     def updateVisualization(self):
+        filterModel = self._model.filterModel()
+        filter_labels = {}
+        for rowIdx in range(filterModel.rowCount()):
+            k = filterModel.data(
+                filterModel.index(rowIdx, self._model.filterValueColumn()))
+            v = filterModel.data(filterModel.index(
+                rowIdx, self._hue_names_col))
+            filter_labels[k] = v
+        
         data_dict = {"sample": [],
                      "value": [],
                      "label": []}
         for rowIdx in range(self._model.rowCount()):
             data_dict["sample"].append(self._model.data(
                 self._model.index(rowIdx, self._sample_id_col)))
-            data_dict["label"].append(self._filter_labels[self._model.data(
+            data_dict["label"].append(filter_labels[self._model.data(
                 self._model.index(rowIdx, self._hue_id_col))])
             data_dict["value"].append(self._model.data(
                 self._model.index(rowIdx, self._value_col)))
         data_pd = pd.DataFrame.from_dict(data_dict)
         data_pd = data_pd.pivot(
             index="sample", columns="label", values="value")
+        if len(data_pd) == 0:
+            return
         g = sns.pairplot(data_pd)
         newMplCanvas = FigureCanvasQTAgg(g.figure)
 

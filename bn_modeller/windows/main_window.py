@@ -3,7 +3,7 @@ import os
 from PySide6.QtWidgets import QWidget, QStackedWidget, QStyle, QTabWidget
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QGuiApplication, QAction
-from PySide6.QtSql import QSqlDatabase
+from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
 from bn_modeller.windows.base_window import BaseWindow
 from bn_modeller.widgets.project_wizard import ProjectLoadWizard
@@ -42,10 +42,17 @@ class MainWindow(BaseWindow):
         self._db.setDatabaseName(os.path.join(
             self._project_path, "project_database.sqlite"))
         self._db.open()
+        query = QSqlQuery()
+        query.exec("PRAGMA page_size = 4096;")
+        query.exec("PRAGMA cache_size = 16384;")
+        query.exec("PRAGMA temp_store = MEMORY;")
+        query.exec("PRAGMA journal_mode = PERSIST;")
+        query.exec("PRAGMA locking_mode = EXCLUSIVE;")
+        query.exec("PRAGMA synchronous = OFF;") # WARNING: IT IS NOT SAFE. It can cause a DB damage in case of a bad termination. 
+        
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)
-        self.featureSqlTableModel.select()
         self.sampleSqlTableModel = SampleSqlTableModel(db=self._db)
-        self.sampleSqlTableModel.select()
+        self._initCacheDbInMemory()
 
         self.databasePageWidget.setModels(
             featureSqlTableModel=self.featureSqlTableModel,
@@ -73,10 +80,19 @@ class MainWindow(BaseWindow):
         self._save_to_history(self._main_widget.currentWidget())
         self._main_widget.setCurrentWidget(newCurrentWidget)
 
+    def _initCacheDbInMemory(self):
+        self.featureSqlTableModel.select()
+        while (self.featureSqlTableModel.canFetchMore()):
+            self.featureSqlTableModel.fetchMore()
+        self.sampleSqlTableModel.select()
+        while (self.sampleSqlTableModel.canFetchMore()):
+            self.sampleSqlTableModel.fetchMore()
+
     @Slot()
     def add_data_clicked(self):
         add_values_from_csv(
             r"data\data_2.csv", self.featureSqlTableModel, self.sampleSqlTableModel)
+        self._initCacheDbInMemory()
 
     @Slot()
     def go_back_clicked(self):
