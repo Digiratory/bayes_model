@@ -36,6 +36,16 @@ environment variables.
 
 https://pygraphviz.github.io/documentation/stable/install.html
 
+## Troubleshooting
+
+### High storage utilization on Windows 10/11
+
+This high storage utilization probably caused by WindowsSearch Engine. To mitigate the problem you should disable the indexing of content for .sqlite files as following.
+
+1. Press Win to open Start Menu and type in Index.
+2. Click on Indexing Options.
+3. On this next screen, hit Advanced > (Tab) File Types. For extention `.sqlite` select "Index Properties Only".
+
 ## bn_visualize
 
 turn off ```plt.show```
