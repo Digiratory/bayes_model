@@ -5,11 +5,19 @@ from bn_modeller.models.checkable_sort_filter_proxy_model import CheckableSortFi
 
 
 class RelationalSortFilterProxyModel(QSortFilterProxyModel):
+    filterInvalidated = Signal()
+
     def __init__(self, parent: QObject = None):
         super().__init__(parent)
         self._filterModel: CheckableSortFilterProxyModel = None
         self._filterValueColumn: int = None
         self._filter_cache: dict
+
+    def filterModel(self) -> CheckableSortFilterProxyModel:
+        return self._filterModel
+
+    def filterValueColumn(self) -> int:
+        return self._filterValueColumn
 
     def setFilterModel(self, filterModel: CheckableSortFilterProxyModel, filterValueColumn: int):
         if self._filterModel is not None:
@@ -33,3 +41,4 @@ class RelationalSortFilterProxyModel(QSortFilterProxyModel):
                 rowIdx, self._filterValueColumn), role=Qt.ItemDataRole.CheckStateRole)
             self._filter_cache[k] = (v == Qt.CheckState.Checked)
         self.invalidateFilter()
+        self.filterInvalidated.emit()
