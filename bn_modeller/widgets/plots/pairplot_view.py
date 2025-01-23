@@ -6,13 +6,12 @@ from PySide6.QtWidgets import QFrame, QWidget, QVBoxLayout
 
 
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-import sys
-import matplotlib
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
+import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
+import matplotlib
+import numpy as np
 matplotlib.use('Qt5Agg')
-
 
 class PairplotMplCanvas(FigureCanvasQTAgg):
 
@@ -66,7 +65,7 @@ class PairplotView(QFrame):
             v = filterModel.data(filterModel.index(
                 rowIdx, self._hue_names_col))
             filter_labels[k] = v
-        
+
         data_dict = {"sample": [],
                      "value": [],
                      "label": []}
@@ -80,15 +79,61 @@ class PairplotView(QFrame):
         data_pd = pd.DataFrame.from_dict(data_dict)
         data_pd = data_pd.pivot(
             index="sample", columns="label", values="value")
+
         if len(data_pd) == 0:
             return
-        g = sns.pairplot(data_pd)
-        newMplCanvas = FigureCanvasQTAgg(g.figure)
+
+        # Создаем графики
+        labels = data_pd.columns
+        num_vars = len(labels)
+        fig, axes = plt.subplots(num_vars, num_vars, figsize=(12, 12))
+
+        # Проверяем, является ли axes двумерным массивом или одиночным объектом
+        for i in range(num_vars):
+            for j in range(num_vars):
+                ax = axes[i, j] if isinstance(axes, np.ndarray) else axes
+
+                if i == j:
+                    ax.hist(data_pd.iloc[:, i], bins=20, color='lightgray')
+                    # ax.set_title(labels[i])
+                else:
+                    ax.scatter(data_pd.iloc[:, j], data_pd.iloc[:, i], alpha=0.6)
+                    ax.set_xlabel(labels[j])
+                    ax.set_ylabel(labels[i])
+
+                    # Добавление корреляции
+                    df1 = data_pd.iloc[:, i]
+                    df2 = data_pd.iloc[:, j]
+
+                    df1_cleaned, df2_cleaned = df1.dropna(), df2.dropna()
+
+                    # Убираем те строки, в которых один из столбцов имеет NaN
+                    df1_cleaned, df2_cleaned = df1_cleaned.align(df2_cleaned, join='inner')
+
+                    corr = np.corrcoef(df1_cleaned, df2_cleaned)[0, 1]
+                    ax.annotate(f'Corr: {corr:.2f}', xy=(0.5, 0.9), xycoords='axes fraction', ha='center', fontsize=10,
+                                color='red')
+
+        plt.tight_layout(pad=3.0)
+        fig.subplots_adjust(hspace=0.3, wspace=0.3)
+
+        newMplCanvas = FigureCanvasQTAgg(fig)
+
+        # Добавляем панель инструментов
+        toolbar = NavigationToolbar2QT(newMplCanvas, self)
+
+        if hasattr(self, 'toolbar'):
+            self.mainLayout.replaceWidget(self.toolbar, toolbar)
+        else:
+            self.toolbar = toolbar
+            self.mainLayout.addWidget(self.toolbar)
 
         if self.mplCanvas is not None:
             self.mainLayout.replaceWidget(self.mplCanvas, newMplCanvas)
             del self.mplCanvas
-            self.mplCanvas = newMplCanvas
-        else:
-            self.mplCanvas = newMplCanvas
-            self.mainLayout.addWidget(self.mplCanvas)
+        self.mplCanvas = newMplCanvas
+        self.mainLayout.addWidget(self.mplCanvas)
+
+
+
+
