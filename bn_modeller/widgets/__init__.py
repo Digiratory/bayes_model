@@ -1,0 +1,1 @@
+from bn_modeller.widgets.dep_setup_table_view import DependencySetupTableView

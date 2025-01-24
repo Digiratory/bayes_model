@@ -9,8 +9,10 @@ from bn_modeller.windows.base_window import BaseWindow
 from bn_modeller.widgets.project_wizard import ProjectLoadWizard
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
+from bn_modeller.models import DependencyManyToManySqlTableModel, PairTableSQLProxyModel
 
 from bn_modeller.widgets.page.database_page import DatabasePageWidget
+from bn_modeller.widgets.page.dependency_setup_page import DependencySetupPageWidget
 from bn_modeller.utils.db_model_handler import add_values_from_csv
 
 
@@ -21,7 +23,7 @@ class MainWindow(BaseWindow):
 
         super().__init__("", parent, flags)
 
-        self._main_widget: QStackedWidget
+        self._main_widget: QTabWidget
 
         self._title = self.tr("Bayesian Network Modeller")
 
@@ -54,16 +56,24 @@ class MainWindow(BaseWindow):
         self.sampleSqlTableModel = SampleSqlTableModel(db=self._db)
         self._initCacheDbInMemory()
 
+        self._dependencyManyToManySqlTableModel = DependencyManyToManySqlTableModel(db=self._db)        
+        self._dependPairModel = PairTableSQLProxyModel(self.featureSqlTableModel, db=self._db) 
+        
         self.databasePageWidget.setModels(
             featureSqlTableModel=self.featureSqlTableModel,
             sampleSqlTableModel=self.sampleSqlTableModel)
+        
+        self.dependencySetupPageWidget.setModels(pairTableSQLProxyModel=self._dependPairModel)
 
     def _init_ui(self):
         self._main_widget = QTabWidget()
         self.set_central_title(self._title)
 
         self.databasePageWidget = DatabasePageWidget()
-        self._main_widget.addTab(self.databasePageWidget, "Database")
+        self._main_widget.addTab(self.databasePageWidget, self.tr("Database"))
+
+        self.dependencySetupPageWidget = DependencySetupPageWidget()
+        self._main_widget.addTab(self.dependencySetupPageWidget, self.tr("Relations"))
 
         self.setCentralWidget(self._main_widget)
 
