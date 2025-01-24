@@ -83,23 +83,30 @@ class PairplotView(QFrame):
         if len(data_pd) == 0:
             return
 
-        # Создаем графики
         labels = data_pd.columns
         num_vars = len(labels)
         fig, axes = plt.subplots(num_vars, num_vars, figsize=(12, 12))
 
-        # Проверяем, является ли axes двумерным массивом или одиночным объектом
         for i in range(num_vars):
             for j in range(num_vars):
                 ax = axes[i, j] if isinstance(axes, np.ndarray) else axes
 
                 if i == j:
-                    ax.hist(data_pd.iloc[:, i], bins=20, color='lightgray')
+                    ax.hist(data_pd.iloc[:, i])
+                    # ax.hist(data_pd.iloc[:, i], bins=20, color='lightgray')
                     # ax.set_title(labels[i])
+
+                    if j == 0:  # Подпись OY только на первом столбце
+                        ax.set_ylabel(labels[i])
+                    if i == num_vars - 1:  # Подпись OX только на последней строке
+                        ax.set_xlabel(labels[j])
                 else:
                     ax.scatter(data_pd.iloc[:, j], data_pd.iloc[:, i], alpha=0.6)
-                    ax.set_xlabel(labels[j])
-                    ax.set_ylabel(labels[i])
+                    # ax.set_xlabel(labels[j])
+                    # ax.set_ylabel(labels[i])
+
+                    ax.set_xlabel('' if i != num_vars - 1 else labels[j])  # Подпись OX только для нижней строки
+                    ax.set_ylabel('' if j != 0 else labels[i])  # Подпись OY только для левого столбца
 
                     # Добавление корреляции
                     df1 = data_pd.iloc[:, i]
@@ -119,7 +126,7 @@ class PairplotView(QFrame):
 
         newMplCanvas = FigureCanvasQTAgg(fig)
 
-        # Добавляем панель инструментов
+        # панель инструментов
         toolbar = NavigationToolbar2QT(newMplCanvas, self)
 
         if hasattr(self, 'toolbar'):
