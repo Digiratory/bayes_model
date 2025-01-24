@@ -1,6 +1,6 @@
 from typing import Any
 from PySide6.QtSql import QSqlRelationalTableModel, QSqlDatabase, QSqlQuery
-from PySide6.QtCore import Qt, QObject, QModelIndex, QByteArray, QAbstractTableModel
+from PySide6.QtCore import Qt, QObject, QModelIndex, QByteArray, QAbstractTableModel, QSortFilterProxyModel
 
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
 
@@ -40,6 +40,9 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         super().__init__(parent)
         self._db = db
         self._featureSqlTableModel = featureSqlTableModel
+
+    def getFeatureSqlTableModel(self):
+        return self._featureSqlTableModel
 
     def columnCount(self, index: QModelIndex = QModelIndex()) -> int:
         return self._getFeaturesCount()
@@ -150,3 +153,9 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                                                  self._featureSqlTableModel.column_name)
                                              ))
         return v
+
+
+class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
+    def __init__(self, parent: QObject = None):
+        super().__init__(parent)
+        self.booleanSet: dict[int, bool] = {}
