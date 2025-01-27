@@ -64,6 +64,8 @@ class PairplotView(QFrame):
                 filterModel.index(rowIdx, self._model.filterValueColumn()))
             v = filterModel.data(filterModel.index(
                 rowIdx, self._hue_names_col))
+
+
             filter_labels[k] = v
 
         data_dict = {"sample": [],
@@ -83,9 +85,14 @@ class PairplotView(QFrame):
         if len(data_pd) == 0:
             return
 
+        # фильтрация признаков при построении графиков
+        filtered_order = [col for col in list(filter_labels.values()) if col in data_pd.columns]
+        data_pd = data_pd[filtered_order]
         labels = data_pd.columns
         num_vars = len(labels)
+
         fig, axes = plt.subplots(num_vars, num_vars, figsize=(12, 12))
+
 
         for i in range(num_vars):
             for j in range(num_vars):
