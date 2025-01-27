@@ -1,5 +1,5 @@
 from PySide6.QtSql import QSqlRelationalTableModel, QSqlDatabase, QSqlRelation, QSqlQuery
-from PySide6.QtCore import Qt, QObject, QModelIndex, QIdentityProxyModel
+from PySide6.QtCore import Qt, QObject, QModelIndex, QIdentityProxyModel, Signal, Slot, QSortFilterProxyModel
 
 
 class FeatureSqlTableModel(QSqlRelationalTableModel):

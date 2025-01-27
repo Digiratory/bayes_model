@@ -1,3 +1,3 @@
 from .checkable_sort_filter_proxy_model import CheckableSortFilterProxyModel
 from .relational_sort_filter_proxy_model import RelationalSortFilterProxyModel
-from .dependency_sqltable_model import DependencyManyToManySqlTableModel, PairTableSQLProxyModel
+from .dependency_sqltable_model import DependencyManyToManySqlTableModel, PairTableSQLProxyModel, FilterPairTableSQLProxyModel

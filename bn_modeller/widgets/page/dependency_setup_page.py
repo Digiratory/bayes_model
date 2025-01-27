@@ -3,7 +3,7 @@ from PySide6.QtCore import QAbstractItemModel, Qt, Signal, Slot
 
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel, PersistanceCheckableFeatureListProxyModel
-from bn_modeller.models import CheckableSortFilterProxyModel, RelationalSortFilterProxyModel
+from bn_modeller.models import CheckableSortFilterProxyModel, RelationalSortFilterProxyModel,FilterPairTableSQLProxyModel
 
 from bn_modeller.models import PairTableSQLProxyModel
 from bn_modeller.widgets import DependencySetupTableView, SelectableListView
@@ -26,15 +26,23 @@ class DependencySetupPageWidget(QWidget):
         self.setLayout(self.mainLayout)
 
     def setModels(self, pairTableSQLProxyModel: PairTableSQLProxyModel):
-        self._pairTableSQLProxyModel = pairTableSQLProxyModel
-        self._depTable.setModel(self._pairTableSQLProxyModel)
-
+        # TODO: т.к. при реализации обсчета байесовских сетей нужно использовать 
+        # self._pairTableSQLProxyModel, вероятно, её нужно будет вытащить наружу 
+        # или сделать рассчеты дочерним объектом этой страницы
+        
         self._featureCheckableSortFilterProxyModel = PersistanceCheckableFeatureListProxyModel()
         self._featureCheckableSortFilterProxyModel.setSourceModel(
-            self._pairTableSQLProxyModel.getFeatureSqlTableModel())
+            pairTableSQLProxyModel.getFeatureSqlTableModel())
 
         self.featureSelectorView.setModel(
             self._featureCheckableSortFilterProxyModel)
         self.featureSelectorView.setModelColumn(
-            self._pairTableSQLProxyModel.getFeatureSqlTableModel().fieldIndex(
-                self._pairTableSQLProxyModel.getFeatureSqlTableModel().column_name))
+            pairTableSQLProxyModel.getFeatureSqlTableModel().fieldIndex(
+                pairTableSQLProxyModel.getFeatureSqlTableModel().column_name))
+
+        self._pairTableSQLProxyModel = FilterPairTableSQLProxyModel()
+        self._pairTableSQLProxyModel.setSourceModel(pairTableSQLProxyModel)
+        self._pairTableSQLProxyModel.setFilterModel(
+            self._featureCheckableSortFilterProxyModel, 
+            pairTableSQLProxyModel.getFeatureSqlTableModel().fieldIndex(FeatureSqlTableModel.column_id))
+        self._depTable.setModel(self._pairTableSQLProxyModel)

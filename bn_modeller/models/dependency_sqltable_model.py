@@ -1,8 +1,9 @@
 from typing import Any
 from PySide6.QtSql import QSqlRelationalTableModel, QSqlDatabase, QSqlQuery
-from PySide6.QtCore import Qt, QObject, QModelIndex, QByteArray, QAbstractTableModel, QSortFilterProxyModel
+from PySide6.QtCore import Qt, QObject, QModelIndex, QPersistentModelIndex, QByteArray, QAbstractTableModel, QSortFilterProxyModel, Signal, Slot
 
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
+from bn_modeller.models.feature_sqltable_model import PersistanceCheckableFeatureListProxyModel
 
 
 class DependencyManyToManySqlTableModel(QSqlRelationalTableModel):
@@ -115,7 +116,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         if not query.exec():
             raise RuntimeError(
                 f"Unable to retrieve row count from DB: {query.lastError()}")
-        
+
     def _removeConnection(self,  index: QModelIndex):
         source_id, target_id = self._indexToId(index)
         query = QSqlQuery(
@@ -156,6 +157,46 @@ class PairTableSQLProxyModel(QAbstractTableModel):
 
 
 class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
+    filterInvalidated = Signal()
+
     def __init__(self, parent: QObject = None):
         super().__init__(parent)
         self.booleanSet: dict[int, bool] = {}
+        self._filterModel: PersistanceCheckableFeatureListProxyModel = None
+
+    def filterModel(self) -> PersistanceCheckableFeatureListProxyModel:
+        return self._filterModel
+
+    def setFilterModel(self,
+                       filterModel: PersistanceCheckableFeatureListProxyModel,
+                       filterValueColumn: int):
+        if self._filterModel is not None:
+            self._filterModel.dataChanged.disconnect(self.invalidateCache)
+        self._filterModel = filterModel
+        self._filterValueColumn = filterValueColumn
+        self._filterModel.dataChanged.connect(self.invalidateCache)
+        self.invalidateCache()
+
+    def filterAcceptsRow(self,
+                         source_row: int,
+                         source_parent: QModelIndex | QPersistentModelIndex):
+        index = self._filterModel.index(source_row, self.filterKeyColumn(), source_parent)
+        return self._filter_cache.get(index.data(), False)
+
+    def filterAcceptsColumn(self,
+                            source_column: int,
+                            source_parent: QModelIndex | QPersistentModelIndex):
+        index = self._filterModel.index(source_column, self.filterKeyColumn(), source_parent)
+        return self._filter_cache.get(index.data(), False)
+
+    @Slot(QModelIndex, QModelIndex, "QList<int>")
+    def invalidateCache(self, topLeft: QModelIndex = None, bottomRight: QModelIndex = None, roles: list[int] = None):
+        self._filter_cache = {}
+        for rowIdx in range(self._filterModel.rowCount()):
+            k = self._filterModel.data(
+                self._filterModel.index(rowIdx, self._filterValueColumn))
+            v = self._filterModel.data(self._filterModel.index(
+                rowIdx, self._filterValueColumn), role=Qt.ItemDataRole.CheckStateRole)
+            self._filter_cache[k] = (v == Qt.CheckState.Checked)
+        self.invalidateFilter()
+        self.filterInvalidated.emit()
