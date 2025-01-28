@@ -12,7 +12,7 @@ from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 from bn_modeller.models import DependencyManyToManySqlTableModel, PairTableSQLProxyModel
 
 from bn_modeller.widgets.page.database_page import DatabasePageWidget
-from bn_modeller.widgets.page.dependency_setup_page import DependencySetupPageWidget
+from bn_modeller.widgets.page.bayesian_network_page import BayesianNetworkPageWidget
 from bn_modeller.utils.db_model_handler import add_values_from_csv
 
 
@@ -72,7 +72,7 @@ class MainWindow(BaseWindow):
         self.databasePageWidget = DatabasePageWidget()
         self._main_widget.addTab(self.databasePageWidget, self.tr("Database"))
 
-        self.dependencySetupPageWidget = DependencySetupPageWidget()
+        self.dependencySetupPageWidget = BayesianNetworkPageWidget()
         self._main_widget.addTab(self.dependencySetupPageWidget, self.tr("Relations"))
 
         self.setCentralWidget(self._main_widget)

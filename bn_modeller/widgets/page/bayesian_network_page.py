@@ -9,7 +9,7 @@ from bn_modeller.models import PairTableSQLProxyModel
 from bn_modeller.widgets import DependencySetupTableView, SelectableListView
 
 
-class DependencySetupPageWidget(QWidget):
+class BayesianNetworkPageWidget(QWidget):
     def __init__(self, parent: QWidget | None = None, f=Qt.WindowType()):
         super().__init__(parent, f)
         self._init_ui()
