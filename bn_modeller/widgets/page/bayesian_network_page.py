@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QTableView, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QTabWidget, QHBoxLayout
 from PySide6.QtCore import QAbstractItemModel, Qt, Signal, Slot
 
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
@@ -17,12 +17,30 @@ class BayesianNetworkPageWidget(QWidget):
     def _init_ui(self):
         self.mainLayout = QHBoxLayout(self)
 
+        self.tabWidget = QTabWidget()
+
+        # Dependency tab 
+        self.dependencyTabWidget = QWidget()
+        self.dependencyTabLayout = QHBoxLayout()
         self.featureSelectorView = SelectableListView()
-        self.mainLayout.addWidget(self.featureSelectorView, 1)
+        self.dependencyTabLayout.addWidget(self.featureSelectorView, 1)
 
         self._depTable = DependencySetupTableView()
-        self.mainLayout.addWidget(self._depTable, 2)
+        self.dependencyTabLayout.addWidget(self._depTable, 2)
 
+        self.dependencyTabWidget.setLayout(self.dependencyTabLayout)
+        self.tabWidget.addTab(self.dependencyTabWidget, self.tr("Dependency"))
+
+        # Visualization Tab
+
+        self.visualizationTabLayout = QHBoxLayout()
+        self.visualizationTabWidget = QWidget()
+
+        self.visualizationTabWidget.setLayout(self.visualizationTabLayout)
+        self.tabWidget.addTab(self.visualizationTabWidget, self.tr("Visulization"))
+
+        # Finalization 
+        self.mainLayout.addWidget(self.tabWidget)
         self.setLayout(self.mainLayout)
 
     def setModels(self, pairTableSQLProxyModel: PairTableSQLProxyModel):

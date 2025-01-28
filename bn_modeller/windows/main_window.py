@@ -73,7 +73,7 @@ class MainWindow(BaseWindow):
         self._main_widget.addTab(self.databasePageWidget, self.tr("Database"))
 
         self.dependencySetupPageWidget = BayesianNetworkPageWidget()
-        self._main_widget.addTab(self.dependencySetupPageWidget, self.tr("Relations"))
+        self._main_widget.addTab(self.dependencySetupPageWidget, self.tr("Bayesian Networks"))
 
         self.setCentralWidget(self._main_widget)
 
