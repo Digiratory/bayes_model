@@ -4,8 +4,8 @@ import seaborn as sns
 import pandas as pd
 import pingouin as pg
 import numpy as np
-from graph_preparation import GraphPreparation
-from pyBansheeCalculation import BansheeCalc
+from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
+from bn_modeller.bayesian_nets.pyBansheeCalculation import BansheeCalc
 from textwrap import wrap
 from sklearn.metrics import r2_score, mean_absolute_error
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
