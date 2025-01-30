@@ -21,7 +21,7 @@ class GraphPreparation:
         self.table_connection = table_connection
         self.code_columns = {num: i for i, num in enumerate(table_connection)}
 
-        weight_matrix = self.corr_matrix * self.table_connection.map(lambda x: x.value)
+        weight_matrix = self.corr_matrix * self.table_connection.map(lambda x: bool(x.value))
 
         weight_matrix = weight_matrix.rename(self.code_columns, axis=0)
         weight_matrix = weight_matrix.rename(self.code_columns, axis=1)

@@ -1,12 +1,12 @@
-from PySide6.QtWidgets import QWidget, QTabWidget, QHBoxLayout
-from PySide6.QtCore import QAbstractItemModel, Qt, Signal, Slot
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QHBoxLayout, QTabWidget, QWidget
 
-from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
-from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel, PersistanceCheckableFeatureListProxyModel
-from bn_modeller.models import CheckableSortFilterProxyModel, RelationalSortFilterProxyModel,FilterPairTableSQLProxyModel
-
-from bn_modeller.models import PairTableSQLProxyModel
+from bn_modeller.models import (FilterPairTableSQLProxyModel,
+                                PairTableSQLProxyModel)
+from bn_modeller.models.feature_sqltable_model import (
+    FeatureSqlTableModel, PersistanceCheckableFeatureListProxyModel)
 from bn_modeller.widgets import DependencySetupTableView, SelectableListView
+from bn_modeller.widgets.bn_visualization_view import BayesianNetView
 
 
 class BayesianNetworkPageWidget(QWidget):
@@ -19,7 +19,7 @@ class BayesianNetworkPageWidget(QWidget):
 
         self.tabWidget = QTabWidget()
 
-        # Dependency tab 
+        # Dependency tab
         self.dependencyTabWidget = QWidget()
         self.dependencyTabLayout = QHBoxLayout()
         self.featureSelectorView = SelectableListView()
@@ -32,22 +32,20 @@ class BayesianNetworkPageWidget(QWidget):
         self.tabWidget.addTab(self.dependencyTabWidget, self.tr("Dependency"))
 
         # Visualization Tab
+        self.visualizationTabWidget = BayesianNetView()
 
-        self.visualizationTabLayout = QHBoxLayout()
-        self.visualizationTabWidget = QWidget()
+        self.tabWidget.addTab(self.visualizationTabWidget,
+                              self.tr("Visulization"))
 
-        self.visualizationTabWidget.setLayout(self.visualizationTabLayout)
-        self.tabWidget.addTab(self.visualizationTabWidget, self.tr("Visulization"))
-
-        # Finalization 
+        # Finalization
         self.mainLayout.addWidget(self.tabWidget)
         self.setLayout(self.mainLayout)
 
     def setModels(self, pairTableSQLProxyModel: PairTableSQLProxyModel):
-        # TODO: т.к. при реализации обсчета байесовских сетей нужно использовать 
-        # self._pairTableSQLProxyModel, вероятно, её нужно будет вытащить наружу 
+        # TODO: т.к. при реализации обсчета байесовских сетей нужно использовать
+        # self._pairTableSQLProxyModel, вероятно, её нужно будет вытащить наружу
         # или сделать рассчеты дочерним объектом этой страницы
-        
+
         self._featureCheckableSortFilterProxyModel = PersistanceCheckableFeatureListProxyModel()
         self._featureCheckableSortFilterProxyModel.setSourceModel(
             pairTableSQLProxyModel.getFeatureSqlTableModel())
@@ -61,6 +59,8 @@ class BayesianNetworkPageWidget(QWidget):
         self._pairTableSQLProxyModel = FilterPairTableSQLProxyModel()
         self._pairTableSQLProxyModel.setSourceModel(pairTableSQLProxyModel)
         self._pairTableSQLProxyModel.setFilterModel(
-            self._featureCheckableSortFilterProxyModel, 
+            self._featureCheckableSortFilterProxyModel,
             pairTableSQLProxyModel.getFeatureSqlTableModel().fieldIndex(FeatureSqlTableModel.column_id))
         self._depTable.setModel(self._pairTableSQLProxyModel)
+
+        self.visualizationTabWidget.setModels(self._pairTableSQLProxyModel)

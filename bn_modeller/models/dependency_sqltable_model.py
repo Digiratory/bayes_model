@@ -44,6 +44,8 @@ class PairTableSQLProxyModel(QAbstractTableModel):
     column_source_feature_id = DependencyManyToManySqlTableModel.column_source_feature_id
     column_target_feature_id = DependencyManyToManySqlTableModel.column_target_feature_id
 
+    PearsonCorrRole = Qt.ItemDataRole.UserRole + 2
+
     def __init__(self, featureSqlTableModel: FeatureSqlTableModel, parent: QObject = None, db: QSqlDatabase = None):
         super().__init__(parent)
         self._db = db
@@ -64,16 +66,18 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         elif role == Qt.ItemDataRole.CheckStateRole:
             return Qt.CheckState.Checked if self._getConnectionState(item) else Qt.CheckState.Unchecked
         elif role == Qt.ItemDataRole.UserRole + 1:
-            firstFeatureId, secondFeatureId = self._indexToId(index=item)            
-            return self._getFeaturePairSamples(firstFeatureId, secondFeatureId) # TODO: Add cache
-        elif role == Qt.ItemDataRole.UserRole + 2:
+            firstFeatureId, secondFeatureId = self._indexToId(index=item)
+            # TODO: Add cache
+            return self._getFeaturePairSamples(firstFeatureId, secondFeatureId)
+        elif role == self.PearsonCorrRole:
             values_np = self.data(item=item, role=Qt.ItemDataRole.UserRole + 1)
             nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
-            pearsonCorr = stats.pearsonr(values_np[0, ~nas], values_np[1, ~nas])
-            return pearsonCorr.correlation # TODO: Add cache
+            pearsonCorr = stats.pearsonr(
+                values_np[0, ~nas], values_np[1, ~nas])
+            return pearsonCorr.correlation  # TODO: Add cache
         elif role == Qt.ItemDataRole.BackgroundRole:
             pearsonCorr = self.data(
-                item=item, role=Qt.ItemDataRole.UserRole + 2)
+                item=item, role=self.PearsonCorrRole)
             # TODO: replace with colormap
             return QBrush(QColor(int(pearsonCorr * 255), 0, 0))
         return None
@@ -86,6 +90,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                 self._setConnection(index)
             else:
                 self._removeConnection(index)
+        self.dataChanged.emit(index, index, role)
         return True
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
@@ -108,7 +113,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         d[Qt.ItemDataRole.BackgroundRole] = "background".encode()
 
         d[Qt.ItemDataRole.UserRole + 1] = "Values".encode()
-        d[Qt.ItemDataRole.UserRole + 2] = "PearsonCorr".encode()
+        d[self.PearsonCorrRole] = "PearsonCorr".encode()
         return d
 
     def setHeaderData(self, section: int, orientation: Qt.Orientation, value: Any, role: int = Qt.ItemDataRole.EditRole) -> bool:
