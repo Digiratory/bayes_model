@@ -1,23 +1,27 @@
-from PySide6 import QtCore, QtWidgets, QtGui
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import seaborn as sns
-import pandas as pd
-import pingouin as pg
+import copy
+from textwrap import wrap
+
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
+import pandas as pd
+import seaborn as sns
+from matplotlib.backends.backend_qt5agg import \
+    FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import \
+    NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from bn_modeller.bayesian_nets import CorrMatrix, PartCorrMatrix
 from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
 from bn_modeller.bayesian_nets.pyBansheeCalculation import BansheeCalc
-from textwrap import wrap
-from sklearn.metrics import r2_score, mean_absolute_error
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-import networkx as nx
-import matplotlib.pyplot as plt
-import copy
-from matplotlib.figure import Figure
-from utils import get_outliers_cooks
+from bn_modeller.bayesian_nets.utils import get_outliers_cooks
 
 
 def rescale_feature(input_vector, lower, upper):
-    xmin, xmax = np.min(input_vector), np.max(input_vector)  # get max and min from input array
+    xmin, xmax = np.min(input_vector), np.max(
+        input_vector)  # get max and min from input array
 
     input_vector = [(x - xmin) / (xmax - xmin) for x in input_vector]
 
@@ -31,7 +35,8 @@ def test(y_pred, y_true):
     for num, column_name in enumerate(columns_list):
         # k = y_true.iloc[:, num].dropna()
         # upper, lower = k.max(), k.min()
-        df_result = pd.DataFrame(data={'pred': y_pred[:, num], 'true': y_true.iloc[:, num]}, index=y_true.index)
+        df_result = pd.DataFrame(
+            data={'pred': y_pred[:, num], 'true': y_true.iloc[:, num]}, index=y_true.index)
         result_list[column_name] = df_result
     return result_list
 
@@ -146,8 +151,10 @@ class SubplotWindow(QtWidgets.QMainWindow):
 class SubplotGraph(SubplotWindow):
     def initFigure(self, G, name):
         fig = plt.figure(figsize=(20, 20))
-        elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] > 0.5]
-        esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] <= 0.5]
+        elarge = [(u, v)
+                  for (u, v, d) in G.edges(data=True) if d["weight"] > 0.5]
+        esmall = [(u, v)
+                  for (u, v, d) in G.edges(data=True) if d["weight"] <= 0.5]
 
         # pos = nx.spring_layout(G, seed=10, iterations=200)  # positions for all nodes - seed for reproducibility
         # pos = nx.fruchterman_reingold_layout(G)  # positions for all nodes - seed for reproducibility
@@ -168,7 +175,8 @@ class SubplotGraph(SubplotWindow):
         )
 
         # node labels
-        nx.draw_networkx_labels(G, pos, font_size=8, font_family="sans-serif", verticalalignment='bottom')
+        nx.draw_networkx_labels(
+            G, pos, font_size=8, font_family="sans-serif", verticalalignment='bottom')
 
         # edge weight labels
         edge_labels = nx.get_edge_attributes(G, "weight")
@@ -219,7 +227,8 @@ class PlotWindows(QtWidgets.QMainWindow):
         # discards the old graph
         ax.clear()
 
-        column_name = ['\n'.join(wrap(text, 30)) for text in self.data.columns.values]
+        column_name = ['\n'.join(wrap(text, 30))
+                       for text in self.data.columns.values]
         print(self.data)
         im = sns.heatmap(self.data,
                          xticklabels=column_name,
@@ -298,86 +307,37 @@ class PlotInferenceResult(QtWidgets.QMainWindow):
         ax.set_xlabel(f'Predicted, {name}')
         ax.set_ylabel(f'Observed, {name}')
 
-
-        ax.set_title(fr'$R$ {round(r2, 3)}$\rightarrow${round(r2_drop_out, 3)}')
+        ax.set_title(
+            fr'$R$ {round(r2, 3)}$\rightarrow${round(r2_drop_out, 3)}')
         # return fig
-
-
-class CorrMatrix:
-    def __init__(self, df):
-        """
-        Нахождение полной корреляции
-        :param df:
-        """
-        self.df = df
-        self.corr = self.df.corr(method='spearman')
-
-    def getCorrMatrix(self, roundOrder=2):
-        # return self.corr.round(roundOrder)
-        return self.corr
-
-    def updateTable(self, df):
-        self.df = df
-        self.corr = self.df.corr(method='spearman')
-
-
-class PartCorrMatrix:
-    def __init__(self, df=None):
-        """
-        Нахождение частных корреляции
-        :param parent:
-        :param input_df:
-        """
-        self.df = df
-        self.corr = self.find_part_cor()
-        self.corr = self.corr.astype('float')
-
-    def find_part_cor(self):
-        columns_all = self.df.columns
-        P = pd.DataFrame(columns=self.df.columns, index=self.df.columns)
-        for column_name1 in self.df.columns:
-            for column_name2 in self.df.columns:
-                if column_name1 == column_name2:
-                    P.loc[column_name1, column_name2] = 1
-                elif len(pd.crosstab(self.df[column_name1], self.df[column_name2]).values) < 4:
-                    P.loc[column_name1, column_name2] = np.nan
-                else:
-                    columns_select = columns_all.drop(column_name1)
-                    columns_select = columns_select.drop(column_name2)
-
-                    try:
-                        result = pg.partial_corr(data=self.df, x=column_name1,
-                                                 y=column_name2, covar=list(columns_select), method='spearman')
-                        P.loc[column_name1, column_name2] = result['r'].values[0]
-                    except:
-                        result = np.nan
-        return P
-
-    def getCorrMatrix(self):
-        return self.corr
 
 
 class ButtonWindow(QtWidgets.QWidget):
     def __init__(self, parent=None, input_df=None, linkTable=None, len_input=None):
         super(ButtonWindow, self).__init__(parent)
-        self.input_df = input_df
+        self.input_df: pd.DataFrame = input_df
         self.setFixedSize(400, 500)
         self.move(0, 0)
 
-        self.corr_button = QtWidgets.QPushButton('Full Spearman\'s Correlation', self)
+        self.corr_button = QtWidgets.QPushButton(
+            'Full Spearman\'s Correlation', self)
         self.corr_button.clicked.connect(self.on_pushButton_clicked)
 
-        self.part_corr_button = QtWidgets.QPushButton('Partial Spearman\'s Correlation', self)
+        self.part_corr_button = QtWidgets.QPushButton(
+            'Partial Spearman\'s Correlation', self)
         self.part_corr_button.clicked.connect(self.on_part_corr_button_clicked)
 
-        self.acycle_button = QtWidgets.QPushButton('Searching acyclic graph', self)
+        self.acycle_button = QtWidgets.QPushButton(
+            'Searching acyclic graph', self)
         self.acycle_button.clicked.connect(self.on_acycle_graph)
 
-        self.rankCorrButton = QtWidgets.QPushButton('Reconstruction of the correlation (Banshee)', self)
+        self.rankCorrButton = QtWidgets.QPushButton(
+            'Reconstruction of the correlation (Banshee)', self)
         self.rankCorrButton.clicked.connect(self.onRankCorrBanshee)
         self.rankCorrButton.setEnabled(False)
 
-        self.calcInferenceButton = QtWidgets.QPushButton('Calculating Bayesian model inference (Banshee)', self)
+        self.calcInferenceButton = QtWidgets.QPushButton(
+            'Calculating Bayesian model inference (Banshee)', self)
         self.calcInferenceButton.clicked.connect(self.onInferenceButton)
         self.calcInferenceButton.setEnabled(False)
 
@@ -385,7 +345,8 @@ class ButtonWindow(QtWidgets.QWidget):
         validator = QtGui.QDoubleValidator()  # Создание валидатора.
         validator.setRange(0.0, 1.0, 2)  # Установка диапазона значений.
         validator.setLocale(QtCore.QLocale("en_US"))
-        self.thresholdEdit.setValidator(validator)  # Установка валидатора для поля ввода
+        # Установка валидатора для поля ввода
+        self.thresholdEdit.setValidator(validator)
         self.thresholdEdit.textChanged[str].connect(self.onChanged)
 
         lay = QtWidgets.QGridLayout()
@@ -439,7 +400,8 @@ class ButtonWindow(QtWidgets.QWidget):
             dialog.show()
 
     def on_acycle_graph(self):
-        self.graph = GraphPreparation(self.corr_matrix, self.linkTable, self.thresholdValue)
+        self.graph = GraphPreparation(
+            self.corr_matrix, self.linkTable, self.thresholdValue)
 
         # удалить циклы в графе
         G_before = copy.deepcopy(self.graph.renaming())
@@ -451,7 +413,7 @@ class ButtonWindow(QtWidgets.QWidget):
         # import pickle
         # pickle.dump(self.graph, open('graph.txt', 'w'))
         # print(self.graph.G.nodes())
-        
+
         nx.write_adjlist(self.graph.renaming(), 'graph.txt')
         dialog = SubplotGraph(data=d)
         self.dialogs.append(dialog)
@@ -459,15 +421,18 @@ class ButtonWindow(QtWidgets.QWidget):
         self.rankCorrButton.setEnabled(True)
 
     def onRankCorrBanshee(self):
-        self.banshee = BansheeCalc(self.graph.getNodeList(), self.graph.getEdgeList(), self.input_df)
+        self.banshee = BansheeCalc(
+            self.graph.getNodeList(), self.graph.getEdgeList(), self.input_df)
         self.R = self.banshee.getRankCorr()
         if self.R is None:
-            self.error_dialog.showMessage('Error in the reconstruction of the correlation matrix')
+            self.error_dialog.showMessage(
+                'Error in the reconstruction of the correlation matrix')
         else:
             self.banshee.saveGraph()
 
         column_name = self.input_df.columns
-        dialog = PlotWindows(self, data=pd.DataFrame(self.R, columns=column_name, index=column_name))
+        dialog = PlotWindows(self, data=pd.DataFrame(
+            self.R, columns=column_name, index=column_name))
         self.dialogs.append(dialog)
         dialog.show()
         plt.tight_layout()
@@ -480,15 +445,18 @@ class ButtonWindow(QtWidgets.QWidget):
         self.columnsFeatures = self.input_df.columns[:self.len_input]
 
         pred_column = ['Predicted ' + i for i in self.columnsForPredict]
-        self.df_predicted = pd.DataFrame(y_predict, index=self.input_df.index, columns=pred_column)
+        self.df_predicted = pd.DataFrame(
+            y_predict, index=self.input_df.index, columns=pred_column)
         df = self.input_df.join(self.df_predicted)
 
         df_tmp = df.copy(deep=True)
         df_tmp = df_tmp.dropna(subset=self.columnsFeatures)
 
         for col_name in self.columnsForPredict:
-            lower, upper = self.input_df[col_name].min(), self.input_df[col_name].max()
-            df_tmp.loc[:, 'Predicted ' + col_name] = rescale_feature(df_tmp.loc[:, 'Predicted ' + col_name], lower, upper)
+            lower, upper = self.input_df[col_name].min(
+            ), self.input_df[col_name].max()
+            df_tmp.loc[:, 'Predicted ' + col_name] = rescale_feature(
+                df_tmp.loc[:, 'Predicted ' + col_name], lower, upper)
 
         df = self.input_df.join(df_tmp[pred_column])
         self.df_predicted = df[pred_column]
@@ -525,7 +493,8 @@ class ButtonWindow(QtWidgets.QWidget):
         return self.thresholdValue
 
     def changeLinkTable(self):
-        newLinkTab = pd.DataFrame(columns=self.input_df.columns, index=self.input_df.columns)
+        newLinkTab = pd.DataFrame(
+            columns=self.input_df.columns, index=self.input_df.columns)
 
         for i in self.graph.renaming().edges(data=True):
             newLinkTab.loc[i[0], i[1]] = 1
@@ -537,9 +506,3 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def getPrediction(self):
         return self.df_predicted
-
-
-
-
-
-
