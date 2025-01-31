@@ -1,0 +1,11 @@
+import pandas as pd
+from PySide6.QtCore import QAbstractItemModel, Qt
+
+
+def tablemodel_to_dataframe(model: QAbstractItemModel, role: int) -> pd.DataFrame:
+    data_pd = pd.DataFrame(columns=[model.headerData(c, Qt.Orientation.Horizontal) for c in range(model.columnCount())])
+    for r in range(model.rowCount()):
+        new_row = pd.Series({model.headerData(c, Qt.Orientation.Horizontal): model.index(r, c).data(role=role) for c in range(model.columnCount())})
+        data_pd.loc[model.headerData(r, Qt.Orientation.Vertical)] = new_row
+
+    return data_pd

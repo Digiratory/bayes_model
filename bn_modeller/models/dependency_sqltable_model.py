@@ -1,9 +1,15 @@
 from typing import Any
+
+import numpy as np
+from scipy import stats
+
 from PySide6.QtSql import QSqlRelationalTableModel, QSqlDatabase, QSqlQuery
 from PySide6.QtCore import Qt, QObject, QModelIndex, QPersistentModelIndex, QByteArray, QAbstractTableModel, QSortFilterProxyModel, Signal, Slot
+from PySide6.QtGui import QBrush, QColor
 
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
 from bn_modeller.models.feature_sqltable_model import PersistanceCheckableFeatureListProxyModel
+from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 
 
 class DependencyManyToManySqlTableModel(QSqlRelationalTableModel):
@@ -30,12 +36,15 @@ class DependencyManyToManySqlTableModel(QSqlRelationalTableModel):
 
 class PairTableSQLProxyModel(QAbstractTableModel):
     pairs_table_name = DependencyManyToManySqlTableModel.table_name
+    samples_table_name = SampleSqlTableModel.table_name
 
     index_tbl_cls = FeatureSqlTableModel
     index_table_name = index_tbl_cls.table_name
 
     column_source_feature_id = DependencyManyToManySqlTableModel.column_source_feature_id
     column_target_feature_id = DependencyManyToManySqlTableModel.column_target_feature_id
+
+    PearsonCorrRole = Qt.ItemDataRole.UserRole + 2
 
     def __init__(self, featureSqlTableModel: FeatureSqlTableModel, parent: QObject = None, db: QSqlDatabase = None):
         super().__init__(parent)
@@ -56,6 +65,21 @@ class PairTableSQLProxyModel(QAbstractTableModel):
             return
         elif role == Qt.ItemDataRole.CheckStateRole:
             return Qt.CheckState.Checked if self._getConnectionState(item) else Qt.CheckState.Unchecked
+        elif role == Qt.ItemDataRole.UserRole + 1:
+            firstFeatureId, secondFeatureId = self._indexToId(index=item)
+            # TODO: Add cache
+            return self._getFeaturePairSamples(firstFeatureId, secondFeatureId)
+        elif role == self.PearsonCorrRole:
+            values_np = self.data(item=item, role=Qt.ItemDataRole.UserRole + 1)
+            nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
+            pearsonCorr = stats.pearsonr(
+                values_np[0, ~nas], values_np[1, ~nas])
+            return pearsonCorr.correlation  # TODO: Add cache
+        elif role == Qt.ItemDataRole.BackgroundRole:
+            pearsonCorr = self.data(
+                item=item, role=self.PearsonCorrRole)
+            # TODO: replace with colormap
+            return QBrush(QColor(int(pearsonCorr * 255), 0, 0))
         return None
 
     def setData(self, index: QModelIndex, value: Any, role: int = Qt.ItemDataRole.DisplayRole):
@@ -66,6 +90,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                 self._setConnection(index)
             else:
                 self._removeConnection(index)
+        self.dataChanged.emit(index, index, role)
         return True
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
@@ -81,8 +106,15 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                 | Qt.ItemFlag.ItemIsEnabled
                 & ~Qt.ItemFlag.ItemIsEditable)
 
-    # def roleNames(self) -> dict[int, QByteArray]:
-    #     pass
+    def roleNames(self) -> dict[int, QByteArray]:
+        d = {}
+        d[Qt.ItemDataRole.DisplayRole] = "display".encode()
+        d[Qt.ItemDataRole.CheckStateRole] = "CheckState".encode()
+        d[Qt.ItemDataRole.BackgroundRole] = "background".encode()
+
+        d[Qt.ItemDataRole.UserRole + 1] = "Values".encode()
+        d[self.PearsonCorrRole] = "PearsonCorr".encode()
+        return d
 
     def setHeaderData(self, section: int, orientation: Qt.Orientation, value: Any, role: int = Qt.ItemDataRole.EditRole) -> bool:
         pass
@@ -125,7 +157,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
             raise RuntimeError(
                 f"Unable to retrieve row count from DB: {query.lastError()}")
 
-    def _indexToId(self, index: QModelIndex):
+    def _indexToId(self, index: QModelIndex) -> tuple[int, int]:
         source_id = self._featureSqlTableModel.data(
             self._featureSqlTableModel.index(index.row(),
                                              self._featureSqlTableModel.fieldIndex(
@@ -155,6 +187,36 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                                              ))
         return v
 
+    def _getFeaturePairSamples(self, firstFeatureId: int, secondFeatureId: int) -> np.ndarray:
+
+        query = QSqlQuery(
+            f"select\
+            s.{SampleSqlTableModel.column_sample_id},\
+            max(case when s.{SampleSqlTableModel.column_feature_id}={firstFeatureId} then s.{SampleSqlTableModel.column_value} end) firstFeature,\
+            max(case when s.{SampleSqlTableModel.column_feature_id}={secondFeatureId} then s.{SampleSqlTableModel.column_value} end) secondFeature\
+            from {SampleSqlTableModel.table_name} s\
+            join {FeatureSqlTableModel.table_name} f on\
+            f.{FeatureSqlTableModel.column_id}=s.{SampleSqlTableModel.column_feature_id}\
+            group by s.{SampleSqlTableModel.column_sample_id}\
+            ", self._db)
+        if not query.exec():
+            raise RuntimeError(
+                f"Unable to retrieve row count from DB: {query.lastError()}")
+        # sampleTdValueFieldNo = query.record().indexOf(
+        #     {SampleSqlTableModel.column_sample_id})
+        firstFeatureFieldNo = query.record().indexOf("firstFeature")
+        secondFeatureFieldNo = query.record().indexOf("secondFeature")
+
+        values = []
+        while (query.next()):
+            # sampleTdValue: int = query.value(sampleTdValueFieldNo)
+            firstFeatureValue: float = float(query.value(
+                firstFeatureFieldNo) if query.value(firstFeatureFieldNo) else np.nan)
+            secondFeatureValue: float = float(query.value(
+                secondFeatureFieldNo) if query.value(secondFeatureFieldNo) else np.nan)
+            values.append([firstFeatureValue, secondFeatureValue])
+        return np.array(values).T
+
 
 class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
     filterInvalidated = Signal()
@@ -180,13 +242,15 @@ class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
     def filterAcceptsRow(self,
                          source_row: int,
                          source_parent: QModelIndex | QPersistentModelIndex):
-        index = self._filterModel.index(source_row, self.filterKeyColumn(), source_parent)
+        index = self._filterModel.index(
+            source_row, self.filterKeyColumn(), source_parent)
         return self._filter_cache.get(index.data(), False)
 
     def filterAcceptsColumn(self,
                             source_column: int,
                             source_parent: QModelIndex | QPersistentModelIndex):
-        index = self._filterModel.index(source_column, self.filterKeyColumn(), source_parent)
+        index = self._filterModel.index(
+            source_column, self.filterKeyColumn(), source_parent)
         return self._filter_cache.get(index.data(), False)
 
     @Slot(QModelIndex, QModelIndex, "QList<int>")

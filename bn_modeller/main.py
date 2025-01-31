@@ -7,7 +7,7 @@ from jointgrid import jointgridWindow
 from link_table import LinkTabWindow
 import pandas as pd
 from button_page import ButtonWindow
-from utils import find_zero_columns, check_non_select_table
+from bn_modeller.bayesian_nets.utils import find_zero_columns, check_non_select_table
 import numpy as np
 import os
 
@@ -46,7 +46,8 @@ class MyTableWidget(QWidget):
 
         self.input_feature = None
         self.output_feature = None
-        self.lenCheck = len(pd.read_csv(self.pathInputFile, index_col=0).columns)
+        self.lenCheck = len(pd.read_csv(
+            self.pathInputFile, index_col=0).columns)
         self.stateIO = self.initStateIO()
         self.stateLink = self.initStateLinkTable()
         self.linkTable = None
@@ -64,10 +65,12 @@ class MyTableWidget(QWidget):
                               state=self.getStateIO())
         self.update()
 
-        self.linkTab = LinkTabWindow(self, input_df=self.getDataFrame(), state=self.stateLink)
+        self.linkTab = LinkTabWindow(
+            self, input_df=self.getDataFrame(), state=self.stateLink)
 
         self.buttonTab = ButtonWindow(self, pd.DataFrame(), pd.DataFrame(), 1)
-        self.buttonTab.acycle_button.clicked.connect(self.updateLinkTableFromAcyclic)
+        self.buttonTab.acycle_button.clicked.connect(
+            self.updateLinkTableFromAcyclic)
 
         self.jointgridTab = jointgridWindow(self,
                                             data=self.getInitialDataframe(),
@@ -121,7 +124,7 @@ class MyTableWidget(QWidget):
             self.jointgridTab.updateData(self.buttonTab.getPrediction())
 
     @Slot()
-    def blockButtonTab(self):       
+    def blockButtonTab(self):
         self.ioTab.save_clicked()
         self.ioTab.saveState()
         self.update()
@@ -139,7 +142,8 @@ class MyTableWidget(QWidget):
 
     @Slot()
     def update(self):
-        self.updateFeaturesList(self.ioTab.getInputFeature(), self.ioTab.getOutputFeature())
+        self.updateFeaturesList(
+            self.ioTab.getInputFeature(), self.ioTab.getOutputFeature())
 
     def getInitialDataframe(self):
         data_input = pd.read_csv(self.pathInputFile, index_col=0)
@@ -177,7 +181,7 @@ class MyTableWidget(QWidget):
 
     def getStateIO(self):
         return self.stateIO
-    
+
     def getStateJointplot(self):
         return self.stateJointplot
 
@@ -193,7 +197,8 @@ class MyTableWidget(QWidget):
 
     def saveStateIO(self):
         df = pd.DataFrame(columns=['input', 'output'],
-                          index=['Select ALL'] + list(self.getInitialDataframe().columns),
+                          index=['Select ALL'] +
+                          list(self.getInitialDataframe().columns),
                           data=self.stateIO)
         df.to_csv(self.pathIOFile)
 

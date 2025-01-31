@@ -3,7 +3,7 @@ import scipy.stats as stats
 import seaborn as sns
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PySide6 import QtCore, QtWidgets
-from utils import get_index_outliers, get_outliers_cooks
+from bn_modeller.bayesian_nets.utils import get_index_outliers, get_outliers_cooks
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
@@ -22,7 +22,8 @@ class JointPlot(QtWidgets.QMainWindow):
 
         self.fig = Figure()
 
-        self.fig = self.initFigure(x, y, x_outlier, y_outlier, df_without_nan, column_name1, column_name2, r, r_w)
+        self.fig = self.initFigure(
+            x, y, x_outlier, y_outlier, df_without_nan, column_name1, column_name2, r, r_w)
 
         self.canvas = FigureCanvas(self.fig)
 
@@ -47,8 +48,10 @@ class JointPlot(QtWidgets.QMainWindow):
         # g.fig.set_size_inches((8, 8))
         g.ax_marg_x.set_xlim(left=min(x)-1, right=max(x)+1)
 
-        sns.scatterplot(x=x, y=y, s=50, linewidth=0, ax=g.ax_joint, color='tab:blue', alpha=0.7)
-        sns.scatterplot(x=x_outlier, y=y_outlier, s=50, linewidth=0, ax=g.ax_joint, color='tab:red', alpha=0.7)
+        sns.scatterplot(x=x, y=y, s=50, linewidth=0,
+                        ax=g.ax_joint, color='tab:blue', alpha=0.7)
+        sns.scatterplot(x=x_outlier, y=y_outlier, s=50, linewidth=0,
+                        ax=g.ax_joint, color='tab:red', alpha=0.7)
 
         sns.regplot(x=df_without_nan[column_name1], y=df_without_nan[column_name2],
                     ax=g.ax_joint, color='r', scatter=False, line_kws={'linewidth': 1})
@@ -80,7 +83,7 @@ class jointgridWindow(QtWidgets.QWidget):
         self.build_button = QtWidgets.QPushButton("Plot")
 
         # self.canvas = FigureCanvas(self.g.fig)
-        #self.g = self.fig.add_subplot(111)
+        # self.g = self.fig.add_subplot(111)
 
         plot_layout = QtWidgets.QVBoxLayout()
         # plot_layout.addWidget(self.canvas)
@@ -104,7 +107,7 @@ class jointgridWindow(QtWidgets.QWidget):
                 item = QtWidgets.QTableWidgetItem()
                 item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
                 item.setCheckState(QtCore.Qt.Unchecked)
-                #item.setCheckState(self.state[i][j])
+                # item.setCheckState(self.state[i][j])
                 self.tableWidget.setItem(i, j, item)
 
         self.tableWidget.cellChanged.connect(self.turnOffClicked)
@@ -174,11 +177,12 @@ class jointgridWindow(QtWidgets.QWidget):
         self.tableWidget.deleteLater()
 
     def on_pushButton_clicked(self):
-      
+
         if len(self.selected_items) == self.num_of_selected_items:
             column_name1 = self.selected_items_names[0]
             column_name2 = self.selected_items_names[1]
-            df_without_nan = self.df.dropna(subset=[column_name1, column_name2])
+            df_without_nan = self.df.dropna(
+                subset=[column_name1, column_name2])
 
             if len(df_without_nan) < 2:
                 self.error_dialog.showMessage('Not enough intersecting data')
@@ -186,15 +190,18 @@ class jointgridWindow(QtWidgets.QWidget):
 
             # нахождение выбросов
             # outliers_index = get_index_outliers(df_without_nan[[column_name1, column_name2]])
-            outliers_index = get_outliers_cooks(df_without_nan[[column_name1, column_name2]])
+            outliers_index = get_outliers_cooks(
+                df_without_nan[[column_name1, column_name2]])
 
             # датафрейм выбросов и без выбросов
             df_outliers = df_without_nan.loc[list(outliers_index)]
             df_without_outliers = df_without_nan.drop(outliers_index)
 
             # корреляция полного датафрейма и без выбросов
-            r, _ = stats.pearsonr(df_without_nan[column_name1], df_without_nan[column_name2])
-            r_w, _ = stats.pearsonr(df_without_outliers[column_name1], df_without_outliers[column_name2])
+            r, _ = stats.pearsonr(
+                df_without_nan[column_name1], df_without_nan[column_name2])
+            r_w, _ = stats.pearsonr(
+                df_without_outliers[column_name1], df_without_outliers[column_name2])
 
             # точки где нет выбросов, точки с выбросами
             x, y = df_without_outliers[column_name1], df_without_outliers[column_name2]
@@ -204,4 +211,3 @@ class jointgridWindow(QtWidgets.QWidget):
                                column_name1=column_name1, column_name2=column_name2, r=r, r_w=r_w)
             self.dialogs.append(dialog)
             dialog.show()
-
