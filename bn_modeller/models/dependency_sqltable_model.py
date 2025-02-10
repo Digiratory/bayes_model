@@ -44,7 +44,9 @@ class PairTableSQLProxyModel(QAbstractTableModel):
     column_source_feature_id = DependencyManyToManySqlTableModel.column_source_feature_id
     column_target_feature_id = DependencyManyToManySqlTableModel.column_target_feature_id
 
+    ValuePairsRole =  Qt.ItemDataRole.UserRole + 1
     PearsonCorrRole = Qt.ItemDataRole.UserRole + 2
+    SpearmanCorrRole = Qt.ItemDataRole.UserRole + 3
 
     def __init__(self, featureSqlTableModel: FeatureSqlTableModel, parent: QObject = None, db: QSqlDatabase = None):
         super().__init__(parent)
@@ -62,19 +64,25 @@ class PairTableSQLProxyModel(QAbstractTableModel):
 
     def data(self, item: QModelIndex,  role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         if role == Qt.ItemDataRole.DisplayRole:
-            return
+            return f"{self.data(item=item, role=self.PearsonCorrRole):.2f}/{self.data(item=item, role=self.SpearmanCorrRole):.2f}"
         elif role == Qt.ItemDataRole.CheckStateRole:
             return Qt.CheckState.Checked if self._getConnectionState(item) else Qt.CheckState.Unchecked
-        elif role == Qt.ItemDataRole.UserRole + 1:
+        elif role == self.ValuePairsRole:
             firstFeatureId, secondFeatureId = self._indexToId(index=item)
             # TODO: Add cache
             return self._getFeaturePairSamples(firstFeatureId, secondFeatureId)
         elif role == self.PearsonCorrRole:
-            values_np = self.data(item=item, role=Qt.ItemDataRole.UserRole + 1)
+            values_np = self.data(item=item, role=self.ValuePairsRole)
             nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
             pearsonCorr = stats.pearsonr(
                 values_np[0, ~nas], values_np[1, ~nas])
             return pearsonCorr.correlation  # TODO: Add cache
+        elif role == self.SpearmanCorrRole:
+            values_np = self.data(item=item, role=self.ValuePairsRole)
+            nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
+            spearmanrCorr = stats.spearmanr(
+                values_np[0, ~nas], values_np[1, ~nas])
+            return spearmanrCorr.statistic  # TODO: Add cache
         elif role == Qt.ItemDataRole.BackgroundRole:
             pearsonCorr = self.data(
                 item=item, role=self.PearsonCorrRole)
@@ -112,8 +120,9 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         d[Qt.ItemDataRole.CheckStateRole] = "CheckState".encode()
         d[Qt.ItemDataRole.BackgroundRole] = "background".encode()
 
-        d[Qt.ItemDataRole.UserRole + 1] = "Values".encode()
+        d[self.ValuePairsRole] = "Values".encode()
         d[self.PearsonCorrRole] = "PearsonCorr".encode()
+        d[self.SpearmanCorrRole] = "SpearmanCorr".encode()
         return d
 
     def setHeaderData(self, section: int, orientation: Qt.Orientation, value: Any, role: int = Qt.ItemDataRole.EditRole) -> bool:
