@@ -9,6 +9,7 @@ from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
 from bn_modeller.models import (FilterPairTableSQLProxyModel,
                                 PairTableSQLProxyModel)
 from bn_modeller.utils.model_adapters import tablemodel_to_dataframe
+from bn_modeller.widgets.extended_slider_widget import ExtendedSliderWidget
 
 
 class BayesianNetCanvas(FigureCanvasQTAgg):
@@ -56,10 +57,10 @@ class BayesianNetView(QSplitter):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.depModel: FilterPairTableSQLProxyModel = None
-        self.thresholdValue = 0.5  # TODO: make it a property
         self._init_ui()
 
     def _init_ui(self):
+        self.setOrientation(Qt.Orientation.Vertical)
         # BN Plot
         bnPlotLayout = QVBoxLayout()
 
@@ -70,6 +71,14 @@ class BayesianNetView(QSplitter):
         bnPlotWidget = QWidget()
         bnPlotWidget.setLayout(bnPlotLayout)
         self.addWidget(bnPlotWidget)
+
+        # BN Visualization Settings
+        self.threadSliderWidget = ExtendedSliderWidget()
+        self.threadSliderWidget.setRange(0, 1)
+        self.threadSliderWidget.setValue(0.5)
+        self.threadSliderWidget.setTrackMovements(False)
+        self.threadSliderWidget.valueChanged.connect(self.drawBN)
+        self.addWidget(self.threadSliderWidget)
 
     def setModels(self, depModel: FilterPairTableSQLProxyModel):
         self.depModel = depModel
@@ -88,7 +97,7 @@ class BayesianNetView(QSplitter):
         linkTable = tablemodel_to_dataframe(
             self.depModel, role=Qt.ItemDataRole.CheckStateRole)
         graph = GraphPreparation(
-            corr_matrix, linkTable, self.thresholdValue)
+            corr_matrix, linkTable, self.threadSliderWidget.value())
 
         graph.drop_cycle()
         # self.changeLinkTable()
