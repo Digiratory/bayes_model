@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QTabWidget, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QSplitter, QTabWidget, QWidget
 
 from bn_modeller.models import (FilterPairTableSQLProxyModel,
                                 PairTableSQLProxyModel)
@@ -20,15 +20,15 @@ class BayesianNetworkPageWidget(QWidget):
         self.tabWidget = QTabWidget()
 
         # Dependency tab
-        self.dependencyTabWidget = QWidget()
-        self.dependencyTabLayout = QHBoxLayout()
+        self.dependencyTabWidget = QSplitter()
         self.featureSelectorView = SelectableListView()
-        self.dependencyTabLayout.addWidget(self.featureSelectorView, 1)
+        self.dependencyTabWidget.addWidget(self.featureSelectorView)
+        self.dependencyTabWidget.setStretchFactor(0, 1)
 
         self._depTable = DependencySetupTableView()
-        self.dependencyTabLayout.addWidget(self._depTable, 2)
+        self.dependencyTabWidget.addWidget(self._depTable)
+        self.dependencyTabWidget.setStretchFactor(1, 2)
 
-        self.dependencyTabWidget.setLayout(self.dependencyTabLayout)
         self.tabWidget.addTab(self.dependencyTabWidget, self.tr("Dependency"))
 
         # Visualization Tab

@@ -2,7 +2,7 @@ import networkx as nx
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import QHBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QWidget, QSplitter
 
 from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
 from bn_modeller.models import (FilterPairTableSQLProxyModel,
@@ -48,7 +48,7 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
         self.draw()
 
 
-class BayesianNetView(QWidget):
+class BayesianNetView(QSplitter):
     file_path_changed = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -58,12 +58,8 @@ class BayesianNetView(QWidget):
         self._init_ui()
 
     def _init_ui(self):
-        self.root_layout = QHBoxLayout()
-
         self.bn_canvas = BayesianNetCanvas()
-        self.root_layout.addWidget(self.bn_canvas)
-
-        self.setLayout(self.root_layout)
+        self.addWidget(self.bn_canvas)
 
     def setModels(self, depModel: FilterPairTableSQLProxyModel):
         self.depModel = depModel
