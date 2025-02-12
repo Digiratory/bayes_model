@@ -53,6 +53,10 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         self._db = db
         self._featureSqlTableModel = featureSqlTableModel
 
+        self._cacheValuePairsRole = {}
+        self._cachePearsonCorrRole = {}
+        self._cacheSpearmanCorrRole = {}
+
     def getFeatureSqlTableModel(self):
         return self._featureSqlTableModel
 
@@ -69,20 +73,27 @@ class PairTableSQLProxyModel(QAbstractTableModel):
             return Qt.CheckState.Checked if self._getConnectionState(item) else Qt.CheckState.Unchecked
         elif role == self.ValuePairsRole:
             firstFeatureId, secondFeatureId = self._indexToId(index=item)
-            # TODO: Add cache
-            return self._getFeaturePairSamples(firstFeatureId, secondFeatureId)
+            if (firstFeatureId, secondFeatureId) not in self._cacheValuePairsRole:
+                self._cacheValuePairsRole[(firstFeatureId, secondFeatureId)] = self._getFeaturePairSamples(firstFeatureId, secondFeatureId)            
+            return self._cacheValuePairsRole[(firstFeatureId, secondFeatureId)]
         elif role == self.PearsonCorrRole:
-            values_np = self.data(item=item, role=self.ValuePairsRole)
-            nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
-            pearsonCorr = stats.pearsonr(
-                values_np[0, ~nas], values_np[1, ~nas])
-            return pearsonCorr.correlation  # TODO: Add cache
+            firstFeatureId, secondFeatureId = self._indexToId(index=item)
+            if (firstFeatureId, secondFeatureId) not in self._cachePearsonCorrRole:
+                values_np = self.data(item=item, role=self.ValuePairsRole)
+                nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
+                pearsonCorr = stats.pearsonr(
+                    values_np[0, ~nas], values_np[1, ~nas])
+                self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)] = pearsonCorr.correlation
+            return self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)]
         elif role == self.SpearmanCorrRole:
-            values_np = self.data(item=item, role=self.ValuePairsRole)
-            nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
-            spearmanrCorr = stats.spearmanr(
-                values_np[0, ~nas], values_np[1, ~nas])
-            return spearmanrCorr.statistic  # TODO: Add cache
+            firstFeatureId, secondFeatureId = self._indexToId(index=item)
+            if (firstFeatureId, secondFeatureId) not in self._cacheSpearmanCorrRole:
+                values_np = self.data(item=item, role=self.ValuePairsRole)
+                nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
+                spearmanrCorr = stats.spearmanr(
+                    values_np[0, ~nas], values_np[1, ~nas])
+                self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)] = spearmanrCorr.statistic  # TODO: Add cache
+            return self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)]
         elif role == Qt.ItemDataRole.BackgroundRole:
             pearsonCorr = self.data(
                 item=item, role=self.PearsonCorrRole)

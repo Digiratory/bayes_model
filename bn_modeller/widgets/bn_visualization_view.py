@@ -70,7 +70,7 @@ class BayesianNetView(QSplitter):
 
     @Slot()
     def drawBN(self):
-        if self.depModel is None:
+        if self.depModel is None or not self.isVisible():
             return
         print("BayesianNetView.drawBN")
         corr_matrix = tablemodel_to_dataframe(
