@@ -1,14 +1,15 @@
 from typing import Any
 
 import numpy as np
+from PySide6.QtCore import (QAbstractTableModel, QByteArray, QModelIndex,
+                            QObject, QPersistentModelIndex,
+                            QSortFilterProxyModel, Qt, Signal, Slot)
+from PySide6.QtGui import QBrush, QColor
+from PySide6.QtSql import QSqlDatabase, QSqlQuery, QSqlRelationalTableModel
 from scipy import stats
 
-from PySide6.QtSql import QSqlRelationalTableModel, QSqlDatabase, QSqlQuery
-from PySide6.QtCore import Qt, QObject, QModelIndex, QPersistentModelIndex, QByteArray, QAbstractTableModel, QSortFilterProxyModel, Signal, Slot
-from PySide6.QtGui import QBrush, QColor
-
-from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
-from bn_modeller.models.feature_sqltable_model import PersistanceCheckableFeatureListProxyModel
+from bn_modeller.models.feature_sqltable_model import (
+    FeatureSqlTableModel, PersistanceCheckableFeatureListProxyModel)
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 
 
@@ -44,7 +45,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
     column_source_feature_id = DependencyManyToManySqlTableModel.column_source_feature_id
     column_target_feature_id = DependencyManyToManySqlTableModel.column_target_feature_id
 
-    ValuePairsRole =  Qt.ItemDataRole.UserRole + 1
+    ValuePairsRole = Qt.ItemDataRole.UserRole + 1
     PearsonCorrRole = Qt.ItemDataRole.UserRole + 2
     SpearmanCorrRole = Qt.ItemDataRole.UserRole + 3
 
@@ -74,25 +75,30 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         elif role == self.ValuePairsRole:
             firstFeatureId, secondFeatureId = self._indexToId(index=item)
             if (firstFeatureId, secondFeatureId) not in self._cacheValuePairsRole:
-                self._cacheValuePairsRole[(firstFeatureId, secondFeatureId)] = self._getFeaturePairSamples(firstFeatureId, secondFeatureId)            
+                self._cacheValuePairsRole[(firstFeatureId, secondFeatureId)] = self._getFeaturePairSamples(
+                    firstFeatureId, secondFeatureId)
             return self._cacheValuePairsRole[(firstFeatureId, secondFeatureId)]
         elif role == self.PearsonCorrRole:
             firstFeatureId, secondFeatureId = self._indexToId(index=item)
             if (firstFeatureId, secondFeatureId) not in self._cachePearsonCorrRole:
                 values_np = self.data(item=item, role=self.ValuePairsRole)
-                nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
+                nas = np.logical_or(
+                    np.isnan(values_np[0]), np.isnan(values_np[1]))
                 pearsonCorr = stats.pearsonr(
                     values_np[0, ~nas], values_np[1, ~nas])
-                self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)] = pearsonCorr.correlation
+                self._cachePearsonCorrRole[(
+                    firstFeatureId, secondFeatureId)] = pearsonCorr.correlation
             return self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)]
         elif role == self.SpearmanCorrRole:
             firstFeatureId, secondFeatureId = self._indexToId(index=item)
             if (firstFeatureId, secondFeatureId) not in self._cacheSpearmanCorrRole:
                 values_np = self.data(item=item, role=self.ValuePairsRole)
-                nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
+                nas = np.logical_or(
+                    np.isnan(values_np[0]), np.isnan(values_np[1]))
                 spearmanrCorr = stats.spearmanr(
                     values_np[0, ~nas], values_np[1, ~nas])
-                self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)] = spearmanrCorr.statistic
+                self._cacheSpearmanCorrRole[(
+                    firstFeatureId, secondFeatureId)] = spearmanrCorr.statistic
             return self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)]
         elif role == Qt.ItemDataRole.BackgroundRole:
             pearsonCorr = self.data(
