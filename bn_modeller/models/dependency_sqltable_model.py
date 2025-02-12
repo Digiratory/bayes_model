@@ -92,7 +92,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                 nas = np.logical_or(np.isnan(values_np[0]), np.isnan(values_np[1]))
                 spearmanrCorr = stats.spearmanr(
                     values_np[0, ~nas], values_np[1, ~nas])
-                self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)] = spearmanrCorr.statistic  # TODO: Add cache
+                self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)] = spearmanrCorr.statistic
             return self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)]
         elif role == Qt.ItemDataRole.BackgroundRole:
             pearsonCorr = self.data(
