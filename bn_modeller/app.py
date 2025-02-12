@@ -6,6 +6,9 @@ from bn_modeller.windows.main_window import MainWindow
 
 
 def create_application(argv: list[str]) -> QApplication:
+    QCoreApplication.setOrganizationName("Digiratory")
+    QCoreApplication.setOrganizationDomain("digiratory.ru")
+    QCoreApplication.setApplicationName("bn_modeller")
     if "no-gui" in argv:
         app = QCoreApplication(argv)
     else:

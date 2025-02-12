@@ -2,11 +2,12 @@ from typing import Any
 
 import numpy as np
 from PySide6.QtCore import (QAbstractTableModel, QByteArray, QModelIndex,
-                            QObject, QPersistentModelIndex,
+                            QObject, QPersistentModelIndex, QSettings,
                             QSortFilterProxyModel, Qt, Signal, Slot)
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtSql import QSqlDatabase, QSqlQuery, QSqlRelationalTableModel
 from scipy import stats
+import matplotlib as mpl
 
 from bn_modeller.models.feature_sqltable_model import (
     FeatureSqlTableModel, PersistanceCheckableFeatureListProxyModel)
@@ -58,6 +59,10 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         self._cachePearsonCorrRole = {}
         self._cacheSpearmanCorrRole = {}
 
+        self._settings = QSettings()
+        self._correlationColormap = mpl.colormaps[self._settings.value(
+            "depTable/colormap", "coolwarm")]
+
     def getFeatureSqlTableModel(self):
         return self._featureSqlTableModel
 
@@ -101,10 +106,13 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                     firstFeatureId, secondFeatureId)] = spearmanrCorr.statistic
             return self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)]
         elif role == Qt.ItemDataRole.BackgroundRole:
+            if item.column() == item.row():
+                return None
             pearsonCorr = self.data(
                 item=item, role=self.PearsonCorrRole)
-            # TODO: replace with colormap
-            return QBrush(QColor(int(pearsonCorr * 255), 0, 0))
+            # colormap works with range [0,1], but correlation can be [-1,1]
+            color = self._correlationColormap((pearsonCorr + 1)/2, bytes=True)
+            return QBrush(QColor(color[0], color[1], color[2], color[3]))
         return None
 
     def setData(self, index: QModelIndex, value: Any, role: int = Qt.ItemDataRole.DisplayRole):
