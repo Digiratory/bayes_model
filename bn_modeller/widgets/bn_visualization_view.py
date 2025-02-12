@@ -1,8 +1,9 @@
 import networkx as nx
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg,
+                                                NavigationToolbar2QT)
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import QHBoxLayout, QWidget, QSplitter
+from PySide6.QtWidgets import QVBoxLayout, QSplitter, QWidget
 
 from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
 from bn_modeller.models import (FilterPairTableSQLProxyModel,
@@ -45,6 +46,7 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
         edge_labels = nx.get_edge_attributes(graph, "weight")
         nx.draw_networkx_edge_labels(
             graph, pos, edge_labels, font_size=12, ax=self.bn_ax)
+        self.fig.tight_layout(pad=3.0)
         self.draw()
 
 
@@ -58,8 +60,16 @@ class BayesianNetView(QSplitter):
         self._init_ui()
 
     def _init_ui(self):
+        # BN Plot
+        bnPlotLayout = QVBoxLayout()
+
         self.bn_canvas = BayesianNetCanvas()
-        self.addWidget(self.bn_canvas)
+        self.toolbar = NavigationToolbar2QT(self.bn_canvas, self)
+        bnPlotLayout.addWidget(self.toolbar)
+        bnPlotLayout.addWidget(self.bn_canvas)
+        bnPlotWidget = QWidget()
+        bnPlotWidget.setLayout(bnPlotLayout)
+        self.addWidget(bnPlotWidget)
 
     def setModels(self, depModel: FilterPairTableSQLProxyModel):
         self.depModel = depModel
