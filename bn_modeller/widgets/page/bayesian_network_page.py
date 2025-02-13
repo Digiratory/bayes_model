@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QSplitter, QTabWidget, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QSplitter, QTabWidget, QWidget, QGridLayout, QLabel
 
 from bn_modeller.models import (FilterPairTableSQLProxyModel,
                                 PairTableSQLProxyModel)
@@ -7,6 +7,7 @@ from bn_modeller.models.feature_sqltable_model import (
     FeatureSqlTableModel, PersistanceCheckableFeatureListProxyModel)
 from bn_modeller.widgets import DependencySetupTableView, SelectableListView
 from bn_modeller.widgets.bn_visualization_view import BayesianNetView
+from bn_modeller.widgets.vertical_label import QVertivalLabel
 
 
 class BayesianNetworkPageWidget(QWidget):
@@ -20,13 +21,28 @@ class BayesianNetworkPageWidget(QWidget):
         self.tabWidget = QTabWidget()
 
         # Dependency tab
+
+        # Feature selection
         self.dependencyTabWidget = QSplitter()
         self.featureSelectorView = SelectableListView()
         self.dependencyTabWidget.addWidget(self.featureSelectorView)
         self.dependencyTabWidget.setStretchFactor(0, 1)
 
+        # Dependency Table
+        depTableWidget = QWidget()
+        depTableLayout = QGridLayout()
+                
         self._depTable = DependencySetupTableView()
-        self.dependencyTabWidget.addWidget(self._depTable)
+        depTableLayout.addWidget(self._depTable, 1, 1)
+
+        dependentLabel = QVertivalLabel("Independent")
+        depTableLayout.addWidget(dependentLabel, 1, 0, Qt.AlignmentFlag.AlignCenter)
+
+        dependentLabel = QLabel("Dependent")
+        depTableLayout.addWidget(dependentLabel, 0, 1, Qt.AlignmentFlag.AlignCenter)
+
+        depTableWidget.setLayout(depTableLayout)
+        self.dependencyTabWidget.addWidget(depTableWidget)
         self.dependencyTabWidget.setStretchFactor(1, 2)
 
         self.tabWidget.addTab(self.dependencyTabWidget, self.tr("Dependency"))
