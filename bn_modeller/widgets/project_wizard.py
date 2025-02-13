@@ -109,6 +109,22 @@ class DataImportPage(QWizardPage):
 
     def _init_ui(self):
         main_layout = QVBoxLayout()
+
+        # createOrOpenRadioGroup
+        groupBox = QGroupBox(self.tr("Source file format"))
+
+        self.radioSampleInRow = QRadioButton(self.tr("Samples in rows"))
+        self.radioSampleInRow.setChecked(True)
+        self.radioSampleInColumn = QRadioButton(self.tr("Samples in columns"))
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.radioSampleInRow)
+        vbox.addWidget(self.radioSampleInColumn)
+        # vbox.addStretch(1)
+        groupBox.setLayout(vbox)
+        self.registerField("DataImportPage/isSampleInRows", self.radioSampleInRow)
+        main_layout.addWidget(groupBox)
+
+        # File path row
         self.path_edit = FilePathWidget(
             self.tr("Select source file"),
             self.tr("Comma-separated values File (*.csv)"),
@@ -164,7 +180,10 @@ class ProjectLoadWizard(QWizard):
         query.exec("PRAGMA synchronous = OFF;")
         self.openDb()
         
-        add_values_from_csv(self.field("DataImportPage/csvPath"), self.featureSqlTableModel, self.sampleSqlTableModel)
+        add_values_from_csv(self.field("DataImportPage/csvPath"), 
+                            not self.field("DataImportPage/isSampleInRows"), 
+                            self.featureSqlTableModel, 
+                            self.sampleSqlTableModel)
 
     def openDb(self):
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)

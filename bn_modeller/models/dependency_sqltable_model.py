@@ -89,10 +89,14 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                 values_np = self.data(item=item, role=self.ValuePairsRole)
                 nas = np.logical_or(
                     np.isnan(values_np[0]), np.isnan(values_np[1]))
-                pearsonCorr = stats.pearsonr(
-                    values_np[0, ~nas], values_np[1, ~nas])
-                self._cachePearsonCorrRole[(
-                    firstFeatureId, secondFeatureId)] = pearsonCorr.correlation
+                try:
+                    pearsonCorr = stats.pearsonr(
+                        values_np[0, ~nas], values_np[1, ~nas])
+                    self._cachePearsonCorrRole[(
+                        firstFeatureId, secondFeatureId)] = pearsonCorr.correlation
+                except ValueError:
+                    self._cachePearsonCorrRole[(
+                        firstFeatureId, secondFeatureId)] = np.nan
             return self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)]
         elif role == self.SpearmanCorrRole:
             firstFeatureId, secondFeatureId = self._indexToId(index=item)
