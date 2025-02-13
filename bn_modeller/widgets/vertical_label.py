@@ -1,6 +1,6 @@
-from PySide6.QtCore import Qt, QPoint, QRect, QSize
-from PySide6.QtWidgets import QHBoxLayout, QSplitter, QTabWidget, QWidget, QGridLayout, QLabel, QSizePolicy
+from PySide6.QtCore import QPoint, QRect, QSize, Qt
 from PySide6.QtGui import QPainter
+from PySide6.QtWidgets import QLabel, QWidget
 
 
 class QVertivalLabel(QLabel):
