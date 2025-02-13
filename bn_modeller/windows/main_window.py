@@ -13,7 +13,6 @@ from bn_modeller.models import DependencyManyToManySqlTableModel, PairTableSQLPr
 
 from bn_modeller.widgets.page.database_page import DatabasePageWidget
 from bn_modeller.widgets.page.bayesian_network_page import BayesianNetworkPageWidget
-from bn_modeller.utils.db_model_handler import add_values_from_csv
 
 
 class MainWindow(BaseWindow):
@@ -41,18 +40,6 @@ class MainWindow(BaseWindow):
             self.application_state_changed)
 
     def _init_db(self):
-        self._db = QSqlDatabase.addDatabase("QSQLITE")
-        self._db.setDatabaseName(self._project_path)
-        self._db.open()
-        query = QSqlQuery()
-        query.exec("PRAGMA page_size = 4096;")
-        query.exec("PRAGMA cache_size = 16384;")
-        query.exec("PRAGMA temp_store = MEMORY;")
-        query.exec("PRAGMA journal_mode = PERSIST;")
-        query.exec("PRAGMA locking_mode = EXCLUSIVE;")
-        # WARNING: IT IS NOT SAFE. It can cause a DB damage in case of a bad termination.
-        query.exec("PRAGMA synchronous = OFF;")
-
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)
         self.sampleSqlTableModel = SampleSqlTableModel(db=self._db)
         self._initCacheDbInMemory()
@@ -82,11 +69,11 @@ class MainWindow(BaseWindow):
 
         self.setCentralWidget(self._main_widget)
 
-        add_data_action = QAction(self.style().standardIcon(
-            QStyle.StandardPixmap.SP_FileDialogContentsView), '&AddData', self)
-        add_data_action.setStatusTip(self.tr('Add Data'))
-        add_data_action.triggered.connect(self.add_data_clicked)
-        self.getMainToolBar().addAction(add_data_action)
+        # add_data_action = QAction(self.style().standardIcon(
+        #     QStyle.StandardPixmap.SP_FileDialogContentsView), '&AddData', self)
+        # add_data_action.setStatusTip(self.tr('Add Data'))
+        # add_data_action.triggered.connect(self.add_data_clicked)
+        # self.getMainToolBar().addAction(add_data_action)
 
     def _save_to_history(self, previousWidget: QWidget):
         self._viewsHistory.append(previousWidget)
@@ -102,12 +89,6 @@ class MainWindow(BaseWindow):
         self.sampleSqlTableModel.select()
         while (self.sampleSqlTableModel.canFetchMore()):
             self.sampleSqlTableModel.fetchMore()
-
-    @Slot()
-    def add_data_clicked(self):
-        add_values_from_csv(
-            r"data\data_2.csv", self.featureSqlTableModel, self.sampleSqlTableModel)
-        self._initCacheDbInMemory()
 
     @Slot()
     def go_back_clicked(self):
@@ -132,4 +113,5 @@ class MainWindow(BaseWindow):
             if wizard_ret != 1:
                 self.close_app()
             self._project_path = self.projectWizard.get_project_path()
+            self._db = self.projectWizard._db
             self._init_db()
