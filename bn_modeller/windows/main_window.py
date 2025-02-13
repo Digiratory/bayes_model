@@ -35,14 +35,14 @@ class MainWindow(BaseWindow):
 
         self.featureSqlTableModel: FeatureSqlTableModel = None
         self.sampleSqlTableModel: SampleSqlTableModel = None
+        self.projectWizard: ProjectLoadWizard = None
 
         QGuiApplication.instance().applicationStateChanged.connect(
             self.application_state_changed)
 
     def _init_db(self):
         self._db = QSqlDatabase.addDatabase("QSQLITE")
-        self._db.setDatabaseName(os.path.join(
-            self._project_path, "project_database.sqlite"))
+        self._db.setDatabaseName(self._project_path)
         self._db.open()
         query = QSqlQuery()
         query.exec("PRAGMA page_size = 4096;")
@@ -50,20 +50,24 @@ class MainWindow(BaseWindow):
         query.exec("PRAGMA temp_store = MEMORY;")
         query.exec("PRAGMA journal_mode = PERSIST;")
         query.exec("PRAGMA locking_mode = EXCLUSIVE;")
-        query.exec("PRAGMA synchronous = OFF;") # WARNING: IT IS NOT SAFE. It can cause a DB damage in case of a bad termination. 
-        
+        # WARNING: IT IS NOT SAFE. It can cause a DB damage in case of a bad termination.
+        query.exec("PRAGMA synchronous = OFF;")
+
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)
         self.sampleSqlTableModel = SampleSqlTableModel(db=self._db)
         self._initCacheDbInMemory()
 
-        self._dependencyManyToManySqlTableModel = DependencyManyToManySqlTableModel(db=self._db)        
-        self._dependPairModel = PairTableSQLProxyModel(self.featureSqlTableModel, db=self._db) 
-        
+        self._dependencyManyToManySqlTableModel = DependencyManyToManySqlTableModel(
+            db=self._db)
+        self._dependPairModel = PairTableSQLProxyModel(
+            self.featureSqlTableModel, db=self._db)
+
         self.databasePageWidget.setModels(
             featureSqlTableModel=self.featureSqlTableModel,
             sampleSqlTableModel=self.sampleSqlTableModel)
-        
-        self.dependencySetupPageWidget.setModels(pairTableSQLProxyModel=self._dependPairModel)
+
+        self.dependencySetupPageWidget.setModels(
+            pairTableSQLProxyModel=self._dependPairModel)
 
     def _init_ui(self):
         self._main_widget = QTabWidget()
@@ -73,7 +77,8 @@ class MainWindow(BaseWindow):
         self._main_widget.addTab(self.databasePageWidget, self.tr("Database"))
 
         self.dependencySetupPageWidget = BayesianNetworkPageWidget()
-        self._main_widget.addTab(self.dependencySetupPageWidget, self.tr("Bayesian Networks"))
+        self._main_widget.addTab(
+            self.dependencySetupPageWidget, self.tr("Bayesian Networks"))
 
         self.setCentralWidget(self._main_widget)
 
@@ -121,10 +126,10 @@ class MainWindow(BaseWindow):
 
     @Slot(Qt.ApplicationState)
     def application_state_changed(self, state: Qt.ApplicationState):
-        if self._project_path is None:
-            wizard = ProjectLoadWizard()
-            wizard_ret = wizard.exec()
+        if self._project_path is None and self.projectWizard is None:
+            self.projectWizard = ProjectLoadWizard()
+            wizard_ret = self.projectWizard.exec()
             if wizard_ret != 1:
                 self.close_app()
-            self._project_path = wizard.get_project_path()
+            self._project_path = self.projectWizard.get_project_path()
             self._init_db()
