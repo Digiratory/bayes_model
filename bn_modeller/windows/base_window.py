@@ -7,22 +7,22 @@ class BaseWindow(QMainWindow):
     def __init__(self, title: str, parent: QWidget | None = None, flags=Qt.WindowType()) -> None:
         super(BaseWindow, self).__init__(parent, flags)
         self.caption = title
-        self.setup_toolbar()
+        # self.setup_toolbar()
         self.set_central_title(title)
 
     def set_central_title(self, title):
         self.setWindowTitle(title)
 
-    def setup_toolbar(self):
-        self._toolbar = QToolBar(self.tr('Main ToolBar'))
+    # def setup_toolbar(self):
+    #     self._toolbar = QToolBar(self.tr('Main ToolBar'))
 
-        back_action = QAction(self.style().standardIcon(
-            QStyle.StandardPixmap.SP_ArrowBack), '&Back', self)
-        back_action.setStatusTip(self.tr('Go Back'))
-        back_action.triggered.connect(self.go_back_clicked)
+    #     back_action = QAction(self.style().standardIcon(
+    #         QStyle.StandardPixmap.SP_ArrowBack), '&Back', self)
+    #     back_action.setStatusTip(self.tr('Go Back'))
+    #     back_action.triggered.connect(self.go_back_clicked)
 
-        self.addToolBar(self._toolbar)
-        self._toolbar.addAction(back_action)
+    #     self.addToolBar(self._toolbar)
+    #     self._toolbar.addAction(back_action)
 
     def getMainToolBar(self) -> QToolBar:
         return self._toolbar

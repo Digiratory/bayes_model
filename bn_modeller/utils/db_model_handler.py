@@ -33,10 +33,18 @@ class SampleFilterProxyModel(QSortFilterProxyModel):
 
 
 def add_values_from_csv(csv_file_path: str,
+                        transposed_csv: bool,
                         featureSqlTableModel: FeatureSqlTableModel,
                         sampleSqlTableModel: SampleSqlTableModel):
 
-    data_pd = pd.read_csv(csv_file_path, index_col=0)
+    
+    if transposed_csv:
+        data_pd = pd.read_csv(csv_file_path,index_col=0)
+        data_pd = data_pd.T
+        data_pd = data_pd.astype(float)
+        # data_pd = data_pd.set_index('month')
+    else:
+        data_pd = pd.read_csv(csv_file_path, index_col=0)
     data_pd.index = data_pd.index.astype(int)
 
     feature_proxy = QSortFilterProxyModel()
@@ -46,7 +54,7 @@ def add_values_from_csv(csv_file_path: str,
 
     new_features = []
     for col_candidate in data_pd.columns:
-        feature_proxy.setFilterFixedString(col_candidate)        
+        feature_proxy.setFilterFixedString(col_candidate)
         if feature_proxy.rowCount() == 0:
             new_features.append(col_candidate)
 
@@ -58,8 +66,6 @@ def add_values_from_csv(csv_file_path: str,
         rowRecord.setValue(FeatureSqlTableModel.column_description, "")
         featureSqlTableModel.insertRecord(-1, rowRecord)
     featureSqlTableModel.submitAll()
-
-    
 
     # sample_proxy = SampleFilterProxyModel()
     # sample_proxy.setSourceModel(sampleSqlTableModel)
@@ -75,7 +81,7 @@ def add_values_from_csv(csv_file_path: str,
 
     # for new_sample in new_samples:
         # row_pd = data_pd.loc[new_sample]
-    for index, row_pd in data_pd.iterrows():        
+    for index, row_pd in data_pd.iterrows():
         for col in data_pd.columns:
             if not np.isnan(row_pd[col]):
                 rowRecord = sampleSqlTableModel.record()

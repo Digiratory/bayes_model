@@ -13,7 +13,6 @@ from bn_modeller.models import DependencyManyToManySqlTableModel, PairTableSQLPr
 
 from bn_modeller.widgets.page.database_page import DatabasePageWidget
 from bn_modeller.widgets.page.bayesian_network_page import BayesianNetworkPageWidget
-from bn_modeller.utils.db_model_handler import add_values_from_csv
 
 
 class MainWindow(BaseWindow):
@@ -35,35 +34,27 @@ class MainWindow(BaseWindow):
 
         self.featureSqlTableModel: FeatureSqlTableModel = None
         self.sampleSqlTableModel: SampleSqlTableModel = None
+        self.projectWizard: ProjectLoadWizard = None
 
         QGuiApplication.instance().applicationStateChanged.connect(
             self.application_state_changed)
 
     def _init_db(self):
-        self._db = QSqlDatabase.addDatabase("QSQLITE")
-        self._db.setDatabaseName(os.path.join(
-            self._project_path, "project_database.sqlite"))
-        self._db.open()
-        query = QSqlQuery()
-        query.exec("PRAGMA page_size = 4096;")
-        query.exec("PRAGMA cache_size = 16384;")
-        query.exec("PRAGMA temp_store = MEMORY;")
-        query.exec("PRAGMA journal_mode = PERSIST;")
-        query.exec("PRAGMA locking_mode = EXCLUSIVE;")
-        query.exec("PRAGMA synchronous = OFF;") # WARNING: IT IS NOT SAFE. It can cause a DB damage in case of a bad termination. 
-        
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)
         self.sampleSqlTableModel = SampleSqlTableModel(db=self._db)
         self._initCacheDbInMemory()
 
-        self._dependencyManyToManySqlTableModel = DependencyManyToManySqlTableModel(db=self._db)        
-        self._dependPairModel = PairTableSQLProxyModel(self.featureSqlTableModel, db=self._db) 
-        
+        self._dependencyManyToManySqlTableModel = DependencyManyToManySqlTableModel(
+            db=self._db)
+        self._dependPairModel = PairTableSQLProxyModel(
+            self.featureSqlTableModel, db=self._db)
+
         self.databasePageWidget.setModels(
             featureSqlTableModel=self.featureSqlTableModel,
             sampleSqlTableModel=self.sampleSqlTableModel)
-        
-        self.dependencySetupPageWidget.setModels(pairTableSQLProxyModel=self._dependPairModel)
+
+        self.dependencySetupPageWidget.setModels(
+            pairTableSQLProxyModel=self._dependPairModel)
 
     def _init_ui(self):
         self._main_widget = QTabWidget()
@@ -73,15 +64,16 @@ class MainWindow(BaseWindow):
         self._main_widget.addTab(self.databasePageWidget, self.tr("Database"))
 
         self.dependencySetupPageWidget = BayesianNetworkPageWidget()
-        self._main_widget.addTab(self.dependencySetupPageWidget, self.tr("Bayesian Networks"))
+        self._main_widget.addTab(
+            self.dependencySetupPageWidget, self.tr("Bayesian Networks"))
 
         self.setCentralWidget(self._main_widget)
 
-        add_data_action = QAction(self.style().standardIcon(
-            QStyle.StandardPixmap.SP_FileDialogContentsView), '&AddData', self)
-        add_data_action.setStatusTip(self.tr('Add Data'))
-        add_data_action.triggered.connect(self.add_data_clicked)
-        self.getMainToolBar().addAction(add_data_action)
+        # add_data_action = QAction(self.style().standardIcon(
+        #     QStyle.StandardPixmap.SP_FileDialogContentsView), '&AddData', self)
+        # add_data_action.setStatusTip(self.tr('Add Data'))
+        # add_data_action.triggered.connect(self.add_data_clicked)
+        # self.getMainToolBar().addAction(add_data_action)
 
     def _save_to_history(self, previousWidget: QWidget):
         self._viewsHistory.append(previousWidget)
@@ -97,12 +89,6 @@ class MainWindow(BaseWindow):
         self.sampleSqlTableModel.select()
         while (self.sampleSqlTableModel.canFetchMore()):
             self.sampleSqlTableModel.fetchMore()
-
-    @Slot()
-    def add_data_clicked(self):
-        add_values_from_csv(
-            r"data\data_2.csv", self.featureSqlTableModel, self.sampleSqlTableModel)
-        self._initCacheDbInMemory()
 
     @Slot()
     def go_back_clicked(self):
@@ -121,10 +107,11 @@ class MainWindow(BaseWindow):
 
     @Slot(Qt.ApplicationState)
     def application_state_changed(self, state: Qt.ApplicationState):
-        if self._project_path is None:
-            wizard = ProjectLoadWizard()
-            wizard_ret = wizard.exec()
+        if self._project_path is None and self.projectWizard is None:
+            self.projectWizard = ProjectLoadWizard()
+            wizard_ret = self.projectWizard.exec()
             if wizard_ret != 1:
                 self.close_app()
-            self._project_path = wizard.get_project_path()
+            self._project_path = self.projectWizard.get_project_path()
+            self._db = self.projectWizard._db
             self._init_db()
