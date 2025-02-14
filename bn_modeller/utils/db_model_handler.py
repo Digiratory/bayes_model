@@ -70,8 +70,8 @@ def csv_to_dataframe(csv_file_path: str,
         # Transpose dataframe
         data_pd = data_pd.T
 
-
     # Curate values in the dataframe to be numeric
+    # TODO: ask user for correct errors
     data_pd = data_pd.map(pd.to_numeric, errors='coerce')
     data_pd.index = data_pd.index.map(pd.to_numeric)
     data_pd.index = data_pd.index.astype(int)
@@ -81,7 +81,9 @@ def csv_to_dataframe(csv_file_path: str,
 def add_values_from_csv(csv_file_path: str,
                         transposed_csv: bool,
                         featureSqlTableModel: FeatureSqlTableModel,
-                        sampleSqlTableModel: SampleSqlTableModel):
+                        sampleSqlTableModel: SampleSqlTableModel,
+                        skip_rows: int = 0,
+                        skip_cols: int = 0):
     """ Add values from a CSV file to the database.
 
     Args:
@@ -89,9 +91,13 @@ def add_values_from_csv(csv_file_path: str,
         transposed_csv (bool): True if the CSV file is transposed.
         featureSqlTableModel (FeatureSqlTableModel): The target data model for the features.
         sampleSqlTableModel (SampleSqlTableModel): The target data model for the samples.
+        skip_rows (int): The number of rows to skip at the beginning of the CSV file. Default is 0.
+        skip_cols (int): The number of columns to skip at the beginning of the CSV file. Default is 0.
     """
     data_pd = csv_to_dataframe(csv_file_path,
-                               transposed_csv=transposed_csv)
+                               transposed_csv=transposed_csv,
+                               skip_rows=skip_rows,
+                               skip_cols=skip_cols)
 
     feature_proxy = QSortFilterProxyModel()
     feature_proxy.setSourceModel(featureSqlTableModel)

@@ -7,8 +7,8 @@ from PySide6.QtWidgets import (
     QRadioButton,
     QLineEdit,
     QPushButton,
-    QFileDialog,
-    QLabel,
+    QFileDialog, QHBoxLayout,
+    QLabel, QSpinBox,
     QMessageBox,
     QApplication,
     QDialog, QGroupBox
@@ -29,6 +29,7 @@ from bn_modeller.widgets.file_path_widget import FilePathWidget
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 from bn_modeller.utils.db_model_handler import add_values_from_csv
+from bn_modeller.widgets.separator_widget import QSeparator
 
 
 class ProjectLocationPage(QWizardPage):
@@ -109,21 +110,6 @@ class DataImportPage(QWizardPage):
 
     def _init_ui(self):
         main_layout = QVBoxLayout()
-
-        # createOrOpenRadioGroup
-        groupBox = QGroupBox(self.tr("Source file format"))
-
-        self.radioSampleInRow = QRadioButton(self.tr("Samples in rows"))
-        self.radioSampleInRow.setChecked(True)
-        self.radioSampleInColumn = QRadioButton(self.tr("Samples in columns"))
-        vbox = QVBoxLayout()
-        vbox.addWidget(self.radioSampleInRow)
-        vbox.addWidget(self.radioSampleInColumn)
-        # vbox.addStretch(1)
-        groupBox.setLayout(vbox)
-        self.registerField("DataImportPage/isSampleInRows", self.radioSampleInRow)
-        main_layout.addWidget(groupBox)
-
         # File path row
         self.path_edit = FilePathWidget(
             self.tr("Select source file"),
@@ -137,10 +123,44 @@ class DataImportPage(QWizardPage):
 
         self.setLayout(main_layout)
 
+        # File settings group box
+        groupBox = QGroupBox(self.tr("Source file format"))
+
+        self.radioSampleInRow = QRadioButton(self.tr("Samples in rows"))
+        self.radioSampleInRow.setChecked(True)
+        self.radioSampleInColumn = QRadioButton(self.tr("Samples in columns"))
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.radioSampleInRow)
+        vbox.addWidget(self.radioSampleInColumn)
+        vbox.addWidget(QSeparator())
+
+        # Add a new HBoxLayout with two spinboxes and labels for each one
+        hbox = QHBoxLayout()
+        self.skip_rows_spinbox = QSpinBox()
+        self.skip_rows_spinbox.setRange(0, 100)  # Set the range to 100
+        hbox.addWidget(QLabel(self.tr("Skip rows: ")))
+        hbox.addWidget(self.skip_rows_spinbox)
+
+        self.skip_cols_spinbox = QSpinBox()
+        self.skip_cols_spinbox.setRange(0, 100)  # Set the range to 100
+        hbox.addWidget(QLabel(self.tr("Skip columns: ")))
+        hbox.addWidget(self.skip_cols_spinbox)
+        vbox.addLayout(hbox)
+
+        groupBox.setLayout(vbox)
+        self.registerField("DataImportPage/isSampleInRows",
+                           self.radioSampleInRow)
+        self.registerField("DataImportPage/skipRows",
+                           self.skip_rows_spinbox)
+        self.registerField("DataImportPage/skipColumns",
+                           self.skip_cols_spinbox)
+        main_layout.addWidget(groupBox)
+
     @Slot(str)
     def saveLastFilePath(self, newFilePath: str):
         QSettings().setValue("DataImportPage/lastSourceLocationDir",
                              os.path.dirname(newFilePath))
+
 
 class ProjectLoadWizard(QWizard):
     def __init__(self, parent=None):
@@ -179,11 +199,20 @@ class ProjectLoadWizard(QWizard):
         # WARNING: IT IS NOT SAFE. It can cause a DB damage in case of a bad termination.
         query.exec("PRAGMA synchronous = OFF;")
         self.openDb()
-        
-        add_values_from_csv(self.field("DataImportPage/csvPath"), 
-                            not self.field("DataImportPage/isSampleInRows"), 
-                            self.featureSqlTableModel, 
-                            self.sampleSqlTableModel)
+
+        try:
+            add_values_from_csv(
+                self.field("DataImportPage/csvPath"),
+                not self.field("DataImportPage/isSampleInRows"),
+                self.featureSqlTableModel,
+                self.sampleSqlTableModel,
+                skip_rows=self.field("DataImportPage/skipRows"),
+                skip_cols=self.field("DataImportPage/skipColumns")
+            )
+
+        except Exception as e:
+            # TODO: handle the exception, ask the user to retry or quit
+            print(e)
 
     def openDb(self):
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)
