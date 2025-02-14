@@ -48,10 +48,10 @@ def to_numeric_with_callback(data: str | None,
         return callback(data)
 
 
-def csv_to_dataframe(csv_file_path: str,
-                     transposed_csv: bool,
-                     skip_rows: int = 0,
-                     skip_cols: int = 0):
+def sheetfile_to_dataframe(sheet_file_path: str,
+                           transposed_csv: bool,
+                           skip_rows: int = 0,
+                           skip_cols: int = 0):
     """ Convert a CSV file to a Pandas DataFrame.
     Args:
         csv_file_path (str): The path to the CSV file.
@@ -61,8 +61,15 @@ def csv_to_dataframe(csv_file_path: str,
     Returns:
         pandas.DataFrame: A Pandas DataFrame containing the CSV file's contents.
     """
-    data_pd = pd.read_csv(csv_file_path, index_col=skip_cols,
-                          skiprows=skip_rows)
+    if sheet_file_path.endswith('.xlsx') or sheet_file_path.endswith('.xls'):
+        data_pd = pd.read_excel(sheet_file_path, index_col=skip_cols,
+                                skiprows=skip_rows)
+    elif sheet_file_path.endswith('.csv'):
+        data_pd = pd.read_csv(sheet_file_path, index_col=skip_cols,
+                              skiprows=skip_rows)
+    else:
+        raise ValueError(f"Unsupported file format for {sheet_file_path}")
+
     if skip_cols > 0:
         # Delete first skip_rows rows
         data_pd = data_pd.drop(data_pd.columns[:skip_cols], axis=1)
@@ -94,10 +101,10 @@ def add_values_from_csv(csv_file_path: str,
         skip_rows (int): The number of rows to skip at the beginning of the CSV file. Default is 0.
         skip_cols (int): The number of columns to skip at the beginning of the CSV file. Default is 0.
     """
-    data_pd = csv_to_dataframe(csv_file_path,
-                               transposed_csv=transposed_csv,
-                               skip_rows=skip_rows,
-                               skip_cols=skip_cols)
+    data_pd = sheetfile_to_dataframe(csv_file_path,
+                                     transposed_csv=transposed_csv,
+                                     skip_rows=skip_rows,
+                                     skip_cols=skip_cols)
 
     feature_proxy = QSortFilterProxyModel()
     feature_proxy.setSourceModel(featureSqlTableModel)

@@ -113,7 +113,8 @@ class DataImportPage(QWizardPage):
         # File path row
         self.path_edit = FilePathWidget(
             self.tr("Select source file"),
-            self.tr("Comma-separated values File (*.csv)"),
+            self.tr(
+                "Comma-separated values File (*.csv);;Excel Workbook (*.xlsx *.xls)"),
             QSettings().value("DataImportPage/lastSourceLocationDir",
                               QStandardPaths.standardLocations(QStandardPaths.StandardLocation.DocumentsLocation)[0]),
             mode=FilePathWidget.FilePathMode.OpenFileName)
@@ -219,6 +220,9 @@ class ProjectLoadWizard(QWizard):
         self.sampleSqlTableModel = SampleSqlTableModel(db=self._db)
 
     def done(self, result):
+        if os.path.exists(self.source_page.path_edit.file_path):
+            # TODO: ask user to delete the file
+            os.remove(self.source_page.path_edit.file_path)
         self._db = QSqlDatabase.addDatabase("QSQLITE")
         self._db.setDatabaseName(self.source_page.path_edit.file_path)
         self._db.open()

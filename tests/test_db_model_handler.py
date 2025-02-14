@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pytest
 import pandas as pd
-from bn_modeller.utils.db_model_handler import csv_to_dataframe
+from bn_modeller.utils.db_model_handler import sheetfile_to_dataframe
 
 
 def test_csv_to_dataframes():
@@ -16,7 +16,7 @@ def test_csv_to_dataframes():
         "sample_csv.csv"
     )
     print(csv_path)
-    df = csv_to_dataframe(csv_path, transposed_csv=False)
+    df = sheetfile_to_dataframe(csv_path, transposed_csv=False)
     print(df.columns, len(df))
     assert list(df.columns) == ['Feature 1', 'Feature 2',
                                 'Feature 3', 'Feature 4', 'Feature 5', 'Feature 6']
@@ -40,7 +40,7 @@ def test_csv_to_dataframe_transposed():
         "sample_transposed_csv.csv"
     )
     print(csv_path)
-    df = csv_to_dataframe(csv_path, transposed_csv=True)
+    df = sheetfile_to_dataframe(csv_path, transposed_csv=True)
     print(df.columns, len(df))
     assert list(df.columns) == ['Feature 1', 'Feature 2',
                                 'Feature 3', 'Feature 4', 'Feature 5', 'Feature 6']
@@ -59,7 +59,7 @@ def test_csv_to_dataframe_with_empty_columns():
         "assets",
         "sample_empty_column.csv"
     )
-    df = csv_to_dataframe(csv_path, transposed_csv=False, skip_cols=1)
+    df = sheetfile_to_dataframe(csv_path, transposed_csv=False, skip_cols=1)
     assert list(df.columns) == ['Feature 1', 'Feature 2',
                                 'Feature 3', 'Feature 4', 'Feature 5', 'Feature 6']
     assert len(df) == 15
@@ -76,7 +76,7 @@ def test_csv_to_dataframe_with_empty_rows():
         "assets",
         "sample_empty_row.csv"
     )
-    df = csv_to_dataframe(csv_path, transposed_csv=False, skip_rows=1)
+    df = sheetfile_to_dataframe(csv_path, transposed_csv=False, skip_rows=1)
     assert list(df.columns) == ['Feature 1', 'Feature 2',
                                 'Feature 3', 'Feature 4', 'Feature 5', 'Feature 6']
     assert len(df) == 15
