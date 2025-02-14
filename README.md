@@ -12,6 +12,16 @@ predict 307
 
 func_i = interp1d(fe, xe, kind=way, fill_value="extrapolate")  # interpolation fill_value="extrapolate"
 
+## Build
+
+### Build Executable file for Windows
+
+1. Install pyinstaller 
+2. Execute the following command:
+```bash
+pyinstaller --windowed ./bn_modeller/app.py
+
+```
 ## Instalation
 
 ### Graphviz
