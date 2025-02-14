@@ -1,8 +1,10 @@
 import os
+import numpy as np
 
-from PySide6.QtCore import QSettings, QStandardPaths, Slot
+from PySide6.QtCore import QSettings, QStandardPaths, Slot, QObject
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
-from PySide6.QtWidgets import (QGroupBox, QHBoxLayout, QLabel, QRadioButton,
+from PySide6.QtGui import QDoubleValidator
+from PySide6.QtWidgets import (QGroupBox, QDialogButtonBox, QDialog, QHBoxLayout, QLabel, QFormLayout, QLineEdit, QRadioButton,
                                QSpinBox, QVBoxLayout, QWizard, QWizardPage)
 
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
@@ -10,6 +12,42 @@ from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 from bn_modeller.utils.db_model_handler import add_values_from_csv
 from bn_modeller.widgets.file_path_widget import FilePathWidget
 from bn_modeller.widgets.separator_widget import QSeparator
+
+
+class TableValueFixer(QObject):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.cache = {}
+
+    def askUserForNewValue(self, value: str) -> float:
+        dialog = QDialog(parent=self.parent())
+        dialog.setWindowTitle("Unexpected value")
+        layout = QFormLayout()
+        line_edit = QLineEdit()
+        line_edit.setValidator(QDoubleValidator())  # only allow float inputs
+        layout.addRow(QLabel(f"Enter a value instead of: {value}"))
+        layout.addRow(QLabel("New Value:"), line_edit)
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+
+        dialog.setLayout(layout)
+        if dialog.exec() == QDialog.Accepted:
+            new_value = line_edit.text()
+            try:
+                return float(new_value)
+            except ValueError:
+                print("Invalid input. Replacing with NaN.")
+                return np.nan
+        else:
+            return np.nan
+
+    def fixValue(self, value: str) -> float:
+        if value not in self.cache:
+            self.cache[value] = self.askUserForNewValue(value)
+        return self.cache[value]
 
 
 class ProjectLocationPage(QWizardPage):
@@ -182,15 +220,16 @@ class ProjectLoadWizard(QWizard):
         self.openDb()
 
         try:
+            valueFixer = TableValueFixer(self)
             add_values_from_csv(
                 self.field("DataImportPage/csvPath"),
                 not self.field("DataImportPage/isSampleInRows"),
                 self.featureSqlTableModel,
                 self.sampleSqlTableModel,
                 skip_rows=self.field("DataImportPage/skipRows"),
-                skip_cols=self.field("DataImportPage/skipColumns")
+                skip_cols=self.field("DataImportPage/skipColumns"),
+                value_fixer_callback=valueFixer.fixValue
             )
-
         except Exception as e:
             # TODO: handle the exception, ask the user to retry or quit
             print(e)

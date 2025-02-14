@@ -51,7 +51,8 @@ def to_numeric_with_callback(data: str | None,
 def sheetfile_to_dataframe(sheet_file_path: str,
                            transposed_csv: bool,
                            skip_rows: int = 0,
-                           skip_cols: int = 0):
+                           skip_cols: int = 0,
+                           value_fixer_callback: Callable[[str], float] | None = None):
     """ Convert a CSV file to a Pandas DataFrame.
     Args:
         csv_file_path (str): The path to the CSV file.
@@ -79,7 +80,19 @@ def sheetfile_to_dataframe(sheet_file_path: str,
 
     # Curate values in the dataframe to be numeric
     # TODO: ask user for correct errors
-    data_pd = data_pd.map(pd.to_numeric, errors='coerce')
+    # data_pd = data_pd.map(pd.to_numeric, errors='coerce')
+
+    def _value_fixer(x: str):
+        x_fixed = np.nan
+        try:
+            x_fixed = pd.to_numeric(x, errors="raise")
+        except ValueError:
+            if value_fixer_callback is not None:
+                x_fixed = value_fixer_callback(x)
+        return x_fixed
+
+    data_pd = data_pd.map(_value_fixer)
+
     data_pd.index = data_pd.index.map(pd.to_numeric)
     data_pd.index = data_pd.index.astype(int)
     return data_pd
@@ -90,7 +103,8 @@ def add_values_from_csv(csv_file_path: str,
                         featureSqlTableModel: FeatureSqlTableModel,
                         sampleSqlTableModel: SampleSqlTableModel,
                         skip_rows: int = 0,
-                        skip_cols: int = 0):
+                        skip_cols: int = 0,
+                        value_fixer_callback=None):
     """ Add values from a CSV file to the database.
 
     Args:
@@ -104,7 +118,8 @@ def add_values_from_csv(csv_file_path: str,
     data_pd = sheetfile_to_dataframe(csv_file_path,
                                      transposed_csv=transposed_csv,
                                      skip_rows=skip_rows,
-                                     skip_cols=skip_cols)
+                                     skip_cols=skip_cols,
+                                     value_fixer_callback=value_fixer_callback)
 
     feature_proxy = QSortFilterProxyModel()
     feature_proxy.setSourceModel(featureSqlTableModel)
