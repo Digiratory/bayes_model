@@ -1,34 +1,14 @@
 import os
 
-from PySide6.QtWidgets import (
-    QWizard,
-    QWizardPage,
-    QVBoxLayout,
-    QRadioButton,
-    QLineEdit,
-    QPushButton,
-    QFileDialog, QHBoxLayout,
-    QLabel, QSpinBox,
-    QMessageBox,
-    QApplication,
-    QDialog, QGroupBox
-)
-from PySide6.QtCore import QRegularExpression, Signal, Slot, QPoint, Qt, QSettings, QStandardPaths
-from PySide6.QtGui import (
-    QPixmap,
-    QPainter,
-    QPen,
-    QMouseEvent,
-    QRegularExpressionValidator,
-    QColor,
-    QImage,
-)
+from PySide6.QtCore import QSettings, QStandardPaths, Slot
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
+from PySide6.QtWidgets import (QGroupBox, QHBoxLayout, QLabel, QRadioButton,
+                               QSpinBox, QVBoxLayout, QWizard, QWizardPage)
 
-from bn_modeller.widgets.file_path_widget import FilePathWidget
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 from bn_modeller.utils.db_model_handler import add_values_from_csv
+from bn_modeller.widgets.file_path_widget import FilePathWidget
 from bn_modeller.widgets.separator_widget import QSeparator
 
 
