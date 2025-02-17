@@ -1,6 +1,8 @@
+import os
+
 from PySide6.QtCore import Qt, Signal, Slot, QCoreApplication
 from PySide6.QtWidgets import QMainWindow, QWidget, QStyle, QToolBar
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon
 
 
 class BaseWindow(QMainWindow):
@@ -8,6 +10,10 @@ class BaseWindow(QMainWindow):
         super(BaseWindow, self).__init__(parent, flags)
         self.caption = title
         # self.setup_toolbar()
+        my_icon = QIcon()
+        my_icon.addFile(os.path.join(os.path.dirname(
+            __file__), "..", "resources\\icon.ico"))
+        self.setWindowIcon(my_icon)
         self.set_central_title(title)
 
     def set_central_title(self, title):
@@ -26,7 +32,7 @@ class BaseWindow(QMainWindow):
 
     def getMainToolBar(self) -> QToolBar:
         return self._toolbar
-    
+
     @Slot()
     def go_back_clicked(self):
         raise NotImplementedError()

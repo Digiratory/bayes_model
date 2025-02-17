@@ -1,14 +1,23 @@
+import os
 import sys
+import ctypes
+
 from PySide6.QtCore import Qt, QCoreApplication, QCommandLineOption, QCommandLineParser
 from PySide6.QtWidgets import QApplication
 
 from bn_modeller.windows.main_window import MainWindow
+from bn_modeller import __version__
 
 
 def create_application(argv: list[str]) -> QApplication:
     QCoreApplication.setOrganizationName("Digiratory")
     QCoreApplication.setOrganizationDomain("digiratory.ru")
     QCoreApplication.setApplicationName("bn_modeller")
+    QCoreApplication.setApplicationVersion(__version__)
+    bn_modeller_appid = 'digiratory.bn_modeller.{__version__}'
+    if os.name == 'nt':
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            bn_modeller_appid)
     if "no-gui" in argv:
         app = QCoreApplication(argv)
     else:
