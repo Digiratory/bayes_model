@@ -1,14 +1,23 @@
 import os
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPlainTextEdit, QGridLayout, QPushButton
+
 from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import (
+    QDialog,
+    QGridLayout,
+    QLabel,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+)
 
 
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         my_icon = QIcon()
-        my_icon.addFile(os.path.join(os.path.dirname(
-            __file__), "..", "resources\\icon.ico"))
+        my_icon.addFile(
+            os.path.join(os.path.dirname(__file__), "..", "resources\\icon.ico")
+        )
         self.setWindowIcon(my_icon)
 
         self.initUI()
@@ -22,7 +31,7 @@ class AboutDialog(QDialog):
            <b>Bayesian Network Modeller</b>, <br>
             A program to represents a set of variables and their conditional dependencies via a directed acyclic graph.<br>
             Copyright (C) 2025  Digiratory <br>
-            <br>    
+            <br>
             This program is free software: you can redistribute it and/or modify<br>
             it under the terms of the GNU General Public License as published by<br>
             the Free Software Foundation, either version 3 of the License, or<br>
@@ -48,7 +57,7 @@ class AboutDialog(QDialog):
             ("py-banshee", "GPL-3.0"),
             ("openpyxl", "MIT"),
             ("pygraphviz", "BSD License (BSD-3-Clause)"),
-            ("pyqtgraph", "BSD License (BSD-3-Clause)")
+            ("pyqtgraph", "BSD License (BSD-3-Clause)"),
         ]
         lib_text = "<b>3rd party libraries used in this project:</b><br>"
         for i, (lib, license) in enumerate(lib_licenses):

@@ -1,11 +1,23 @@
 import os
-import numpy as np
 
-from PySide6.QtCore import QSettings, QStandardPaths, Slot, QObject
-from PySide6.QtSql import QSqlDatabase, QSqlQuery
+import numpy as np
+from PySide6.QtCore import QObject, QSettings, QStandardPaths, Slot
 from PySide6.QtGui import QDoubleValidator
-from PySide6.QtWidgets import (QGroupBox, QDialogButtonBox, QDialog, QHBoxLayout, QLabel, QFormLayout, QLineEdit, QRadioButton,
-                               QSpinBox, QVBoxLayout, QWizard, QWizardPage)
+from PySide6.QtSql import QSqlDatabase, QSqlQuery
+from PySide6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QRadioButton,
+    QSpinBox,
+    QVBoxLayout,
+    QWizard,
+    QWizardPage,
+)
 
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
@@ -28,7 +40,8 @@ class TableValueFixer(QObject):
         layout.addRow(QLabel(f"Enter a value instead of: {value}"))
         layout.addRow(QLabel("New Value:"), line_edit)
         button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
         layout.addWidget(button_box)
@@ -83,11 +96,17 @@ class ProjectLocationPage(QWizardPage):
         self.path_edit = FilePathWidget(
             self.tr("Select file"),
             self.tr("BNM Project File (*.sqlite)"),
-            QSettings().value("projectLoadWizard/lastProjectLocationDir",
-                              QStandardPaths.standardLocations(QStandardPaths.StandardLocation.DocumentsLocation)[0]),
-            mode=FilePathWidget.FilePathMode.OpenFileName)
-        self.registerField("ProjectLocationPage/projectLocation*",
-                           self.path_edit.path_edit)
+            QSettings().value(
+                "projectLoadWizard/lastProjectLocationDir",
+                QStandardPaths.standardLocations(
+                    QStandardPaths.StandardLocation.DocumentsLocation
+                )[0],
+            ),
+            mode=FilePathWidget.FilePathMode.OpenFileName,
+        )
+        self.registerField(
+            "ProjectLocationPage/projectLocation*", self.path_edit.path_edit
+        )
         self.path_edit.file_path_changed.connect(self.saveLastFilePath)
         main_layout.addWidget(self.path_edit)
 
@@ -96,7 +115,8 @@ class ProjectLocationPage(QWizardPage):
     def initializePage(self):
         res = super().initializePage()
         self.path_edit.file_path = QSettings().value(
-            "projectLoadWizard/lastProjectLocation", "")
+            "projectLoadWizard/lastProjectLocation", ""
+        )
         return res
 
     @Slot(bool)
@@ -104,18 +124,17 @@ class ProjectLocationPage(QWizardPage):
         if checked:
             source = self.sender()
             if source == self.radioNew:
-                self.path_edit.setMode(
-                    FilePathWidget.FilePathMode.SaveFileName)
+                self.path_edit.setMode(FilePathWidget.FilePathMode.SaveFileName)
                 self.setFinalPage(False)
             elif source == self.radioOpen:
-                self.path_edit.setMode(
-                    FilePathWidget.FilePathMode.OpenFileName)
+                self.path_edit.setMode(FilePathWidget.FilePathMode.OpenFileName)
                 self.setFinalPage(True)
 
     @Slot(str)
     def saveLastFilePath(self, newFilePath: str):
-        QSettings().setValue("projectLoadWizard/lastProjectLocationDir",
-                             os.path.dirname(newFilePath))
+        QSettings().setValue(
+            "projectLoadWizard/lastProjectLocationDir", os.path.dirname(newFilePath)
+        )
         QSettings().setValue("projectLoadWizard/lastProjectLocation", newFilePath)
 
 
@@ -132,10 +151,16 @@ class DataImportPage(QWizardPage):
         self.path_edit = FilePathWidget(
             self.tr("Select source file"),
             self.tr(
-                "Comma-separated values File (*.csv);;Excel Workbook (*.xlsx *.xls)"),
-            QSettings().value("DataImportPage/lastSourceLocationDir",
-                              QStandardPaths.standardLocations(QStandardPaths.StandardLocation.DocumentsLocation)[0]),
-            mode=FilePathWidget.FilePathMode.OpenFileName)
+                "Comma-separated values File (*.csv);;Excel Workbook (*.xlsx *.xls)"
+            ),
+            QSettings().value(
+                "DataImportPage/lastSourceLocationDir",
+                QStandardPaths.standardLocations(
+                    QStandardPaths.StandardLocation.DocumentsLocation
+                )[0],
+            ),
+            mode=FilePathWidget.FilePathMode.OpenFileName,
+        )
         self.path_edit.file_path_changed.connect(self.saveLastFilePath)
         main_layout.addWidget(self.path_edit)
         self.registerField("DataImportPage/csvPath*", self.path_edit.path_edit)
@@ -167,18 +192,16 @@ class DataImportPage(QWizardPage):
         vbox.addLayout(hbox)
 
         groupBox.setLayout(vbox)
-        self.registerField("DataImportPage/isSampleInRows",
-                           self.radioSampleInRow)
-        self.registerField("DataImportPage/skipRows",
-                           self.skip_rows_spinbox)
-        self.registerField("DataImportPage/skipColumns",
-                           self.skip_cols_spinbox)
+        self.registerField("DataImportPage/isSampleInRows", self.radioSampleInRow)
+        self.registerField("DataImportPage/skipRows", self.skip_rows_spinbox)
+        self.registerField("DataImportPage/skipColumns", self.skip_cols_spinbox)
         main_layout.addWidget(groupBox)
 
     @Slot(str)
     def saveLastFilePath(self, newFilePath: str):
-        QSettings().setValue("DataImportPage/lastSourceLocationDir",
-                             os.path.dirname(newFilePath))
+        QSettings().setValue(
+            "DataImportPage/lastSourceLocationDir", os.path.dirname(newFilePath)
+        )
 
 
 class ProjectLoadWizard(QWizard):
@@ -228,7 +251,7 @@ class ProjectLoadWizard(QWizard):
                 self.sampleSqlTableModel,
                 skip_rows=self.field("DataImportPage/skipRows"),
                 skip_cols=self.field("DataImportPage/skipColumns"),
-                value_fixer_callback=valueFixer.fixValue
+                value_fixer_callback=valueFixer.fixValue,
             )
         except Exception as e:
             # TODO: handle the exception, ask the user to retry or quit
@@ -244,7 +267,7 @@ class ProjectLoadWizard(QWizard):
         self._db.open()
 
     def done(self, result):
-        
+
         if self.source_page.radioOpen.isChecked():
             self.connectDb()
             self.openDb()

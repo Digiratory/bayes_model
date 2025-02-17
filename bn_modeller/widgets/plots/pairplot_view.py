@@ -1,16 +1,25 @@
-from bn_modeller.models.checkable_sort_filter_proxy_model import CheckableSortFilterProxyModel
-from bn_modeller.models import RelationalSortFilterProxyModel
-
-from PySide6.QtCore import Qt, QObject, QModelIndex, QPersistentModelIndex, Signal, Slot, QAbstractItemModel
-from PySide6.QtWidgets import QFrame, QWidget, QVBoxLayout
-
-
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
-import pandas as pd
 import matplotlib
 import numpy as np
-matplotlib.use('Qt5Agg')
+import pandas as pd
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
+from matplotlib.figure import Figure
+from PySide6.QtCore import (
+    QAbstractItemModel,
+    QModelIndex,
+    QObject,
+    QPersistentModelIndex,
+    Qt,
+    Signal,
+    Slot,
+)
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget
+
+from bn_modeller.models import RelationalSortFilterProxyModel
+from bn_modeller.models.checkable_sort_filter_proxy_model import (
+    CheckableSortFilterProxyModel,
+)
+
+matplotlib.use("Qt5Agg")
 
 
 class PairplotMplCanvas(FigureCanvasQTAgg):
@@ -49,8 +58,8 @@ class PairplotMplCanvas(FigureCanvasQTAgg):
                         ax.set_xlabel(labels[j])
                 else:
                     ax.scatter(data_pd.iloc[:, j], data_pd.iloc[:, i], alpha=0.6)
-                    ax.set_xlabel('' if i != num_vars - 1 else labels[j])
-                    ax.set_ylabel('' if j != 0 else labels[i])
+                    ax.set_xlabel("" if i != num_vars - 1 else labels[j])
+                    ax.set_ylabel("" if j != 0 else labels[i])
 
                     # Add correlation
                     df1, df2 = data_pd.iloc[:, i], data_pd.iloc[:, j]
@@ -58,10 +67,19 @@ class PairplotMplCanvas(FigureCanvasQTAgg):
                     df1_cleaned, df2_cleaned = df1.dropna(), df2.dropna()
 
                     # Убираем те строки, в которых один из столбцов имеет NaN
-                    df1_cleaned, df2_cleaned = df1_cleaned.align(df2_cleaned, join='inner')
+                    df1_cleaned, df2_cleaned = df1_cleaned.align(
+                        df2_cleaned, join="inner"
+                    )
 
                     corr = np.corrcoef(df1_cleaned, df2_cleaned)[0, 1]
-                    ax.annotate(f'Corr: {corr:.2f}', xy=(0.5, 0.9), xycoords='axes fraction', ha='center', fontsize=10, color='red')
+                    ax.annotate(
+                        f"Corr: {corr:.2f}",
+                        xy=(0.5, 0.9),
+                        xycoords="axes fraction",
+                        ha="center",
+                        fontsize=10,
+                        color="red",
+                    )
 
         self.fig.tight_layout(pad=3.0)
         self.fig.subplots_adjust(hspace=0.3, wspace=0.3)
@@ -82,8 +100,14 @@ class PairplotView(QFrame):
         self.mainLayout.addWidget(self.mplCanvas)
         self.setLayout(self.mainLayout)
 
-    def setModel(self, model: RelationalSortFilterProxyModel, hue_names_col: int, sample_id_col: int, hue_id_col: int,
-                 value_col: int):
+    def setModel(
+        self,
+        model: RelationalSortFilterProxyModel,
+        hue_names_col: int,
+        sample_id_col: int,
+        hue_id_col: int,
+        value_col: int,
+    ):
         if self._model is not None:
             self._model.filterInvalidated.disconnect(self.updateVisualization)
         self._model = model
@@ -97,26 +121,37 @@ class PairplotView(QFrame):
     @Slot()
     def updateVisualization(self):
         filterModel = self._model.filterModel()
-        filter_labels = {filterModel.data(filterModel.index(rowIdx, self._model.filterValueColumn())):
-                             filterModel.data(filterModel.index(rowIdx, self._hue_names_col))
-                         for rowIdx in range(filterModel.rowCount())}
+        filter_labels = {
+            filterModel.data(
+                filterModel.index(rowIdx, self._model.filterValueColumn())
+            ): filterModel.data(filterModel.index(rowIdx, self._hue_names_col))
+            for rowIdx in range(filterModel.rowCount())
+        }
 
         data_dict = {"sample": [], "value": [], "label": []}
         for rowIdx in range(self._model.rowCount()):
-            data_dict["sample"].append(self._model.data(self._model.index(rowIdx, self._sample_id_col)))
-            data_dict["label"].append(filter_labels[self._model.data(self._model.index(rowIdx, self._hue_id_col))])
-            data_dict["value"].append(self._model.data(self._model.index(rowIdx, self._value_col)))
+            data_dict["sample"].append(
+                self._model.data(self._model.index(rowIdx, self._sample_id_col))
+            )
+            data_dict["label"].append(
+                filter_labels[
+                    self._model.data(self._model.index(rowIdx, self._hue_id_col))
+                ]
+            )
+            data_dict["value"].append(
+                self._model.data(self._model.index(rowIdx, self._value_col))
+            )
 
-        data_pd = pd.DataFrame.from_dict(data_dict).pivot(index="sample", columns="label", values="value")
+        data_pd = pd.DataFrame.from_dict(data_dict).pivot(
+            index="sample", columns="label", values="value"
+        )
 
         if len(data_pd) == 0:
             return
 
-        filtered_order = [col for col in filter_labels.values() if col in data_pd.columns]
+        filtered_order = [
+            col for col in filter_labels.values() if col in data_pd.columns
+        ]
         data_pd = data_pd[filtered_order]
 
         self.mplCanvas.update_plot(data_pd)
-
-
-
-

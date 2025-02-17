@@ -1,22 +1,29 @@
-from PySide6.QtWidgets import QMainWindow, QApplication, QTabWidget, QVBoxLayout
-from PySide6.QtCore import Slot
-from PySide6.QtWidgets import QWidget
+import os
 import sys
+
+import numpy as np
+import pandas as pd
+from button_page import ButtonWindow
 from input_output import IOWindow
 from jointgrid import jointgridWindow
 from link_table import LinkTabWindow
-import pandas as pd
-from button_page import ButtonWindow
-from bn_modeller.bayesian_nets.utils import find_zero_columns, check_non_select_table
-import numpy as np
-import os
+from PySide6.QtCore import Slot
+from PySide6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
+from bn_modeller.bayesian_nets.utils import check_non_select_table, find_zero_columns
 
 
 class App(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.title = 'Bayes model'
+        self.title = "Bayes model"
         self.left = 0
         self.top = 0
         self.width = 1500
@@ -40,14 +47,13 @@ class MyTableWidget(QWidget):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
 
-        self.pathIOFile = 'data/io_table.csv'
-        self.pathLinkFile = 'data/link_table.xlsx'
-        self.pathInputFile = 'data/data_2.csv'
+        self.pathIOFile = "data/io_table.csv"
+        self.pathLinkFile = "data/link_table.xlsx"
+        self.pathInputFile = "data/data_2.csv"
 
         self.input_feature = None
         self.output_feature = None
-        self.lenCheck = len(pd.read_csv(
-            self.pathInputFile, index_col=0).columns)
+        self.lenCheck = len(pd.read_csv(self.pathInputFile, index_col=0).columns)
         self.stateIO = self.initStateIO()
         self.stateLink = self.initStateLinkTable()
         self.linkTable = None
@@ -60,21 +66,23 @@ class MyTableWidget(QWidget):
         self.tabs.resize(300, 200)
 
         # Initialize Widgets for tabs
-        self.ioTab = IOWindow(self,
-                              input_df=self.getInitialDataframe(),
-                              state=self.getStateIO())
+        self.ioTab = IOWindow(
+            self, input_df=self.getInitialDataframe(), state=self.getStateIO()
+        )
         self.update()
 
         self.linkTab = LinkTabWindow(
-            self, input_df=self.getDataFrame(), state=self.stateLink)
+            self, input_df=self.getDataFrame(), state=self.stateLink
+        )
 
         self.buttonTab = ButtonWindow(self, pd.DataFrame(), pd.DataFrame(), 1)
-        self.buttonTab.acycle_button.clicked.connect(
-            self.updateLinkTableFromAcyclic)
+        self.buttonTab.acycle_button.clicked.connect(self.updateLinkTableFromAcyclic)
 
-        self.jointgridTab = jointgridWindow(self,
-                                            data=self.getInitialDataframe(),
-                                            predicted_data=self.buttonTab.getPrediction())
+        self.jointgridTab = jointgridWindow(
+            self,
+            data=self.getInitialDataframe(),
+            predicted_data=self.buttonTab.getPrediction(),
+        )
 
         self.tabs.resize(300, 200)
 
@@ -135,7 +143,10 @@ class MyTableWidget(QWidget):
         else:
             # the value of each tick is 2
             # in order for the calculations tab to be opened, you need to click at least 2 "in" and 1 "out" checkboxes
-            if sum([i[0].value for i in self.stateIO]) >= 4 and sum([i[1].value for i in self.stateIO]) >= 2:
+            if (
+                sum([i[0].value for i in self.stateIO]) >= 4
+                and sum([i[1].value for i in self.stateIO]) >= 2
+            ):
                 self.tabs.setTabEnabled(2, True)
             else:
                 self.tabs.setTabEnabled(2, False)
@@ -143,13 +154,14 @@ class MyTableWidget(QWidget):
     @Slot()
     def update(self):
         self.updateFeaturesList(
-            self.ioTab.getInputFeature(), self.ioTab.getOutputFeature())
+            self.ioTab.getInputFeature(), self.ioTab.getOutputFeature()
+        )
 
     def getInitialDataframe(self):
         data_input = pd.read_csv(self.pathInputFile, index_col=0)
         # add_quotes = lambda x: f'"{x}"'
         # data_input.columns = list(map(add_quotes, data_input.columns))
-        data_input = data_input.replace('[^0-9]+', np.nan, regex=True)
+        data_input = data_input.replace("[^0-9]+", np.nan, regex=True)
         data_input = data_input.astype(float)
         nan_columns = find_zero_columns(data_input)
         data_input = data_input.drop(nan_columns, axis=1)
@@ -190,16 +202,19 @@ class MyTableWidget(QWidget):
 
     def updateStateIO(self):
         self.stateIO = self.ioTab.getState()
-        if set(self.linkTab.getColumnNames()) != set(self.input_feature + self.output_feature):
+        if set(self.linkTab.getColumnNames()) != set(
+            self.input_feature + self.output_feature
+        ):
             self.linkTab.removeTableWidget()
             self.linkTab.updateInput(self.getDataFrame(), self.getStateLink())
         self.saveStateIO()
 
     def saveStateIO(self):
-        df = pd.DataFrame(columns=['input', 'output'],
-                          index=['Select ALL'] +
-                          list(self.getInitialDataframe().columns),
-                          data=self.stateIO)
+        df = pd.DataFrame(
+            columns=["input", "output"],
+            index=["Select ALL"] + list(self.getInitialDataframe().columns),
+            data=self.stateIO,
+        )
         df.to_csv(self.pathIOFile)
 
     def initStateIO(self):
@@ -232,7 +247,7 @@ class MyTableWidget(QWidget):
         self.buttonTab.updateMatrix()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     ex = App()
     sys.exit(app.exec())

@@ -1,7 +1,16 @@
+from PySide6.QtCore import (
+    QModelIndex,
+    QObject,
+    QPersistentModelIndex,
+    QSortFilterProxyModel,
+    Qt,
+    Signal,
+    Slot,
+)
 
-from PySide6.QtCore import Qt, QSortFilterProxyModel, QObject, QModelIndex, QPersistentModelIndex, Signal, Slot
-
-from bn_modeller.models.checkable_sort_filter_proxy_model import CheckableSortFilterProxyModel
+from bn_modeller.models.checkable_sort_filter_proxy_model import (
+    CheckableSortFilterProxyModel,
+)
 
 
 class RelationalSortFilterProxyModel(QSortFilterProxyModel):
@@ -19,7 +28,9 @@ class RelationalSortFilterProxyModel(QSortFilterProxyModel):
     def filterValueColumn(self) -> int:
         return self._filterValueColumn
 
-    def setFilterModel(self, filterModel: CheckableSortFilterProxyModel, filterValueColumn: int):
+    def setFilterModel(
+        self, filterModel: CheckableSortFilterProxyModel, filterValueColumn: int
+    ):
         if self._filterModel is not None:
             self._filterModel.dataChanged.disconnect(self.invalidateCache)
         self._filterModel = filterModel
@@ -27,18 +38,30 @@ class RelationalSortFilterProxyModel(QSortFilterProxyModel):
         self._filterModel.dataChanged.connect(self.invalidateCache)
         self.invalidateCache()
 
-    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex | QPersistentModelIndex):
-        index = self.sourceModel().index(source_row, self.filterKeyColumn(), source_parent)
+    def filterAcceptsRow(
+        self, source_row: int, source_parent: QModelIndex | QPersistentModelIndex
+    ):
+        index = self.sourceModel().index(
+            source_row, self.filterKeyColumn(), source_parent
+        )
         return self._filter_cache.get(index.data(), False)
 
     @Slot(QModelIndex, QModelIndex, "QList<int>")
-    def invalidateCache(self, topLeft: QModelIndex = None, bottomRight: QModelIndex = None, roles: list[int] = None):
+    def invalidateCache(
+        self,
+        topLeft: QModelIndex = None,
+        bottomRight: QModelIndex = None,
+        roles: list[int] = None,
+    ):
         self._filter_cache = {}
         for rowIdx in range(self._filterModel.rowCount()):
             k = self._filterModel.data(
-                self._filterModel.index(rowIdx, self._filterValueColumn))
-            v = self._filterModel.data(self._filterModel.index(
-                rowIdx, self._filterValueColumn), role=Qt.ItemDataRole.CheckStateRole)
-            self._filter_cache[k] = (v == Qt.CheckState.Checked)
+                self._filterModel.index(rowIdx, self._filterValueColumn)
+            )
+            v = self._filterModel.data(
+                self._filterModel.index(rowIdx, self._filterValueColumn),
+                role=Qt.ItemDataRole.CheckStateRole,
+            )
+            self._filter_cache[k] = v == Qt.CheckState.Checked
         self.invalidateFilter()
         self.filterInvalidated.emit()

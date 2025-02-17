@@ -1,10 +1,18 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QSplitter, QTabWidget, QWidget, QGridLayout, QLabel
+from PySide6.QtWidgets import (
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QSplitter,
+    QTabWidget,
+    QWidget,
+)
 
-from bn_modeller.models import (FilterPairTableSQLProxyModel,
-                                PairTableSQLProxyModel)
+from bn_modeller.models import FilterPairTableSQLProxyModel, PairTableSQLProxyModel
 from bn_modeller.models.feature_sqltable_model import (
-    FeatureSqlTableModel, PersistanceCheckableFeatureListProxyModel)
+    FeatureSqlTableModel,
+    PersistanceCheckableFeatureListProxyModel,
+)
 from bn_modeller.widgets import DependencySetupTableView, SelectableListView
 from bn_modeller.widgets.bn_visualization_view import BayesianNetView
 from bn_modeller.widgets.vertical_label import QVertivalLabel
@@ -31,7 +39,7 @@ class BayesianNetworkPageWidget(QWidget):
         # Dependency Table
         depTableWidget = QWidget()
         depTableLayout = QGridLayout()
-                
+
         self._depTable = DependencySetupTableView()
         depTableLayout.addWidget(self._depTable, 1, 1)
 
@@ -50,8 +58,7 @@ class BayesianNetworkPageWidget(QWidget):
         # Visualization Tab
         self.visualizationTabWidget = BayesianNetView()
 
-        self.tabWidget.addTab(self.visualizationTabWidget,
-                              self.tr("Visulization"))
+        self.tabWidget.addTab(self.visualizationTabWidget, self.tr("Visulization"))
 
         # Finalization
         self.mainLayout.addWidget(self.tabWidget)
@@ -62,21 +69,28 @@ class BayesianNetworkPageWidget(QWidget):
         # self._pairTableSQLProxyModel, вероятно, её нужно будет вытащить наружу
         # или сделать рассчеты дочерним объектом этой страницы
 
-        self._featureCheckableSortFilterProxyModel = PersistanceCheckableFeatureListProxyModel()
+        self._featureCheckableSortFilterProxyModel = (
+            PersistanceCheckableFeatureListProxyModel()
+        )
         self._featureCheckableSortFilterProxyModel.setSourceModel(
-            pairTableSQLProxyModel.getFeatureSqlTableModel())
+            pairTableSQLProxyModel.getFeatureSqlTableModel()
+        )
 
-        self.featureSelectorView.setModel(
-            self._featureCheckableSortFilterProxyModel)
+        self.featureSelectorView.setModel(self._featureCheckableSortFilterProxyModel)
         self.featureSelectorView.setModelColumn(
             pairTableSQLProxyModel.getFeatureSqlTableModel().fieldIndex(
-                pairTableSQLProxyModel.getFeatureSqlTableModel().column_name))
+                pairTableSQLProxyModel.getFeatureSqlTableModel().column_name
+            )
+        )
 
         self._pairTableSQLProxyModel = FilterPairTableSQLProxyModel()
         self._pairTableSQLProxyModel.setSourceModel(pairTableSQLProxyModel)
         self._pairTableSQLProxyModel.setFilterModel(
             self._featureCheckableSortFilterProxyModel,
-            pairTableSQLProxyModel.getFeatureSqlTableModel().fieldIndex(FeatureSqlTableModel.column_id))
+            pairTableSQLProxyModel.getFeatureSqlTableModel().fieldIndex(
+                FeatureSqlTableModel.column_id
+            ),
+        )
         self._depTable.setModel(self._pairTableSQLProxyModel)
 
         self.visualizationTabWidget.setModels(self._pairTableSQLProxyModel)

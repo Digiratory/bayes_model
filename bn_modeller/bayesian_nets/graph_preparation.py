@@ -8,7 +8,7 @@ def melt_matrix(matrix):
     :return:
     """
     matrix = matrix.stack().reset_index()
-    matrix.columns = ['row', 'column', 'value']
+    matrix.columns = ["row", "column", "value"]
     # result = matrix[~(matrix['row'] == matrix['column'])]
     result = matrix
     return result
@@ -21,15 +21,17 @@ class GraphPreparation:
         self.table_connection = table_connection
         self.code_columns = {num: i for i, num in enumerate(table_connection)}
 
-        weight_matrix = self.corr_matrix * self.table_connection.map(lambda x: bool(x.value))
+        weight_matrix = self.corr_matrix * self.table_connection.map(
+            lambda x: bool(x.value)
+        )
 
         weight_matrix = weight_matrix.rename(self.code_columns, axis=0)
         weight_matrix = weight_matrix.rename(self.code_columns, axis=1)
 
         # подготовить матрицу к таблице
         self.N = melt_matrix(weight_matrix)
-        self.N = self.N[(abs(self.N['value']) > threshold)]
-        self.N[['row', 'column']] = self.N[['row', 'column']].astype(int)
+        self.N = self.N[(abs(self.N["value"]) > threshold)]
+        self.N[["row", "column"]] = self.N[["row", "column"]].astype(int)
 
         # Создание взвешенного графа
         self.G = nx.DiGraph()
@@ -49,7 +51,7 @@ class GraphPreparation:
             min_val = 10
 
             for i in cycle_list:
-                weight = self.G.get_edge_data(*i)['weight']
+                weight = self.G.get_edge_data(*i)["weight"]
                 if weight < min_val:
                     min_val = weight
                     min_nodes = i

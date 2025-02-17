@@ -1,7 +1,7 @@
-from scipy.special import erfcinv
-import statsmodels.api as sm
-import pandas as pd
 import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from scipy.special import erfcinv
 
 F = -1 / (2 ** (1 / 2) * erfcinv(3 / 2))
 
@@ -11,6 +11,7 @@ def check_non_select_table(df):
     for i in df.columns:
         k.append((df[i] == 0).all())
     return np.all(k)
+
 
 def find_zero_columns(df):
     """
@@ -40,7 +41,9 @@ def get_index_outliers(df) -> set:
         down = m - res * 3
         up = m + res * 3
 
-        outliers_index.extend(list(df.loc[(df[column] >= up) | (df[column] <= down)].index))
+        outliers_index.extend(
+            list(df.loc[(df[column] >= up) | (df[column] <= down)].index)
+        )
 
     return set(outliers_index)
 
@@ -72,4 +75,3 @@ def get_outliers_cooks(df):
     cooks_outliers = cooks_df[cooks_df["influence"] > cooks_threshold]
 
     return set(cooks_outliers.index)
-
