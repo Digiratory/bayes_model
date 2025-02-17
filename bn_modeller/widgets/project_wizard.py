@@ -238,16 +238,21 @@ class ProjectLoadWizard(QWizard):
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)
         self.sampleSqlTableModel = SampleSqlTableModel(db=self._db)
 
-    def done(self, result):
-        if os.path.exists(self.source_page.path_edit.file_path):
-            # TODO: ask user to delete the file
-            os.remove(self.source_page.path_edit.file_path)
+    def connectDb(self):
         self._db = QSqlDatabase.addDatabase("QSQLITE")
         self._db.setDatabaseName(self.source_page.path_edit.file_path)
         self._db.open()
+
+    def done(self, result):
+        
         if self.source_page.radioOpen.isChecked():
+            self.connectDb()
             self.openDb()
         else:
+            if os.path.exists(self.source_page.path_edit.file_path):
+                # TODO: ask user to delete the file
+                os.remove(self.source_page.path_edit.file_path)
+            self.connectDb()
             self.createDb()
 
         return super().done(result)
