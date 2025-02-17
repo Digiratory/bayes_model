@@ -248,10 +248,21 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         values = []
         while (query.next()):
             # sampleTdValue: int = query.value(sampleTdValueFieldNo)
-            firstFeatureValue: float = float(query.value(
-                firstFeatureFieldNo) if query.value(firstFeatureFieldNo) else np.nan)
-            secondFeatureValue: float = float(query.value(
-                secondFeatureFieldNo) if query.value(secondFeatureFieldNo) else np.nan)
+            firstFeatureValue =  query.value(firstFeatureFieldNo)
+            if isinstance(firstFeatureValue, str):
+                firstFeatureValue = float(firstFeatureValue) if len(firstFeatureValue)>0 else np.nan
+            elif isinstance(firstFeatureValue, float):
+                firstFeatureValue = float(firstFeatureValue)
+            else:
+                raise RuntimeError(f"Unexpected type for firstFeatureFieldNo({firstFeatureFieldNo}): {type(firstFeatureValue)}")
+            
+            secondFeatureValue =  query.value(secondFeatureFieldNo)
+            if isinstance(secondFeatureValue, str):
+                secondFeatureValue = float(secondFeatureValue) if len(secondFeatureValue)>0 else np.nan
+            elif isinstance(secondFeatureValue, float):
+                secondFeatureValue = float(secondFeatureValue)
+            else:
+                raise RuntimeError(f"Unexpected type for secondFeatureFieldNo({secondFeatureFieldNo}): {type(secondFeatureValue)}")
             values.append([firstFeatureValue, secondFeatureValue])
         return np.array(values).T
 
