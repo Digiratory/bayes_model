@@ -1,6 +1,6 @@
 import os
 
-from PySide6.QtWidgets import QWidget, QStackedWidget, QStyle, QTabWidget
+from PySide6.QtWidgets import QWidget, QStackedWidget, QStyle, QTabWidget, QMenuBar
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QGuiApplication, QAction
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
@@ -13,7 +13,7 @@ from bn_modeller.models import DependencyManyToManySqlTableModel, PairTableSQLPr
 
 from bn_modeller.widgets.page.database_page import DatabasePageWidget
 from bn_modeller.widgets.page.bayesian_network_page import BayesianNetworkPageWidget
-
+from bn_modeller.dialogs import AboutDialog
 
 class MainWindow(BaseWindow):
     go_back = Signal()
@@ -74,6 +74,26 @@ class MainWindow(BaseWindow):
         # add_data_action.setStatusTip(self.tr('Add Data'))
         # add_data_action.triggered.connect(self.add_data_clicked)
         # self.getMainToolBar().addAction(add_data_action)
+
+        # Create a menu bar
+        self._menu_bar = QMenuBar()
+        self.setMenuBar(self._menu_bar)
+
+        # Create the "Help" menu
+        self._help_menu = self._menu_bar.addMenu(self.tr("Help"))
+
+        # Create an action for the "About" item in the "Help" menu
+        about_action = QAction(self.style().standardIcon(
+            QStyle.StandardPixmap.SP_MessageBoxInformation), '&About', self)
+        about_action.setStatusTip(self.tr('Show About Dialog'))
+        about_action.triggered.connect(self.show_about_dialog)
+
+        # Add the action to the "Help" menu
+        self._help_menu.addAction(about_action)
+
+    def show_about_dialog(self):
+        dialog = AboutDialog()
+        dialog.exec()
 
     def _save_to_history(self, previousWidget: QWidget):
         self._viewsHistory.append(previousWidget)
