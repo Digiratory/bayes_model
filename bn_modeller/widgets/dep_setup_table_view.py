@@ -1,13 +1,21 @@
-from PySide6.QtCore import (Property, QModelIndex, QObject, QPoint, QRect,
-                            QSize, Qt, Signal, Slot)
+from PySide6.QtCore import (
+    Property,
+    QModelIndex,
+    QObject,
+    QPoint,
+    QRect,
+    QSize,
+    Qt,
+    Signal,
+    Slot,
+)
 from PySide6.QtGui import QAction, QFont, QFontMetrics, QPainter
-from PySide6.QtWidgets import (QHeaderView, QMenu, QStyle, QStyleOptionHeader,
-                               QTableView)
+from PySide6.QtWidgets import QHeaderView, QMenu, QStyle, QStyleOptionHeader, QTableView
 
 
 class RotatableHeaderView(QHeaderView):
-    """Draft for Rotated header. It does not work.
-    """
+    """Draft for Rotated header. It does not work."""
+
     rotate_angle_changed = Signal()
 
     def __init__(self, orientation: Qt.Orientation, parent: QObject = None):
@@ -32,13 +40,16 @@ class RotatableHeaderView(QHeaderView):
         self.initStyleOption(opt)
 
         state = QStyle.StateFlag.State_None
-        if (self.isEnabled()):
+        if self.isEnabled():
             state |= QStyle.StateFlag.State_Enabled
-        if (self.window().isActiveWindow()):
+        if self.window().isActiveWindow():
             state |= QStyle.StateFlag.State_Active
-        if (self.isSortIndicatorShown() and self.sortIndicatorSection() == index):
-            opt.sortIndicator = QStyleOptionHeader.SortIndicator.SortDown if self.sortIndicatorOrder(
-            ) == Qt.SortOrder.AscendingOrder else QStyleOptionHeader.SortIndicator.SortUp
+        if self.isSortIndicatorShown() and self.sortIndicatorSection() == index:
+            opt.sortIndicator = (
+                QStyleOptionHeader.SortIndicator.SortDown
+                if self.sortIndicatorOrder() == Qt.SortOrder.AscendingOrder
+                else QStyleOptionHeader.SortIndicator.SortUp
+            )
 
         # setup the style options structure
         opt.rect = rect
@@ -47,7 +58,8 @@ class RotatableHeaderView(QHeaderView):
 
         opt.iconAlignment = Qt.AlignmentFlag.AlignVCenter
         opt.text = self.model().headerData(
-            index, self.orientation(), Qt.ItemDataRole.DisplayRole)
+            index, self.orientation(), Qt.ItemDataRole.DisplayRole
+        )
 
         # @// the section position
         visual = self.visualIndex(index)
@@ -84,16 +96,25 @@ class RotatableHeaderView(QHeaderView):
 
     def _get_text_width(self):
         try:
-            return max([self._metrics.horizontalAdvance(self._get_data(i))
-                        for i in range(0, self.model().columnCount())])
+            return max(
+                [
+                    self._metrics.horizontalAdvance(self._get_data(i))
+                    for i in range(0, self.model().columnCount())
+                ]
+            )
         except:
             return 0
 
     # def _get_data(self, index):
     #     return self.model().headerData(index, self.orientation())
 
-    rotateAngle = Property(str, fget=get_rotate_angle, fset=set_rotate_angle, notify=rotate_angle_changed,
-                           doc="Current rotation angle")
+    rotateAngle = Property(
+        str,
+        fget=get_rotate_angle,
+        fset=set_rotate_angle,
+        notify=rotate_angle_changed,
+        doc="Current rotation angle",
+    )
 
 
 class DependencySetupTableView(QTableView):
@@ -107,13 +128,17 @@ class DependencySetupTableView(QTableView):
     def initContextMenu(self):
 
         self.horizontalHeader().setContextMenuPolicy(
-            Qt.ContextMenuPolicy.CustomContextMenu)
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
         self.horizontalHeader().customContextMenuRequested.connect(
-            self.showHorizontalHeaderContextMenu)
+            self.showHorizontalHeaderContextMenu
+        )
         self.verticalHeader().setContextMenuPolicy(
-            Qt.ContextMenuPolicy.CustomContextMenu)
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
         self.verticalHeader().customContextMenuRequested.connect(
-            self.showVerticalHeaderContextMenu)
+            self.showVerticalHeaderContextMenu
+        )
 
         self.headerMenu: QMenu = QMenu(self)
         selectAllAction = QAction(self.tr("Select All"), self)
@@ -131,14 +156,12 @@ class DependencySetupTableView(QTableView):
     @Slot(QPoint)
     def showHorizontalHeaderContextMenu(self, pos: QPoint):
         index: QModelIndex = self.indexAt(pos)
-        self.headerMenu.popup(
-            self.horizontalHeader().viewport().mapToGlobal(pos))
+        self.headerMenu.popup(self.horizontalHeader().viewport().mapToGlobal(pos))
 
     @Slot(QPoint)
     def showVerticalHeaderContextMenu(self, pos: QPoint):
         index: QModelIndex = self.indexAt(pos)
-        self.headerMenu.popup(
-            self.verticalHeader().viewport().mapToGlobal(pos))
+        self.headerMenu.popup(self.verticalHeader().viewport().mapToGlobal(pos))
 
     @Slot()
     def setCheckStateAll(self):
@@ -154,37 +177,67 @@ class DependencySetupTableView(QTableView):
     def invertCheckStateAll(self):
         source = self.sender()
         if isinstance(source, QAction):
-            if self.horizontalHeader().geometry().contains(self.mapFromGlobal(self.headerMenu.pos())):
+            if (
+                self.horizontalHeader()
+                .geometry()
+                .contains(self.mapFromGlobal(self.headerMenu.pos()))
+            ):
                 index: QModelIndex = self.indexAt(
-                    self.horizontalHeader().mapFromGlobal(self.headerMenu.pos()))
+                    self.horizontalHeader().mapFromGlobal(self.headerMenu.pos())
+                )
                 print(index)
                 for r in range(self.model().rowCount()):
                     i = index.siblingAtRow(r)
-                    old_value = i.data(
-                        Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
-                    self.model().setData(i, not old_value,
-                                         role=Qt.ItemDataRole.CheckStateRole)
-            elif self.verticalHeader().geometry().contains(self.mapFromGlobal(self.headerMenu.pos())):
+                    old_value = (
+                        i.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
+                    )
+                    self.model().setData(
+                        i, not old_value, role=Qt.ItemDataRole.CheckStateRole
+                    )
+            elif (
+                self.verticalHeader()
+                .geometry()
+                .contains(self.mapFromGlobal(self.headerMenu.pos()))
+            ):
                 index: QModelIndex = self.indexAt(
-                    self.verticalHeader().mapFromGlobal(self.headerMenu.pos()))
+                    self.verticalHeader().mapFromGlobal(self.headerMenu.pos())
+                )
                 for c in range(self.model().columnCount()):
                     i = index.siblingAtColumn(c)
-                    old_value = i.data(
-                        Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
-                    self.model().setData(i, not old_value,
-                                         role=Qt.ItemDataRole.CheckStateRole)
+                    old_value = (
+                        i.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
+                    )
+                    self.model().setData(
+                        i, not old_value, role=Qt.ItemDataRole.CheckStateRole
+                    )
 
     def _setCheckStateBySender(self, source, checkState: bool):
         if isinstance(source, QAction):
-            if self.horizontalHeader().geometry().contains(self.mapFromGlobal(self.headerMenu.pos())):
+            if (
+                self.horizontalHeader()
+                .geometry()
+                .contains(self.mapFromGlobal(self.headerMenu.pos()))
+            ):
                 index: QModelIndex = self.indexAt(
-                    self.horizontalHeader().mapFromGlobal(self.headerMenu.pos()))
+                    self.horizontalHeader().mapFromGlobal(self.headerMenu.pos())
+                )
                 for r in range(self.model().rowCount()):
-                    self.model().setData(index.siblingAtRow(r), checkState,
-                                         role=Qt.ItemDataRole.CheckStateRole)
-            elif self.verticalHeader().geometry().contains(self.mapFromGlobal(self.headerMenu.pos())):
+                    self.model().setData(
+                        index.siblingAtRow(r),
+                        checkState,
+                        role=Qt.ItemDataRole.CheckStateRole,
+                    )
+            elif (
+                self.verticalHeader()
+                .geometry()
+                .contains(self.mapFromGlobal(self.headerMenu.pos()))
+            ):
                 index: QModelIndex = self.indexAt(
-                    self.verticalHeader().mapFromGlobal(self.headerMenu.pos()))
+                    self.verticalHeader().mapFromGlobal(self.headerMenu.pos())
+                )
                 for c in range(self.model().columnCount()):
-                    self.model().setData(index.siblingAtColumn(c), checkState,
-                                         role=Qt.ItemDataRole.CheckStateRole)
+                    self.model().setData(
+                        index.siblingAtColumn(c),
+                        checkState,
+                        role=Qt.ItemDataRole.CheckStateRole,
+                    )

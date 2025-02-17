@@ -6,10 +6,8 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib.backends.backend_qt5agg import \
-    FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import \
-    NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -21,7 +19,8 @@ from bn_modeller.bayesian_nets.utils import get_outliers_cooks
 
 def rescale_feature(input_vector, lower, upper):
     xmin, xmax = np.min(input_vector), np.max(
-        input_vector)  # get max and min from input array
+        input_vector
+    )  # get max and min from input array
 
     input_vector = [(x - xmin) / (xmax - xmin) for x in input_vector]
 
@@ -36,14 +35,18 @@ def test(y_pred, y_true):
         # k = y_true.iloc[:, num].dropna()
         # upper, lower = k.max(), k.min()
         df_result = pd.DataFrame(
-            data={'pred': y_pred[:, num], 'true': y_true.iloc[:, num]}, index=y_true.index)
+            data={"pred": y_pred[:, num], "true": y_true.iloc[:, num]},
+            index=y_true.index,
+        )
         result_list[column_name] = df_result
     return result_list
 
 
 def find_outliers(vector: pd.Series):
-    outliers_index = vector.loc[(vector > vector.std()*3 + vector.mean()) |
-                                (vector < vector.mean() - vector.std()*3)].index
+    outliers_index = vector.loc[
+        (vector > vector.std() * 3 + vector.mean())
+        | (vector < vector.mean() - vector.std() * 3)
+    ].index
     return list(outliers_index)
 
 
@@ -114,9 +117,9 @@ class SubplotWindow(QtWidgets.QMainWindow):
 
     def initFigure(self, df, name):
         # plt.rcParams.update({'figure.autolayout': True})
-        name = '\n'.join(wrap(name, 30))
-        fig = plt.figure(layout='tight')
-        out = find_outliers(df['true']-df['pred'])
+        name = "\n".join(wrap(name, 30))
+        fig = plt.figure(layout="tight")
+        out = find_outliers(df["true"] - df["pred"])
         df_drop_out = df[~df.index.isin(out)]
 
         df_drop_out = df_drop_out.dropna()
@@ -124,37 +127,35 @@ class SubplotWindow(QtWidgets.QMainWindow):
         # sns.regplot(x=df_drop_out['true'], y=df_drop_out['pred'], color='tab:blue',
         #             scatter=False, line_kws={'linewidth': 1})
 
-        xseq = np.linspace(df['true'].min()-5, df['true'].max()+5, num=100)
-        plt.scatter(df_drop_out['true'], df_drop_out['pred'])
+        xseq = np.linspace(df["true"].min() - 5, df["true"].max() + 5, num=100)
+        plt.scatter(df_drop_out["true"], df_drop_out["pred"])
         if len(df_drop_out) > 1:
-            b, a = np.polyfit(df_drop_out['true'], df_drop_out['pred'], deg=1)
+            b, a = np.polyfit(df_drop_out["true"], df_drop_out["pred"], deg=1)
             plt.plot(xseq, a + b * xseq, lw=1)
 
         # ci = 1.96 * np.std(a + b * xseq) / np.sqrt(len(xseq))
         # plt.fill_between(xseq, (a + b * xseq - ci), (a + b * xseq + ci), color='b', alpha=.1)
 
-        r2 = df['true'].corr(df['pred'])
-        r2_drop_out = df_drop_out['true'].corr(df_drop_out['pred'])
+        r2 = df["true"].corr(df["pred"])
+        r2_drop_out = df_drop_out["true"].corr(df_drop_out["pred"])
 
         if len(out):
             k = df.loc[out]
             # add linear regression
-            plt.scatter(k['true'], k['pred'], color='r')
+            plt.scatter(k["true"], k["pred"], color="r")
 
-        plt.xlabel(f'Observed, {name}')
-        plt.ylabel(f'Predicted, {name}')
+        plt.xlabel(f"Observed, {name}")
+        plt.ylabel(f"Predicted, {name}")
         plt.grid()
-        plt.title(fr'$R$ {round(r2, 3)}$\rightarrow${round(r2_drop_out, 3)}')
+        plt.title(rf"$R$ {round(r2, 3)}$\rightarrow${round(r2_drop_out, 3)}")
         return fig
 
 
 class SubplotGraph(SubplotWindow):
     def initFigure(self, G, name):
         fig = plt.figure(figsize=(20, 20))
-        elarge = [(u, v)
-                  for (u, v, d) in G.edges(data=True) if d["weight"] > 0.5]
-        esmall = [(u, v)
-                  for (u, v, d) in G.edges(data=True) if d["weight"] <= 0.5]
+        elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] > 0.5]
+        esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] <= 0.5]
 
         # pos = nx.spring_layout(G, seed=10, iterations=200)  # positions for all nodes - seed for reproducibility
         # pos = nx.fruchterman_reingold_layout(G)  # positions for all nodes - seed for reproducibility
@@ -163,7 +164,7 @@ class SubplotGraph(SubplotWindow):
         # pos = nx.multipartite_layout(G)
         # pos = nx.planar_layout(G)
         # pos = nx.drawing.nx_agraph.graphviz_layout(G)
-        pos = nx.drawing.nx_agraph.graphviz_layout(G, prog='dot')
+        pos = nx.drawing.nx_agraph.graphviz_layout(G, prog="dot")
 
         # nodes
         nx.draw_networkx_nodes(G, pos, node_size=5)
@@ -176,7 +177,8 @@ class SubplotGraph(SubplotWindow):
 
         # node labels
         nx.draw_networkx_labels(
-            G, pos, font_size=8, font_family="sans-serif", verticalalignment='bottom')
+            G, pos, font_size=8, font_family="sans-serif", verticalalignment="bottom"
+        )
 
         # edge weight labels
         edge_labels = nx.get_edge_attributes(G, "weight")
@@ -192,7 +194,7 @@ class SubplotGraph(SubplotWindow):
 
 class PlotWindows(QtWidgets.QMainWindow):
 
-    def __init__(self, parent=None, data=None, title='Matrix'):
+    def __init__(self, parent=None, data=None, title="Matrix"):
         super(PlotWindows, self).__init__(parent)
 
         self.setWindowTitle(title)
@@ -207,8 +209,9 @@ class PlotWindows(QtWidgets.QMainWindow):
 
         self.canvas = FigureCanvas(self.fig)
 
-        self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                                  QtWidgets.QSizePolicy.Expanding)
+        self.canvas.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         self.canvas.updateGeometry()
         # self.label = QtWidgets.QLabel("A plot:")
         toolbar = NavigationToolbar(self.canvas, self)
@@ -227,21 +230,23 @@ class PlotWindows(QtWidgets.QMainWindow):
         # discards the old graph
         ax.clear()
 
-        column_name = ['\n'.join(wrap(text, 30))
-                       for text in self.data.columns.values]
+        column_name = ["\n".join(wrap(text, 30)) for text in self.data.columns.values]
         print(self.data)
-        im = sns.heatmap(self.data,
-                         xticklabels=column_name,
-                         yticklabels=column_name,
-                         annot=True,
-                         ax=ax, annot_kws={"size": 8})
+        im = sns.heatmap(
+            self.data,
+            xticklabels=column_name,
+            yticklabels=column_name,
+            annot=True,
+            ax=ax,
+            annot_kws={"size": 8},
+        )
 
-        ax.set_xticklabels(column_name, rotation=45, ha='right', fontsize=8)
-        ax.set_yticklabels(column_name, rotation=0, ha='right', fontsize=8)
+        ax.set_xticklabels(column_name, rotation=45, ha="right", fontsize=8)
+        ax.set_yticklabels(column_name, rotation=0, ha="right", fontsize=8)
 
 
 class PlotInferenceResult(QtWidgets.QMainWindow):
-    def __init__(self, parent=None, data=None, name=None, title='Matrix'):
+    def __init__(self, parent=None, data=None, name=None, title="Matrix"):
         super(PlotInferenceResult, self).__init__(parent)
 
         self.setWindowTitle(title)
@@ -256,8 +261,9 @@ class PlotInferenceResult(QtWidgets.QMainWindow):
 
         self.canvas = FigureCanvas(self.fig)
 
-        self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                                  QtWidgets.QSizePolicy.Expanding)
+        self.canvas.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         self.canvas.updateGeometry()
         # self.label = QtWidgets.QLabel("A plot:")
         toolbar = NavigationToolbar(self.canvas, self)
@@ -273,7 +279,7 @@ class PlotInferenceResult(QtWidgets.QMainWindow):
 
     def initFigure(self, df, name):
         # plt.rcParams.update({'figure.autolayout': True})
-        name = '\n'.join(wrap(name, 30))
+        name = "\n".join(wrap(name, 30))
         ax = self.fig.add_subplot(111)
         ax.grid()
         # out = find_outliers(df['true']-df['pred'])
@@ -287,28 +293,27 @@ class PlotInferenceResult(QtWidgets.QMainWindow):
         # sns.regplot(x=df_drop_out['true'], y=df_drop_out['pred'], color='tab:blue',
         #             scatter=False, line_kws={'linewidth': 1})
 
-        xseq = np.linspace(df['pred'].min()-5, df['pred'].max()+5, num=100)
-        ax.scatter(df_drop_out['pred'], df_drop_out['true'])
+        xseq = np.linspace(df["pred"].min() - 5, df["pred"].max() + 5, num=100)
+        ax.scatter(df_drop_out["pred"], df_drop_out["true"])
         if len(df_drop_out) > 1:
-            b, a = np.polyfit(df_drop_out['pred'], df_drop_out['true'], deg=1)
+            b, a = np.polyfit(df_drop_out["pred"], df_drop_out["true"], deg=1)
             ax.plot(xseq, a + b * xseq, lw=1)
 
         # ci = 1.96 * np.std(a + b * xseq) / np.sqrt(len(xseq))
         # plt.fill_between(xseq, (a + b * xseq - ci), (a + b * xseq + ci), color='b', alpha=.1)
 
-        r2 = df['true'].corr(df['pred'])
-        r2_drop_out = df_drop_out['true'].corr(df_drop_out['pred'])
+        r2 = df["true"].corr(df["pred"])
+        r2_drop_out = df_drop_out["true"].corr(df_drop_out["pred"])
 
         if len(out):
             k = df.loc[out]
             # add linear regression
-            ax.scatter(k['pred'], k['true'], color='r')
+            ax.scatter(k["pred"], k["true"], color="r")
 
-        ax.set_xlabel(f'Predicted, {name}')
-        ax.set_ylabel(f'Observed, {name}')
+        ax.set_xlabel(f"Predicted, {name}")
+        ax.set_ylabel(f"Observed, {name}")
 
-        ax.set_title(
-            fr'$R$ {round(r2, 3)}$\rightarrow${round(r2_drop_out, 3)}')
+        ax.set_title(rf"$R$ {round(r2, 3)}$\rightarrow${round(r2_drop_out, 3)}")
         # return fig
 
 
@@ -319,29 +324,30 @@ class ButtonWindow(QtWidgets.QWidget):
         self.setFixedSize(400, 500)
         self.move(0, 0)
 
-        self.corr_button = QtWidgets.QPushButton(
-            'Full Spearman\'s Correlation', self)
+        self.corr_button = QtWidgets.QPushButton("Full Spearman's Correlation", self)
         self.corr_button.clicked.connect(self.on_pushButton_clicked)
 
         self.part_corr_button = QtWidgets.QPushButton(
-            'Partial Spearman\'s Correlation', self)
+            "Partial Spearman's Correlation", self
+        )
         self.part_corr_button.clicked.connect(self.on_part_corr_button_clicked)
 
-        self.acycle_button = QtWidgets.QPushButton(
-            'Searching acyclic graph', self)
+        self.acycle_button = QtWidgets.QPushButton("Searching acyclic graph", self)
         self.acycle_button.clicked.connect(self.on_acycle_graph)
 
         self.rankCorrButton = QtWidgets.QPushButton(
-            'Reconstruction of the correlation (Banshee)', self)
+            "Reconstruction of the correlation (Banshee)", self
+        )
         self.rankCorrButton.clicked.connect(self.onRankCorrBanshee)
         self.rankCorrButton.setEnabled(False)
 
         self.calcInferenceButton = QtWidgets.QPushButton(
-            'Calculating Bayesian model inference (Banshee)', self)
+            "Calculating Bayesian model inference (Banshee)", self
+        )
         self.calcInferenceButton.clicked.connect(self.onInferenceButton)
         self.calcInferenceButton.setEnabled(False)
 
-        self.thresholdEdit = QtWidgets.QLineEdit(self, placeholderText='0.0')
+        self.thresholdEdit = QtWidgets.QLineEdit(self, placeholderText="0.0")
         validator = QtGui.QDoubleValidator()  # Создание валидатора.
         validator.setRange(0.0, 1.0, 2)  # Установка диапазона значений.
         validator.setLocale(QtCore.QLocale("en_US"))
@@ -371,7 +377,7 @@ class ButtonWindow(QtWidgets.QWidget):
         self.linkTable = linkTable
         self.len_input = len_input
 
-        self.y_true = self.input_df.iloc[:, self.len_input:]
+        self.y_true = self.input_df.iloc[:, self.len_input :]
 
         # self.setGeometry(300, 300, 350, 300)
 
@@ -393,7 +399,7 @@ class ButtonWindow(QtWidgets.QWidget):
     @QtCore.Slot()
     def on_part_corr_button_clicked(self):
         if len(self.partCorrMatrix.dropna()) < 1:
-            self.error_dialog.showMessage('Error of the correlation matrix')
+            self.error_dialog.showMessage("Error of the correlation matrix")
         else:
             dialog = PlotWindows(self, self.partCorrMatrix)
             self.dialogs.append(dialog)
@@ -401,7 +407,8 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def on_acycle_graph(self):
         self.graph = GraphPreparation(
-            self.corr_matrix, self.linkTable, self.thresholdValue)
+            self.corr_matrix, self.linkTable, self.thresholdValue
+        )
 
         # удалить циклы в графе
         G_before = copy.deepcopy(self.graph.renaming())
@@ -409,12 +416,12 @@ class ButtonWindow(QtWidgets.QWidget):
         self.graph.drop_cycle()
         self.changeLinkTable()
 
-        d = {'Before': G_before, 'After': self.graph.renaming()}
+        d = {"Before": G_before, "After": self.graph.renaming()}
         # import pickle
         # pickle.dump(self.graph, open('graph.txt', 'w'))
         # print(self.graph.G.nodes())
 
-        nx.write_adjlist(self.graph.renaming(), 'graph.txt')
+        nx.write_adjlist(self.graph.renaming(), "graph.txt")
         dialog = SubplotGraph(data=d)
         self.dialogs.append(dialog)
         dialog.show()
@@ -422,17 +429,20 @@ class ButtonWindow(QtWidgets.QWidget):
 
     def onRankCorrBanshee(self):
         self.banshee = BansheeCalc(
-            self.graph.getNodeList(), self.graph.getEdgeList(), self.input_df)
+            self.graph.getNodeList(), self.graph.getEdgeList(), self.input_df
+        )
         self.R = self.banshee.getRankCorr()
         if self.R is None:
             self.error_dialog.showMessage(
-                'Error in the reconstruction of the correlation matrix')
+                "Error in the reconstruction of the correlation matrix"
+            )
         else:
             self.banshee.saveGraph()
 
         column_name = self.input_df.columns
-        dialog = PlotWindows(self, data=pd.DataFrame(
-            self.R, columns=column_name, index=column_name))
+        dialog = PlotWindows(
+            self, data=pd.DataFrame(self.R, columns=column_name, index=column_name)
+        )
         self.dialogs.append(dialog)
         dialog.show()
         plt.tight_layout()
@@ -441,27 +451,28 @@ class ButtonWindow(QtWidgets.QWidget):
     def onInferenceButton(self):
         y_predict = self.banshee.getInference(self.len_input)
 
-        self.columnsForPredict = self.input_df.columns[self.len_input:]
-        self.columnsFeatures = self.input_df.columns[:self.len_input]
+        self.columnsForPredict = self.input_df.columns[self.len_input :]
+        self.columnsFeatures = self.input_df.columns[: self.len_input]
 
-        pred_column = ['Predicted ' + i for i in self.columnsForPredict]
+        pred_column = ["Predicted " + i for i in self.columnsForPredict]
         self.df_predicted = pd.DataFrame(
-            y_predict, index=self.input_df.index, columns=pred_column)
+            y_predict, index=self.input_df.index, columns=pred_column
+        )
         df = self.input_df.join(self.df_predicted)
 
         df_tmp = df.copy(deep=True)
         df_tmp = df_tmp.dropna(subset=self.columnsFeatures)
 
         for col_name in self.columnsForPredict:
-            lower, upper = self.input_df[col_name].min(
-            ), self.input_df[col_name].max()
-            df_tmp.loc[:, 'Predicted ' + col_name] = rescale_feature(
-                df_tmp.loc[:, 'Predicted ' + col_name], lower, upper)
+            lower, upper = self.input_df[col_name].min(), self.input_df[col_name].max()
+            df_tmp.loc[:, "Predicted " + col_name] = rescale_feature(
+                df_tmp.loc[:, "Predicted " + col_name], lower, upper
+            )
 
         df = self.input_df.join(df_tmp[pred_column])
         self.df_predicted = df[pred_column]
 
-        df.to_csv('data/result.csv')
+        df.to_csv("data/result.csv")
 
         df = df.dropna(subset=self.columnsFeatures)
 
@@ -487,14 +498,15 @@ class ButtonWindow(QtWidgets.QWidget):
     def updateMatrix(self):
         self.corr_matrix = CorrMatrix(self.input_df).getCorrMatrix()
         # self.partCorrMatrix = PartCorrMatrix(self.input_df).getCorrMatrix()
-        self.y_true = self.input_df.iloc[:, self.len_input:]
+        self.y_true = self.input_df.iloc[:, self.len_input :]
 
     def getThresholdVal(self):
         return self.thresholdValue
 
     def changeLinkTable(self):
         newLinkTab = pd.DataFrame(
-            columns=self.input_df.columns, index=self.input_df.columns)
+            columns=self.input_df.columns, index=self.input_df.columns
+        )
 
         for i in self.graph.renaming().edges(data=True):
             newLinkTab.loc[i[0], i[1]] = 1

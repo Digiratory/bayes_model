@@ -1,5 +1,10 @@
-
-from PySide6.QtCore import Qt, QSortFilterProxyModel, QObject, QModelIndex, QPersistentModelIndex
+from PySide6.QtCore import (
+    QModelIndex,
+    QObject,
+    QPersistentModelIndex,
+    QSortFilterProxyModel,
+    Qt,
+)
 
 
 class CheckableSortFilterProxyModel(QSortFilterProxyModel):
@@ -9,15 +14,13 @@ class CheckableSortFilterProxyModel(QSortFilterProxyModel):
 
     def mapFromSource(self, sourceIndex: QModelIndex | QPersistentModelIndex):
         if sourceIndex.isValid():
-            return self.createIndex(sourceIndex.row(),
-                                    sourceIndex.column())
+            return self.createIndex(sourceIndex.row(), sourceIndex.column())
         else:
             return super().mapFromSource(sourceIndex)
 
     def mapToSource(self, proxyIndex: QModelIndex | QPersistentModelIndex):
         if proxyIndex.isValid():
-            return self.createIndex(proxyIndex.row(),
-                                    proxyIndex.column())
+            return self.createIndex(proxyIndex.row(), proxyIndex.column())
         else:
             return super().mapToSource(proxyIndex)
 
@@ -26,7 +29,11 @@ class CheckableSortFilterProxyModel(QSortFilterProxyModel):
             return None
 
         if role == Qt.ItemDataRole.CheckStateRole:
-            return Qt.CheckState.Checked if self.booleanSet.get(index.row(), False) else Qt.CheckState.Unchecked
+            return (
+                Qt.CheckState.Checked
+                if self.booleanSet.get(index.row(), False)
+                else Qt.CheckState.Unchecked
+            )
         elif role == Qt.ItemDataRole.DisplayRole:
             i = self.mapToSource(index)
             r = super().data(self.mapToSource(index), role)
@@ -35,7 +42,9 @@ class CheckableSortFilterProxyModel(QSortFilterProxyModel):
             super().data(self.mapToSource(index), role)
         return super().data(index, role)
 
-    def setData(self, index: QModelIndex, value, role: int = Qt.ItemDataRole.DisplayRole):
+    def setData(
+        self, index: QModelIndex, value, role: int = Qt.ItemDataRole.DisplayRole
+    ):
         if role == Qt.ItemDataRole.CheckStateRole:
             self.booleanSet[index.row()] = bool(value)
             self.dataChanged.emit(index, index, [role])
@@ -47,10 +56,11 @@ class CheckableSortFilterProxyModel(QSortFilterProxyModel):
         if not index.isValid():
             return Qt.ItemFlag.ItemIsEnabled
 
-        return (Qt.ItemFlag.ItemIsUserCheckable
-                | Qt.ItemFlag.ItemIsEnabled
-                | super().flags(self.mapToSource(index))
-                & ~Qt.ItemFlag.ItemIsEditable)
+        return (
+            Qt.ItemFlag.ItemIsUserCheckable
+            | Qt.ItemFlag.ItemIsEnabled
+            | super().flags(self.mapToSource(index)) & ~Qt.ItemFlag.ItemIsEditable
+        )
 
     def setSourceModel(self, sourceModel):
         self.booleanSet = {i: False for i in range(sourceModel.rowCount())}

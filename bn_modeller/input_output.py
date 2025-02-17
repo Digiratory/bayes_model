@@ -4,19 +4,20 @@ from PySide6 import QtCore, QtWidgets
 
 class IOWindow(QtWidgets.QWidget):
     block_signal = QtCore.Signal()
+
     def __init__(self, parent=None, input_df=None, state=None):
         super(IOWindow, self).__init__(parent)
         self.input_table = input_df
         col_name = self.input_table.columns
 
-        self.df_input_output = pd.DataFrame(columns=['input', 'output'], index=col_name)
-        col_name = col_name.insert(0, 'Select ALL')
+        self.df_input_output = pd.DataFrame(columns=["input", "output"], index=col_name)
+        col_name = col_name.insert(0, "Select ALL")
 
         self.tableWidget = QtWidgets.QTableWidget(len(col_name), 2)
         lay = QtWidgets.QVBoxLayout(self)
         lay.addWidget(self.tableWidget)
 
-        self.tableWidget.setHorizontalHeaderLabels(['input', 'output'])
+        self.tableWidget.setHorizontalHeaderLabels(["input", "output"])
         self.tableWidget.setVerticalHeaderLabels(col_name)
         self.state = self.updateState(state) if state is not None else self.initState()
 
@@ -54,9 +55,9 @@ class IOWindow(QtWidgets.QWidget):
                 item.setCheckState(QtCore.Qt.Unchecked)
                 # item.setCheckState(QtCore.Qt.Checked)
             # else:
-                # item.setCheckState(QtCore.Qt.Unchecked)
-                # item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-        
+            # item.setCheckState(QtCore.Qt.Unchecked)
+            # item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+
     @QtCore.Slot()
     def save_clicked(self):
         items = []
@@ -77,10 +78,24 @@ class IOWindow(QtWidgets.QWidget):
         self.input_table = df
 
     def getInputFeature(self):
-        return list(self.df_input_output[self.df_input_output['input'].map(lambda x: x.value if isinstance(x, QtCore.Qt.CheckState) else x) > 0].index)
+        return list(
+            self.df_input_output[
+                self.df_input_output["input"].map(
+                    lambda x: x.value if isinstance(x, QtCore.Qt.CheckState) else x
+                )
+                > 0
+            ].index
+        )
 
     def getOutputFeature(self):
-        return list(self.df_input_output[self.df_input_output['output'].map(lambda x: x.value if isinstance(x, QtCore.Qt.CheckState) else x) > 0].index)
+        return list(
+            self.df_input_output[
+                self.df_input_output["output"].map(
+                    lambda x: x.value if isinstance(x, QtCore.Qt.CheckState) else x
+                )
+                > 0
+            ].index
+        )
 
     def saveState(self):
         self.state = []
@@ -95,12 +110,15 @@ class IOWindow(QtWidgets.QWidget):
         return [[QtCore.Qt.Unchecked] * 2 for _ in range(self.tableWidget.rowCount())]
 
     def updateState(self, input_vector):
-        new_vector = [[QtCore.Qt.Unchecked] * 2 for _ in range(self.tableWidget.rowCount())]
+        new_vector = [
+            [QtCore.Qt.Unchecked] * 2 for _ in range(self.tableWidget.rowCount())
+        ]
         for i in range(len(input_vector)):
             for j in range(len(input_vector[i])):
-                new_vector[i][j] = QtCore.Qt.Checked if input_vector[i][j] > 0 else QtCore.Qt.Unchecked
+                new_vector[i][j] = (
+                    QtCore.Qt.Checked if input_vector[i][j] > 0 else QtCore.Qt.Unchecked
+                )
         return new_vector
 
     def getState(self):
         return self.state
-

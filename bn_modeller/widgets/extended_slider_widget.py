@@ -1,6 +1,5 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QDoubleSpinBox, QHBoxLayout, QLabel, QSlider,
-                               QWidget)
+from PySide6.QtWidgets import QDoubleSpinBox, QHBoxLayout, QLabel, QSlider, QWidget
 
 
 class ExtendedSliderWidget(QWidget):
@@ -48,15 +47,16 @@ class ExtendedSliderWidget(QWidget):
             self.value_spinbox.setDecimals(2)
 
     def setRange(self, mininum: float, maximum: float):
-        self.slider.setRange(int(mininum*self.tickNumber),
-                             int(maximum*self.tickNumber))
+        self.slider.setRange(
+            int(mininum * self.tickNumber), int(maximum * self.tickNumber)
+        )
         self.value_spinbox.setRange(mininum, maximum)
 
     def setValue(self, new_value: float):
         self._ignore_change_signal = True
         self.value_spinbox.setValue(new_value)
         self._ignore_change_signal = True
-        self.slider.setValue(int(new_value*self.tickNumber))
+        self.slider.setValue(int(new_value * self.tickNumber))
 
     def setTrackMovements(self, trackMovements):
         self._trackMovements = trackMovements

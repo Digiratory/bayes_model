@@ -1,7 +1,6 @@
-
+import numpy as np
 import pandas as pd
 import pingouin as pg
-import numpy as np
 
 
 class CorrMatrix:
@@ -11,7 +10,7 @@ class CorrMatrix:
         :param df:
         """
         self.df = df
-        self.corr = self.df.corr(method='spearman')
+        self.corr = self.df.corr(method="spearman")
 
     def getCorrMatrix(self, roundOrder=2):
         # return self.corr.round(roundOrder)
@@ -19,7 +18,7 @@ class CorrMatrix:
 
     def updateTable(self, df):
         self.df = df
-        self.corr = self.df.corr(method='spearman')
+        self.corr = self.df.corr(method="spearman")
 
 
 class PartCorrMatrix:
@@ -31,7 +30,7 @@ class PartCorrMatrix:
         """
         self.df: pd.DataFrame = df
         self.corr = self.find_part_cor()
-        self.corr = self.corr.astype('float')
+        self.corr = self.corr.astype("float")
 
     def find_part_cor(self):
         columns_all = self.df.columns
@@ -40,16 +39,26 @@ class PartCorrMatrix:
             for column_name2 in self.df.columns:
                 if column_name1 == column_name2:
                     P.loc[column_name1, column_name2] = 1
-                elif len(pd.crosstab(self.df[column_name1], self.df[column_name2]).values) < 4:
+                elif (
+                    len(
+                        pd.crosstab(self.df[column_name1], self.df[column_name2]).values
+                    )
+                    < 4
+                ):
                     P.loc[column_name1, column_name2] = np.nan
                 else:
                     columns_select = columns_all.drop(column_name1)
                     columns_select = columns_select.drop(column_name2)
 
                     try:
-                        result = pg.partial_corr(data=self.df, x=column_name1,
-                                                 y=column_name2, covar=list(columns_select), method='spearman')
-                        P.loc[column_name1, column_name2] = result['r'].values[0]
+                        result = pg.partial_corr(
+                            data=self.df,
+                            x=column_name1,
+                            y=column_name2,
+                            covar=list(columns_select),
+                            method="spearman",
+                        )
+                        P.loc[column_name1, column_name2] = result["r"].values[0]
                     except:
                         result = np.nan
         return P

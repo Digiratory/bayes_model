@@ -1,19 +1,19 @@
 import os
 
-from PySide6.QtWidgets import QWidget, QStackedWidget, QStyle, QTabWidget, QMenuBar
 from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtGui import QGuiApplication, QAction
+from PySide6.QtGui import QAction, QGuiApplication
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
+from PySide6.QtWidgets import QMenuBar, QStackedWidget, QStyle, QTabWidget, QWidget
 
-from bn_modeller.windows.base_window import BaseWindow
-from bn_modeller.widgets.project_wizard import ProjectLoadWizard
+from bn_modeller.dialogs import AboutDialog
+from bn_modeller.models import DependencyManyToManySqlTableModel, PairTableSQLProxyModel
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
-from bn_modeller.models import DependencyManyToManySqlTableModel, PairTableSQLProxyModel
-
-from bn_modeller.widgets.page.database_page import DatabasePageWidget
 from bn_modeller.widgets.page.bayesian_network_page import BayesianNetworkPageWidget
-from bn_modeller.dialogs import AboutDialog
+from bn_modeller.widgets.page.database_page import DatabasePageWidget
+from bn_modeller.widgets.project_wizard import ProjectLoadWizard
+from bn_modeller.windows.base_window import BaseWindow
+
 
 class MainWindow(BaseWindow):
     go_back = Signal()
@@ -37,7 +37,8 @@ class MainWindow(BaseWindow):
         self.projectWizard: ProjectLoadWizard = None
 
         QGuiApplication.instance().applicationStateChanged.connect(
-            self.application_state_changed)
+            self.application_state_changed
+        )
 
     def _init_db(self):
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)
@@ -45,16 +46,20 @@ class MainWindow(BaseWindow):
         self._initCacheDbInMemory()
 
         self._dependencyManyToManySqlTableModel = DependencyManyToManySqlTableModel(
-            db=self._db)
+            db=self._db
+        )
         self._dependPairModel = PairTableSQLProxyModel(
-            self.featureSqlTableModel, db=self._db)
+            self.featureSqlTableModel, db=self._db
+        )
 
         self.databasePageWidget.setModels(
             featureSqlTableModel=self.featureSqlTableModel,
-            sampleSqlTableModel=self.sampleSqlTableModel)
+            sampleSqlTableModel=self.sampleSqlTableModel,
+        )
 
         self.dependencySetupPageWidget.setModels(
-            pairTableSQLProxyModel=self._dependPairModel)
+            pairTableSQLProxyModel=self._dependPairModel
+        )
 
     def _init_ui(self):
         self._main_widget = QTabWidget()
@@ -65,7 +70,8 @@ class MainWindow(BaseWindow):
 
         self.dependencySetupPageWidget = BayesianNetworkPageWidget()
         self._main_widget.addTab(
-            self.dependencySetupPageWidget, self.tr("Bayesian Networks"))
+            self.dependencySetupPageWidget, self.tr("Bayesian Networks")
+        )
 
         self.setCentralWidget(self._main_widget)
 
@@ -83,9 +89,12 @@ class MainWindow(BaseWindow):
         self._help_menu = self._menu_bar.addMenu(self.tr("Help"))
 
         # Create an action for the "About" item in the "Help" menu
-        about_action = QAction(self.style().standardIcon(
-            QStyle.StandardPixmap.SP_MessageBoxInformation), '&About', self)
-        about_action.setStatusTip(self.tr('Show About Dialog'))
+        about_action = QAction(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation),
+            "&About",
+            self,
+        )
+        about_action.setStatusTip(self.tr("Show About Dialog"))
         about_action.triggered.connect(self.show_about_dialog)
 
         # Add the action to the "Help" menu
@@ -104,10 +113,10 @@ class MainWindow(BaseWindow):
 
     def _initCacheDbInMemory(self):
         self.featureSqlTableModel.select()
-        while (self.featureSqlTableModel.canFetchMore()):
+        while self.featureSqlTableModel.canFetchMore():
             self.featureSqlTableModel.fetchMore()
         self.sampleSqlTableModel.select()
-        while (self.sampleSqlTableModel.canFetchMore()):
+        while self.sampleSqlTableModel.canFetchMore():
             self.sampleSqlTableModel.fetchMore()
 
     @Slot()
@@ -115,14 +124,14 @@ class MainWindow(BaseWindow):
         if len(self._views_history) > 0:
             previousWidget: QWidget = self._views_history.pop()
             self._main_widget.setCurrentWidget(previousWidget)
-            self.setCentralTitle('', '')
+            self.setCentralTitle("", "")
             self.go_back.emit()
 
     @Slot()
     def home_clicked(self):
         self._views_history.clear()
         self._main_widget.setCurrentWidget(self._homepageWidget)
-        self.setCentralTitle('', '')
+        self.setCentralTitle("", "")
         self.go_back.emit()
 
     @Slot(Qt.ApplicationState)

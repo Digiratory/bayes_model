@@ -1,18 +1,21 @@
 import os
 
-from PySide6.QtCore import Qt, Signal, Slot, QCoreApplication
-from PySide6.QtWidgets import QMainWindow, QWidget, QStyle, QToolBar
+from PySide6.QtCore import QCoreApplication, Qt, Signal, Slot
 from PySide6.QtGui import QAction, QIcon
+from PySide6.QtWidgets import QMainWindow, QStyle, QToolBar, QWidget
 
 
 class BaseWindow(QMainWindow):
-    def __init__(self, title: str, parent: QWidget | None = None, flags=Qt.WindowType()) -> None:
+    def __init__(
+        self, title: str, parent: QWidget | None = None, flags=Qt.WindowType()
+    ) -> None:
         super(BaseWindow, self).__init__(parent, flags)
         self.caption = title
         # self.setup_toolbar()
         my_icon = QIcon()
-        my_icon.addFile(os.path.join(os.path.dirname(
-            __file__), "..", "resources\\icon.ico"))
+        my_icon.addFile(
+            os.path.join(os.path.dirname(__file__), "..", "resources\\icon.ico")
+        )
         self.setWindowIcon(my_icon)
         self.set_central_title(title)
 
