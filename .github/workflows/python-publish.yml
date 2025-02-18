@@ -23,7 +23,7 @@ jobs:
 
       - name: Build release distributions
         run: |
-          # NOTE: put your own distribution build steps here.
+          apt-get update && apt-get install graphviz graphviz-dev
           python -m pip install -r requirements-build.txt
           poetry install
           poetry build
