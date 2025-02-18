@@ -102,5 +102,5 @@ jobs:
       - name: Upload assets to a Release
         uses: AButler/upload-release-assets@v3.0
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           files: "dist/*"
