@@ -34,27 +34,27 @@ jobs:
           name: release-dists
           path: dist/
 
-  release-build-exe:
-    runs-on: windows-latest
+  # release-build-exe:
+  #   runs-on: windows-latest
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Build release distributions
-        run: |
-          # NOTE: put your own distribution build steps here.
-          python -m pip install pyinstaller
-          python -m pip install .
-          TAG=${{ github.ref_name }}
-          pyinstaller --onefile --add-data="./bn_modeller/resources/icon.ico;." --icon=./bn_modeller/resources/icon.ico --windowed --name=bn_modeller-${TAG#release/}.exe ./bn_modeller/app.py
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.x"
+  #     - name: Build release distributions
+  #       run: |
+  #         # NOTE: put your own distribution build steps here.
+  #         python -m pip install pyinstaller
+  #         python -m pip install .
+  #         TAG=${{ github.ref_name }}
+  #         pyinstaller --onefile --add-data="./bn_modeller/resources/icon.ico;." --icon=./bn_modeller/resources/icon.ico --windowed --name=bn_modeller-${TAG#release/}.exe ./bn_modeller/app.py
 
-      - name: Upload distributions
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-exe-dists
-          path: dist/
+  #     - name: Upload distributions
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: release-exe-dists
+  #         path: dist/
 
   pypi-publish:
     runs-on: ubuntu-latest
@@ -87,18 +87,18 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - release-build-whl
-      - release-build-exe
+      # - release-build-exe
     steps:
       - name: Retrieve release whl distributions
         uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
-      - name: Retrieve release exe distributions
-        uses: actions/download-artifact@v4
-        with:
-          name: release-exe-dists
-          path: dist/
+      # - name: Retrieve release exe distributions
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: release-exe-dists
+      #     path: dist/
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
