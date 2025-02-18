@@ -19,7 +19,7 @@ func_i = interp1d(fe, xe, kind=way, fill_value="extrapolate")  # interpolation f
 1. Install pyinstaller
 2. Execute the following command:
 ```bash
-pyinstaller --windowed ./bn_modeller/app.py
+pyinstaller --onefile --add-data="./bn_modeller/resources/icon.ico;." --icon=./bn_modeller/resources/icon.ico --name=bn_modeller.exe --windowed ./bn_modeller/app.py
 
 ```
 ## Instalation
