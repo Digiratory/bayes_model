@@ -1,14 +1,15 @@
 [project]
 name = "bn_modeller"
-version = "0.1.0"
 description = "A program to represents a set of variables and their conditional dependencies via a directed acyclic graph."
 authors = [
     {name = "Aleksandr Sinitca", email = "amsinitca@etu.ru"},
     {name = "Irina Shpakovskaya"},
     {name = "Tarapata Svetlana"}
 ]
+license = "GPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
+dynamic = ["version"]
 dependencies = [
     "pyside6 (>=6.8.1.1,<7.0.0.0)",
     "py-banshee (>=1.1.2,<2.0.0)",
@@ -16,7 +17,16 @@ dependencies = [
     "pygraphviz (>=1.14,<2.0)"
 ]
 
+[tool.poetry-dynamic-versioning]
+enable = true
+bump = true
+pattern = '(?P<base>\d+\.\d+\.\d+)'
+
+[tool.poetry]
+version = "0.0.0"
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=2.1.1,<3.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
