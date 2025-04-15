@@ -1,12 +1,14 @@
 import os
+import shutil
 
 import numpy as np
-from PySide6.QtCore import QObject, QSettings, QStandardPaths, Qt, Slot
-from PySide6.QtGui import QDoubleValidator
+from PySide6.QtCore import QObject, QSettings, QStandardPaths, Qt, QUrl, Slot
+from PySide6.QtGui import QDesktopServices, QDoubleValidator
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -89,8 +91,8 @@ class DataSourceTemplatePage(QWizardPage):
                 "Please select a datasource template file. \n"
                 "If you already have a datasource file with compatible format, you can skip this step.\n\n"
                 "We provide two templates: \n"
-                "1. A template for a CSV file with samples in rows.\n"
-                "2. A template for a CSV file with samples in columns.\n\n"
+                "1. A template for a CSV/Excel file with samples in rows.\n"
+                "2. A template for a CSV/Excel file with samples in columns.\n\n"
                 "Please select the appropriate template for your data."
             )
         )
@@ -118,12 +120,69 @@ class DataSourceTemplatePage(QWizardPage):
     @Slot()
     def on_get_template_rows_clicked(self):
         # Code to handle the button click event
-        pass
+        fileName = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save Template"),
+            None,
+            "Comma-separated values File (*.csv);;Excel Workbook (*.xlsx)",
+        )
+        if len(fileName[0]) > 0:
+            if fileName[0].endswith(".csv"):
+                shutil.copyfile(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "resources",
+                        "templates",
+                        "datasource_rows.csv",
+                    ),
+                    fileName[0],
+                )
+            elif fileName[0].endswith(".xlsx"):
+                shutil.copyfile(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "resources",
+                        "templates",
+                        "datasource_rows.xlsx",
+                    ),
+                    fileName[0],
+                )
+            QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.dirname(fileName[0])))
 
     @Slot()
     def on_get_template_cols_clicked(self):
-        # Code to handle the button click event
-        pass
+        fileName = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save Template"),
+            None,
+            "Comma-separated values File (*.csv);;Excel Workbook (*.xlsx)",
+        )
+        if len(fileName[0]) > 0:
+            if fileName.endswith[0](".csv"):
+                shutil.copyfile(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "resources",
+                        "templates",
+                        "datasource_cols.csv",
+                    ),
+                    fileName[0],
+                )
+            elif fileName[0].endswith(".xlsx"):
+                shutil.copyfile(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "resources",
+                        "templates",
+                        "datasource_cols.xlsx",
+                    ),
+                    fileName[0],
+                )
+            QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.dirname(fileName[0])))
 
 
 class ProjectLocationPage(QWizardPage):
