@@ -16,7 +16,7 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
         super().__init__(self.fig)
         self.bn_ax = self.fig.add_subplot(1, 1, 1)
 
-    def update_plot(self, graph):
+    def update_plot(self, graph: nx.Graph):
         self.bn_ax.clear()
         # self.bn_ax = self.fig.add_subplot(1, 1, 1)
 
@@ -116,7 +116,7 @@ class BayesianNetView(QSplitter):
         graph.drop_cycle()
         # self.changeLinkTable()
 
-        self.bn_canvas.update_plot(graph.renaming())
+        self.bn_canvas.update_plot(graph.getGraph())
         # import pickle
         # pickle.dump(self.graph, open('graph.txt', 'w'))
         # print(self.graph.G.nodes())

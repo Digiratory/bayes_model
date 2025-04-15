@@ -47,6 +47,8 @@ class BansheeCalc:
         return self.R
 
     def getInference(self, len_input_list):
+        # TODO: Rewrite this function to handle set of features and features to predoct as input.
+
         nodes = list(
             range(len_input_list)
         )  # all variables except for value of interest
