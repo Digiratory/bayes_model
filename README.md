@@ -12,6 +12,14 @@ predict 307
 
 func_i = interp1d(fe, xe, kind=way, fill_value="extrapolate")  # interpolation fill_value="extrapolate"
 
+## Instalation
+
+You can install this project using pip:
+
+```bash
+pip install bn_modeller
+```
+
 ## Build
 
 ### Build Executable file for Windows
