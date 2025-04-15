@@ -33,6 +33,9 @@ class BayesianNetworkPageWidget(QWidget):
         # Feature selection
         self.dependencyTabWidget = QSplitter()
         self.featureSelectorView = SelectableListView()
+        self.featureSelectorView.setStatusTip(
+            self.tr("Select features for the Bayesian Network.")
+        )
         self.dependencyTabWidget.addWidget(self.featureSelectorView)
         self.dependencyTabWidget.setStretchFactor(0, 1)
 
@@ -43,11 +46,26 @@ class BayesianNetworkPageWidget(QWidget):
         self._depTable = DependencySetupTableView()
         depTableLayout.addWidget(self._depTable, 1, 1)
 
-        dependentLabel = QVertivalLabel("Independent")
-        depTableLayout.addWidget(dependentLabel, 1, 0, Qt.AlignmentFlag.AlignCenter)
+        independentLabel = QVertivalLabel("Independent")
+        depTableLayout.addWidget(independentLabel, 1, 0, Qt.AlignmentFlag.AlignCenter)
 
         dependentLabel = QLabel("Dependent")
         depTableLayout.addWidget(dependentLabel, 0, 1, Qt.AlignmentFlag.AlignCenter)
+
+        explanationLabel = QLabel(
+            self.tr(
+                "Here you can setup expert-defined dependencies between features, choosen in the left side of the window.\n"
+                "In the table you can see Spearman correlation coefficients between features as well as partial correlation coefficients.\n"
+                "The background color of the table cells indicates the strength of the correlation.\n\n"
+                "To visualize the Bayesian Network, open the 'Visualization' tab.\n\n"
+                "Please note, that these dependencies are not learned from the data. "
+                "They are defined by experts and used to guide the learning process.\n\n"
+                "Hint: You can select entire rows or columns by clicking using right mouse button on the row or column header."
+            )
+        )
+        depTableLayout.addWidget(
+            explanationLabel, 2, 0, 1, 2, Qt.AlignmentFlag.AlignLeft
+        )
 
         depTableWidget.setLayout(depTableLayout)
         self.dependencyTabWidget.addWidget(depTableWidget)
