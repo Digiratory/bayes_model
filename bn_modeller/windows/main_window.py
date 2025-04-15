@@ -1,7 +1,7 @@
 import os
 
-from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtGui import QAction, QGuiApplication
+from PySide6.QtCore import Qt, QUrl, Signal, Slot
+from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 from PySide6.QtWidgets import QMenuBar, QStackedWidget, QStyle, QTabWidget, QWidget
 
@@ -133,7 +133,18 @@ class MainWindow(BaseWindow):
         ## Create the "Help" menu
         self._help_menu = self._menu_bar.addMenu(self.tr("Help"))
 
+        ### Create an action for the "Report Bug" item in the "Help" menu
+        report_bug_action = QAction(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxQuestion),
+            "&Report Bug",
+            self,
+        )
+        report_bug_action.setStatusTip(self.tr("Report a bug"))
+        report_bug_action.triggered.connect(self.report_bug)
+        self._help_menu.addAction(report_bug_action)
+
         ### Create an action for the "About" item in the "Help" menu
+        self._help_menu.addSeparator()
         about_action = QAction(
             self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation),
             "&About",
@@ -144,6 +155,14 @@ class MainWindow(BaseWindow):
 
         # Add the action to the "Help" menu
         self._help_menu.addAction(about_action)
+
+    @Slot()
+    def report_bug(self):
+        QDesktopServices.openUrl(
+            QUrl(
+                "https://github.com/Digiratory/bayes_model/issues/new?template=bug_report.md"
+            )
+        )
 
     @Slot()
     def open_file_clicked(self):
