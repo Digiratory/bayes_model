@@ -37,8 +37,17 @@ class TableValueFixer(QObject):
         layout = QFormLayout()
         line_edit = QLineEdit()
         line_edit.setValidator(QDoubleValidator())  # only allow float inputs
-        layout.addRow(QLabel(f"Enter a value instead of: {value}"))
-        layout.addRow(QLabel("New Value:"), line_edit)
+        layout.addRow(
+            QLabel(
+                (
+                    f"The program supports only numeric values for measurements, but found '{value}'.\n"
+                    + f"Please enter a numeric value instead of '{value}'.\n"
+                    + f"The value '{value}' will be replaced by NaN if you do not provide a valid number.\n"
+                    + "All values in the dataset will be replaced by NaN or new value."
+                )
+            )
+        )
+        layout.addRow(QLabel(f"New Value instead of '{value}':"), line_edit)
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
