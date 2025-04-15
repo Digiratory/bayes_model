@@ -30,7 +30,13 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
 
         # edges
         nx.draw_networkx_edges(
-            graph, pos, edgelist=elarge, width=1, alpha=0.4, ax=self.bn_ax
+            graph,
+            pos,
+            edgelist=elarge,
+            width=1,
+            alpha=0.4,
+            ax=self.bn_ax,
+            connectionstyle="angle3",
         )
         nx.draw_networkx_edges(
             graph,
@@ -41,6 +47,7 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
             edge_color="b",
             style="dashed",
             ax=self.bn_ax,
+            connectionstyle="angle3",
         )
 
         # node labels
