@@ -36,7 +36,7 @@ def manage_cli_args(app: QCoreApplication) -> QCommandLineParser:
     return cl_parser
 
 
-if __name__ == "__main__":
+def main():
     app = create_application(sys.argv)
     cl_parser = manage_cli_args(app)
 
@@ -46,3 +46,7 @@ if __name__ == "__main__":
     else:
         raise ValueError("Headless mode is not supported")
     sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
