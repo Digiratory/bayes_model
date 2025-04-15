@@ -23,11 +23,11 @@ class DatabasePageWidget(QSplitter):
         self.featureSelectorView = SelectableListView()
         self.addWidget(self.featureSelectorView)
 
-        self.databaseView = AllSamplesView()
-        self.addWidget(self.databaseView)
-
         self.pairPlorView = PairplotView()
         self.addWidget(self.pairPlorView)
+
+        # self.databaseView = AllSamplesView()
+        # self.addWidget(self.databaseView)
 
     def setModels(
         self,
@@ -56,7 +56,7 @@ class DatabasePageWidget(QSplitter):
             self._sampleSqlTableModel.fieldIndex(SampleSqlTableModel.column_feature_id)
         )
 
-        self.databaseView.setModel(self.visualisationProxyModel)
+        # self.databaseView.setModel(self.visualisationProxyModel)
         self.pairPlorView.setModel(
             self.visualisationProxyModel,
             self._featureSqlTableModel.fieldIndex(FeatureSqlTableModel.column_name),
