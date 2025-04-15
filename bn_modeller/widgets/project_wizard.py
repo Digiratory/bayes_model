@@ -205,9 +205,10 @@ class DataImportPage(QWizardPage):
 
 
 class ProjectLoadWizard(QWizard):
-    def __init__(self, parent=None):
+    def __init__(self, pre_done_handler=None, parent=None):
         super().__init__(parent)
         # self.setWindowTitle(self.tr("Open project"))
+        self._pre_done_handler = pre_done_handler
 
         self.source_page = ProjectLocationPage()
         self.sourcePageId = self.addPage(self.source_page)
@@ -262,20 +263,28 @@ class ProjectLoadWizard(QWizard):
         self.sampleSqlTableModel = SampleSqlTableModel(db=self._db)
 
     def connectDb(self):
+        for conn_name in QSqlDatabase.connectionNames():
+            self._db = None
+            db = QSqlDatabase.database(conn_name)
+            db.commit()
+            db.close()
+            QSqlDatabase.removeDatabase(conn_name)
         self._db = QSqlDatabase.addDatabase("QSQLITE")
         self._db.setDatabaseName(self.source_page.path_edit.file_path)
         self._db.open()
 
     def done(self, result):
-
-        if self.source_page.radioOpen.isChecked():
-            self.connectDb()
-            self.openDb()
-        else:
-            if os.path.exists(self.source_page.path_edit.file_path):
-                # TODO: ask user to delete the file
-                os.remove(self.source_page.path_edit.file_path)
-            self.connectDb()
-            self.createDb()
+        if self._pre_done_handler is not None:
+            self._pre_done_handler(self, result)
+        if result:
+            if self.source_page.radioOpen.isChecked():
+                self.connectDb()
+                self.openDb()
+            else:
+                if os.path.exists(self.source_page.path_edit.file_path):
+                    # TODO: ask user to delete the file
+                    os.remove(self.source_page.path_edit.file_path)
+                self.connectDb()
+                self.createDb()
 
         return super().done(result)
