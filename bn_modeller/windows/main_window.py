@@ -66,7 +66,9 @@ class MainWindow(BaseWindow):
         self.set_central_title(self._title)
 
         self.databasePageWidget = DatabasePageWidget()
-        self._main_widget.addTab(self.databasePageWidget, self.tr("Database"))
+        self._main_widget.addTab(
+            self.databasePageWidget, self.tr("Evaluation of variables correlations")
+        )
 
         self.dependencySetupPageWidget = BayesianNetworkPageWidget()
         self._main_widget.addTab(
