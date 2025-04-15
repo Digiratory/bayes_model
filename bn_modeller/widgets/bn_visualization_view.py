@@ -2,7 +2,7 @@ import networkx as nx
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QSplitter, QVBoxLayout, QWidget
 
 from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
 from bn_modeller.models import FilterPairTableSQLProxyModel, PairTableSQLProxyModel
@@ -30,7 +30,13 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
 
         # edges
         nx.draw_networkx_edges(
-            graph, pos, edgelist=elarge, width=1, alpha=0.4, ax=self.bn_ax
+            graph,
+            pos,
+            edgelist=elarge,
+            width=1,
+            alpha=0.4,
+            ax=self.bn_ax,
+            connectionstyle="angle3",
         )
         nx.draw_networkx_edges(
             graph,
@@ -41,6 +47,7 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
             edge_color="b",
             style="dashed",
             ax=self.bn_ax,
+            connectionstyle="angle3",
         )
 
         # node labels
@@ -90,6 +97,16 @@ class BayesianNetView(QSplitter):
         self.threadSliderWidget.setTrackMovements(False)
         self.threadSliderWidget.valueChanged.connect(self.drawBN)
         self.addWidget(self.threadSliderWidget)
+
+        # Explanation Widgets
+        self.explanationWidget = QLabel(
+            self.tr(
+                "Here you can work with a visualization of the Bayesian Network.\n"
+                "You can adjust the threshold for edge visibility using the slider above and see how it affects the network.\n"
+                "The buttons in the toolbar allow you to interact with the plot, including zooming and saving the plot in numerous formats."
+            )
+        )
+        self.addWidget(self.explanationWidget)
 
     def setModels(self, depModel: FilterPairTableSQLProxyModel):
         self.depModel = depModel

@@ -1,18 +1,22 @@
 import os
+import shutil
 
 import numpy as np
-from PySide6.QtCore import QObject, QSettings, QStandardPaths, Slot
-from PySide6.QtGui import QDoubleValidator
+from PySide6.QtCore import QObject, QSettings, QStandardPaths, Qt, QUrl, Slot
+from PySide6.QtGui import QDesktopServices, QDoubleValidator
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QRadioButton,
+    QSizePolicy,
     QSpinBox,
     QVBoxLayout,
     QWizard,
@@ -37,8 +41,17 @@ class TableValueFixer(QObject):
         layout = QFormLayout()
         line_edit = QLineEdit()
         line_edit.setValidator(QDoubleValidator())  # only allow float inputs
-        layout.addRow(QLabel(f"Enter a value instead of: {value}"))
-        layout.addRow(QLabel("New Value:"), line_edit)
+        layout.addRow(
+            QLabel(
+                (
+                    f"The program supports only numeric values for measurements, but found '{value}'.\n"
+                    + f"Please enter a numeric value instead of '{value}'.\n"
+                    + f"The value '{value}' will be replaced by NaN if you do not provide a valid number.\n"
+                    + "All values in the dataset will be replaced by NaN or new value."
+                )
+            )
+        )
+        layout.addRow(QLabel(f"New Value instead of '{value}':"), line_edit)
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
@@ -61,6 +74,115 @@ class TableValueFixer(QObject):
         if value not in self.cache:
             self.cache[value] = self.askUserForNewValue(value)
         return self.cache[value]
+
+
+class DataSourceTemplatePage(QWizardPage):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTitle(self.tr("Datasource Template"))
+        self.path_edit: FilePathWidget
+        self._init_ui()
+
+    def _init_ui(self):
+        main_layout = QVBoxLayout()
+
+        explanation_label = QLabel(
+            self.tr(
+                "Please select a datasource template file. \n"
+                "If you already have a datasource file with compatible format, you can skip this step.\n\n"
+                "We provide two templates: \n"
+                "1. A template for a CSV/Excel file with samples in rows.\n"
+                "2. A template for a CSV/Excel file with samples in columns.\n\n"
+                "Please select the appropriate template for your data."
+            )
+        )
+
+        # Layout with buttons for selecting and saving the template file.
+        hbox = QHBoxLayout()
+
+        get_template_rows_button = QPushButton(
+            self.tr("Get Template with samples in Rows")
+        )
+        get_template_rows_button.clicked.connect(self.on_get_template_rows_clicked)
+        hbox.addWidget(get_template_rows_button)
+
+        get_template_cols_button = QPushButton(
+            self.tr("Get Template with samples in Columns")
+        )
+        get_template_cols_button.clicked.connect(self.on_get_template_cols_clicked)
+        hbox.addWidget(get_template_cols_button)
+
+        main_layout.addWidget(explanation_label)
+        main_layout.addLayout(hbox)
+
+        self.setLayout(main_layout)
+
+    @Slot()
+    def on_get_template_rows_clicked(self):
+        # Code to handle the button click event
+        fileName = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save Template"),
+            None,
+            "Comma-separated values File (*.csv);;Excel Workbook (*.xlsx)",
+        )
+        if len(fileName[0]) > 0:
+            if fileName[0].endswith(".csv"):
+                shutil.copyfile(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "resources",
+                        "templates",
+                        "datasource_rows.csv",
+                    ),
+                    fileName[0],
+                )
+            elif fileName[0].endswith(".xlsx"):
+                shutil.copyfile(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "resources",
+                        "templates",
+                        "datasource_rows.xlsx",
+                    ),
+                    fileName[0],
+                )
+            QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.dirname(fileName[0])))
+
+    @Slot()
+    def on_get_template_cols_clicked(self):
+        fileName = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save Template"),
+            None,
+            "Comma-separated values File (*.csv);;Excel Workbook (*.xlsx)",
+        )
+        if len(fileName[0]) > 0:
+            if fileName.endswith[0](".csv"):
+                shutil.copyfile(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "resources",
+                        "templates",
+                        "datasource_cols.csv",
+                    ),
+                    fileName[0],
+                )
+            elif fileName[0].endswith(".xlsx"):
+                shutil.copyfile(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "resources",
+                        "templates",
+                        "datasource_cols.xlsx",
+                    ),
+                    fileName[0],
+                )
+            QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.dirname(fileName[0])))
 
 
 class ProjectLocationPage(QWizardPage):
@@ -169,11 +291,24 @@ class DataImportPage(QWizardPage):
 
         # File settings group box
         groupBox = QGroupBox(self.tr("Source file format"))
+        vbox = QVBoxLayout()
+
+        # Add a label to explain the format options
+        orientation_expl_label = QLabel(
+            self.tr(
+                "Select how samples are organized in your file. If samples are in rows, each row represents a sample. If samples are in columns, each column represents a sample."
+            )
+        )
+        orientation_expl_label.setWordWrap(True)
+        orientation_expl_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
+        vbox.addWidget(orientation_expl_label)
 
         self.radioSampleInRow = QRadioButton(self.tr("Samples in rows"))
         self.radioSampleInRow.setChecked(True)
         self.radioSampleInColumn = QRadioButton(self.tr("Samples in columns"))
-        vbox = QVBoxLayout()
+
         vbox.addWidget(self.radioSampleInRow)
         vbox.addWidget(self.radioSampleInColumn)
         vbox.addWidget(QSeparator())
@@ -190,6 +325,15 @@ class DataImportPage(QWizardPage):
         hbox.addWidget(QLabel(self.tr("Skip columns: ")))
         hbox.addWidget(self.skip_cols_spinbox)
         vbox.addLayout(hbox)
+
+        # Add a label to explain the purpose of the skip rows and columns fields
+        skip_expl_label = QLabel(
+            self.tr(
+                "If you are using a custom format, you can specify the number of rows and columns to skip to make the dataset compatible with the program."
+            )
+        )
+        skip_expl_label.setWordWrap(True)
+        vbox.addWidget(skip_expl_label)
 
         groupBox.setLayout(vbox)
         self.registerField("DataImportPage/isSampleInRows", self.radioSampleInRow)
@@ -213,6 +357,9 @@ class ProjectLoadWizard(QWizard):
         self.source_page = ProjectLocationPage()
         self.sourcePageId = self.addPage(self.source_page)
 
+        self.datasourceTemplatePage = DataSourceTemplatePage()
+        self.datasourceTemplatePageId = self.addPage(self.datasourceTemplatePage)
+
         self.importDataPage = DataImportPage()
         self.importDataPageId = self.addPage(self.importDataPage)
 
@@ -229,7 +376,7 @@ class ProjectLoadWizard(QWizard):
             if self.source_page.radioOpen.isChecked():
                 return -1
             else:
-                return self.importDataPageId
+                return self.datasourceTemplatePageId
         return super().nextId()
 
     def createDb(self):
