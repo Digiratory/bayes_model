@@ -1,3 +1,5 @@
+from typing import Callable, Tuple
+
 import networkx as nx
 
 
@@ -40,7 +42,7 @@ class GraphPreparation:
 
         self.G.add_weighted_edges_from(e)
 
-    def drop_cycle(self):
+    def drop_cycle(self, onRemoveEdgeHandler: Callable[[Tuple[int, int]], None] = None):
         while True:
             try:
                 cycle_list = nx.find_cycle(self.G)
@@ -57,6 +59,8 @@ class GraphPreparation:
                     min_nodes = i
 
             self.G.remove_edge(*min_nodes)
+            if onRemoveEdgeHandler is not None:
+                onRemoveEdgeHandler(min_nodes)
 
     def getNodeList(self):
         return self.G.nodes
@@ -64,10 +68,9 @@ class GraphPreparation:
     def getEdgeList(self):
         return self.G.edges
 
-    def getGraph(self):
+    def getInternalGraph(self):
         return self.G
 
-    def renaming(self):
+    def getGraph(self) -> nx.Graph:
         k = {val: key for key, val in self.code_columns.items()}
-
         return nx.relabel_nodes(self.G, k)

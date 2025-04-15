@@ -15,6 +15,7 @@ from bn_modeller.models.feature_sqltable_model import (
 )
 from bn_modeller.widgets import DependencySetupTableView, SelectableListView
 from bn_modeller.widgets.bn_visualization_view import BayesianNetView
+from bn_modeller.widgets.page.bayesian_inference_page import BayesianInferencePageWidget
 from bn_modeller.widgets.vertical_label import QVertivalLabel
 
 
@@ -30,13 +31,13 @@ class BayesianNetworkPageWidget(QWidget):
 
         # Dependency tab
 
-        # Feature selection
+        ## Feature selection
         self.dependencyTabWidget = QSplitter()
         self.featureSelectorView = SelectableListView()
         self.dependencyTabWidget.addWidget(self.featureSelectorView)
         self.dependencyTabWidget.setStretchFactor(0, 1)
 
-        # Dependency Table
+        ## Dependency Table
         depTableWidget = QWidget()
         depTableLayout = QGridLayout()
 
@@ -59,6 +60,10 @@ class BayesianNetworkPageWidget(QWidget):
         self.visualizationTabWidget = BayesianNetView()
 
         self.tabWidget.addTab(self.visualizationTabWidget, self.tr("Visulization"))
+
+        # Inference Tab
+        self.inferenceTabWidget = BayesianInferencePageWidget()
+        self.tabWidget.addTab(self.inferenceTabWidget, self.tr("Inference"))
 
         # Finalization
         self.mainLayout.addWidget(self.tabWidget)

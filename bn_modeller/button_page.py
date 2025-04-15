@@ -411,17 +411,17 @@ class ButtonWindow(QtWidgets.QWidget):
         )
 
         # удалить циклы в графе
-        G_before = copy.deepcopy(self.graph.renaming())
+        G_before = copy.deepcopy(self.graph.getGraph())
 
         self.graph.drop_cycle()
         self.changeLinkTable()
 
-        d = {"Before": G_before, "After": self.graph.renaming()}
+        d = {"Before": G_before, "After": self.graph.getGraph()}
         # import pickle
         # pickle.dump(self.graph, open('graph.txt', 'w'))
         # print(self.graph.G.nodes())
 
-        nx.write_adjlist(self.graph.renaming(), "graph.txt")
+        nx.write_adjlist(self.graph.getGraph(), "graph.txt")
         dialog = SubplotGraph(data=d)
         self.dialogs.append(dialog)
         dialog.show()
@@ -508,7 +508,7 @@ class ButtonWindow(QtWidgets.QWidget):
             columns=self.input_df.columns, index=self.input_df.columns
         )
 
-        for i in self.graph.renaming().edges(data=True):
+        for i in self.graph.getGraph().edges(data=True):
             newLinkTab.loc[i[0], i[1]] = 1
         newLinkTab = newLinkTab.fillna(0)
         self.updLinkTable = newLinkTab
