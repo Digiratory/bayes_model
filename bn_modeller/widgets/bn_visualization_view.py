@@ -4,7 +4,14 @@ import networkx as nx
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import QLabel, QSplitter, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
+)
 
 from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
 from bn_modeller.models import CorrelationSQLProxyModel, PairTableSQLProxyModel
@@ -100,18 +107,40 @@ class BayesianNetView(QSplitter):
         self.addWidget(bnPlotWidget)
 
         # BN Visualization Settings
+        settingsWidget = QWidget()
+        settingsLayout = QHBoxLayout()
+
+        # Dropdown for selecting BN Correlation Type
+
+        self.correlationTypeComboBox = QComboBox()
+        self.correlationTypeComboBox.addItems(
+            ["Pearson", "Spearman", "Partial Correlation"]
+        )
+        self.correlationTypeComboBox.currentIndexChanged.connect(self.drawBN)
+        self.correlationTypeComboBoxMapping = [
+            PairTableSQLProxyModel.PearsonCorrRole,
+            PairTableSQLProxyModel.SpearmanCorrRole,
+            CorrelationSQLProxyModel.PartialCorrRole,
+        ]
+        settingsLayout.addWidget(self.correlationTypeComboBox)
+
+        # Slider Widget for adjusting BN Visualization Threshold
         self.threadSliderWidget = ExtendedSliderWidget()
         self.threadSliderWidget.setRange(0, 1)
         self.threadSliderWidget.setValue(0.5)
         self.threadSliderWidget.setTrackMovements(False)
         self.threadSliderWidget.valueChanged.connect(self.drawBN)
-        self.addWidget(self.threadSliderWidget)
+        settingsLayout.addWidget(self.threadSliderWidget)
+
+        settingsWidget.setLayout(settingsLayout)
+        self.addWidget(settingsWidget)
 
         # Explanation Widgets
         self.explanationWidget = QLabel(
             self.tr(
                 "Here you can work with a visualization of the Bayesian Network.\n"
-                "You can adjust the threshold for edge visibility using the slider above and see how it affects the network.\n"
+                "Using the dropdown above you can select the type of correlation to be used for drawing the Bayesian Network. "
+                "Also you can adjust the threshold for edge visibility using the slider above and see how it affects the network.\n"
                 "The buttons in the toolbar allow you to interact with the plot, including zooming and saving the plot in numerous formats."
             )
         )
@@ -129,9 +158,12 @@ class BayesianNetView(QSplitter):
         if self.depModel is None or not self.isVisible():
             return
         print("BayesianNetView.drawBN")
-        # TODO: make type of used correlation type tunable
+
         corr_matrix = tablemodel_to_dataframe(
-            self.depModel, role=PairTableSQLProxyModel.PearsonCorrRole
+            self.depModel,
+            role=self.correlationTypeComboBoxMapping[
+                self.correlationTypeComboBox.currentIndex()
+            ],
         )
         linkTable = tablemodel_to_dataframe(
             self.depModel, role=Qt.ItemDataRole.CheckStateRole
