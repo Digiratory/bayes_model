@@ -1,3 +1,5 @@
+import itertools as it
+
 import networkx as nx
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
@@ -5,7 +7,7 @@ from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import QLabel, QSplitter, QVBoxLayout, QWidget
 
 from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
-from bn_modeller.models import FilterPairTableSQLProxyModel, PairTableSQLProxyModel
+from bn_modeller.models import CorrelationSQLProxyModel, PairTableSQLProxyModel
 from bn_modeller.utils.model_adapters import tablemodel_to_dataframe
 from bn_modeller.widgets.extended_slider_widget import ExtendedSliderWidget
 
@@ -29,6 +31,8 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
         nx.draw_networkx_nodes(graph, pos, node_size=15, ax=self.bn_ax)
 
         # edges
+        # connectionstyle = [f"arc3,rad={r}" for r in it.accumulate([0.15] * 4)]
+        connectionstyle = f"angle3,angleA=0, angleB=90"
         nx.draw_networkx_edges(
             graph,
             pos,
@@ -36,7 +40,7 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
             width=1,
             alpha=0.4,
             ax=self.bn_ax,
-            connectionstyle="angle3",
+            connectionstyle=connectionstyle,
         )
         nx.draw_networkx_edges(
             graph,
@@ -47,7 +51,7 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
             edge_color="b",
             style="dashed",
             ax=self.bn_ax,
-            connectionstyle="angle3",
+            connectionstyle=connectionstyle,
         )
 
         # node labels
@@ -63,7 +67,12 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
         # edge weight labels
         edge_labels = nx.get_edge_attributes(graph, "weight")
         nx.draw_networkx_edge_labels(
-            graph, pos, edge_labels, font_size=12, ax=self.bn_ax
+            graph,
+            pos,
+            edge_labels,
+            font_size=12,
+            connectionstyle=connectionstyle,
+            ax=self.bn_ax,
         )
         self.fig.tight_layout(pad=3.0)
         self.draw()
@@ -74,7 +83,7 @@ class BayesianNetView(QSplitter):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.depModel: FilterPairTableSQLProxyModel = None
+        self.depModel: CorrelationSQLProxyModel = None
         self._init_ui()
 
     def _init_ui(self):
@@ -108,9 +117,9 @@ class BayesianNetView(QSplitter):
         )
         self.addWidget(self.explanationWidget)
 
-    def setModels(self, depModel: FilterPairTableSQLProxyModel):
+    def setModels(self, depModel: CorrelationSQLProxyModel):
         self.depModel = depModel
-        self.depModel.filterInvalidated.connect(self.drawBN)
+        # self.depModel.filterInvalidated.connect(self.drawBN)
         self.depModel.dataChanged.connect(self.drawBN)
 
         self.drawBN()
@@ -120,6 +129,7 @@ class BayesianNetView(QSplitter):
         if self.depModel is None or not self.isVisible():
             return
         print("BayesianNetView.drawBN")
+        # TODO: make type of used correlation type tunable
         corr_matrix = tablemodel_to_dataframe(
             self.depModel, role=PairTableSQLProxyModel.PearsonCorrRole
         )
