@@ -2,9 +2,12 @@ from typing import Any
 
 import matplotlib as mpl
 import numpy as np
+import pandas as pd
+import pingouin as pg
 from PySide6.QtCore import (
     QAbstractTableModel,
     QByteArray,
+    QIdentityProxyModel,
     QModelIndex,
     QObject,
     QPersistentModelIndex,
@@ -23,6 +26,7 @@ from bn_modeller.models.feature_sqltable_model import (
     PersistanceCheckableFeatureListProxyModel,
 )
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
+from bn_modeller.utils.model_adapters import tablemodel_to_dataframe
 
 
 class DependencyManyToManySqlTableModel(QSqlRelationalTableModel):
@@ -96,9 +100,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         return self._getFeaturesCount()
 
     def data(self, item: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        if role == Qt.ItemDataRole.DisplayRole:
-            return f"{self.data(item=item, role=self.PearsonCorrRole):.2f}/{self.data(item=item, role=self.SpearmanCorrRole):.2f}"
-        elif role == Qt.ItemDataRole.CheckStateRole:
+        if role == Qt.ItemDataRole.CheckStateRole:
             return (
                 Qt.CheckState.Checked
                 if self._getConnectionState(item)
@@ -287,19 +289,55 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         )
         return v
 
+    def _getFeatureSamples(self, featureId: int) -> np.ndarray:
+        query = QSqlQuery(
+            f"select\
+            s.{SampleSqlTableModel.column_sample_id} sampleId,\
+            max(case when s.{SampleSqlTableModel.column_feature_id}={featureId} then s.{SampleSqlTableModel.column_value} end) feature\
+            from {SampleSqlTableModel.table_name} as s\
+            join {FeatureSqlTableModel.table_name} as f \
+            on f.{FeatureSqlTableModel.column_id}=s.{SampleSqlTableModel.column_feature_id}\
+            group by sampleId\
+            order by sampleId\
+            ",
+            self._db,
+        )
+        if not query.exec():
+            raise RuntimeError(
+                f"Unable to retrieve row count from DB: {query.lastError()}"
+            )
+        featureFieldNo = query.record().indexOf("feature")
+        values = []
+        while query.next():
+            # sampleTdValue: int = query.value(sampleTdValueFieldNo)
+            featureValue = query.value(featureFieldNo)
+            if isinstance(featureValue, str):
+                featureValue = float(featureValue) if len(featureValue) > 0 else np.nan
+            elif isinstance(featureValue, float):
+                featureValue = float(featureValue)
+            else:
+                raise RuntimeError(
+                    f"Unexpected type for firstFeatureFieldNo({featureFieldNo}): {type(featureValue)}"
+                )
+            values.append(featureValue)
+        return np.array(values)
+
     def _getFeaturePairSamples(
         self, firstFeatureId: int, secondFeatureId: int
     ) -> np.ndarray:
+        if firstFeatureId == secondFeatureId:
+            return np.tile(self._getFeatureSamples(firstFeatureId), (2, 1))
 
         query = QSqlQuery(
             f"select\
-            s.{SampleSqlTableModel.column_sample_id},\
+            s.{SampleSqlTableModel.column_sample_id} sampleId,\
             max(case when s.{SampleSqlTableModel.column_feature_id}={firstFeatureId} then s.{SampleSqlTableModel.column_value} end) firstFeature,\
             max(case when s.{SampleSqlTableModel.column_feature_id}={secondFeatureId} then s.{SampleSqlTableModel.column_value} end) secondFeature\
-            from {SampleSqlTableModel.table_name} s\
-            join {FeatureSqlTableModel.table_name} f on\
-            f.{FeatureSqlTableModel.column_id}=s.{SampleSqlTableModel.column_feature_id}\
-            group by s.{SampleSqlTableModel.column_sample_id}\
+            from {SampleSqlTableModel.table_name} as s\
+            join {FeatureSqlTableModel.table_name} as f \
+            on f.{FeatureSqlTableModel.column_id}=s.{SampleSqlTableModel.column_feature_id}\
+            group by sampleId\
+            order by sampleId\
             ",
             self._db,
         )
@@ -400,3 +438,71 @@ class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
             self._filter_cache[k] = v == Qt.CheckState.Checked
         self.invalidateFilter()
         self.filterInvalidated.emit()
+
+
+class CorrelationSQLProxyModel(QIdentityProxyModel):
+    PartialCorrRole = Qt.ItemDataRole.UserRole + 4
+
+    def __init__(
+        self, sourceModel: FilterPairTableSQLProxyModel, parent: QObject = None
+    ):
+        super().__init__(parent)
+        self._partial_corr_matrix = None
+        self.sourceModelChanged.connect(self._sourceModelChangedHandler)
+        self.setSourceModel(sourceModel)
+
+    def data(self, item: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
+        if role == Qt.ItemDataRole.DisplayRole:
+            return f"{self.data(item=item, role=PairTableSQLProxyModel.SpearmanCorrRole):.2f} / {self.data(item=item, role=self.PartialCorrRole):.2f}"
+        elif role == self.PartialCorrRole:
+            return self._partialPartialCorrelationMatrix()[item.row(), item.column()]
+        else:
+            return super().data(item, role)
+
+    @Slot()
+    def _sourceModelChangedHandler(self):
+        # self.sourceModel().dataChanged.connect(self._invalidatePartialCorrelationMatrix)
+        self.sourceModel().filterInvalidated.connect(
+            self._invalidatePartialCorrelationMatrix
+        )
+
+    def _invalidatePartialCorrelationMatrix(self):
+        """Invalidate the cached partial correlation matrix."""
+        self._partial_corr_matrix = None
+
+    def _partialPartialCorrelationMatrix(self) -> np.ndarray:
+        """Returns the cached partial correlation matrix. If it is not cached, it will be evaluated and cached.
+
+        Returns:
+            np.ndarray: Partial correlation matrix
+        """
+        if self._partial_corr_matrix is None:
+            self._partial_corr_matrix = self._evaluatePartialCorrelationMatrix()
+        return self._partial_corr_matrix
+
+    def _evaluatePartialCorrelationMatrix(self) -> np.ndarray:
+        """Evaluate the partial correlation matrix.
+
+        Returns:
+            np.ndarray: Partial correlation matrix.
+        """
+        featuresCount = self.columnCount()
+        if featuresCount <= 1:
+            return np.array([[]])
+
+        data_pd = pd.DataFrame(
+            columns=[
+                self.headerData(c, Qt.Orientation.Horizontal)
+                for c in range(featuresCount)
+            ]
+        )
+
+        d = {}
+        for r in range(featuresCount):
+            data_np = self.data(
+                self.index(r, r), role=PairTableSQLProxyModel.ValuePairsRole
+            )
+            d[r] = data_np[0]
+        df = pd.DataFrame(d)
+        pcorrMatrix = df.pcorr().to_numpy()
+        return pcorrMatrix

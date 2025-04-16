@@ -8,7 +8,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from bn_modeller.models import FilterPairTableSQLProxyModel, PairTableSQLProxyModel
+from bn_modeller.models import (
+    CorrelationSQLProxyModel,
+    FilterPairTableSQLProxyModel,
+    PairTableSQLProxyModel,
+)
 from bn_modeller.models.feature_sqltable_model import (
     FeatureSqlTableModel,
     PersistanceCheckableFeatureListProxyModel,
@@ -101,14 +105,19 @@ class BayesianNetworkPageWidget(QWidget):
             )
         )
 
-        self._pairTableSQLProxyModel = FilterPairTableSQLProxyModel()
-        self._pairTableSQLProxyModel.setSourceModel(pairTableSQLProxyModel)
-        self._pairTableSQLProxyModel.setFilterModel(
+        filterPairTableSQLProxyModel: FilterPairTableSQLProxyModel = (
+            FilterPairTableSQLProxyModel()
+        )
+        filterPairTableSQLProxyModel.setSourceModel(pairTableSQLProxyModel)
+        filterPairTableSQLProxyModel.setFilterModel(
             self._featureCheckableSortFilterProxyModel,
             pairTableSQLProxyModel.getFeatureSqlTableModel().fieldIndex(
                 FeatureSqlTableModel.column_id
             ),
         )
-        self._depTable.setModel(self._pairTableSQLProxyModel)
 
-        self.visualizationTabWidget.setModels(self._pairTableSQLProxyModel)
+        self._correlationModel = CorrelationSQLProxyModel(filterPairTableSQLProxyModel)
+
+        self._depTable.setModel(self._correlationModel)
+
+        self.visualizationTabWidget.setModels(self._correlationModel)

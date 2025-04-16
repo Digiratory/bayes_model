@@ -2,7 +2,18 @@ import pandas as pd
 from PySide6.QtCore import QAbstractItemModel, Qt
 
 
-def tablemodel_to_dataframe(model: QAbstractItemModel, role: int) -> pd.DataFrame:
+def tablemodel_to_dataframe(
+    model: QAbstractItemModel, role: int, postprocess: callable = lambda x: x
+) -> pd.DataFrame:
+    """Converts a QAbstractItemModel to a pandas DataFrame.
+
+    Args:
+        model (QAbstractItemModel): Source QAbstractItemModel.
+        role (int): Role to extract from the model.
+        postprocess (callable, optional): Function to apply to each element. Defaults to lambda x: x.
+    Returns:
+        pd.DataFrame: Pandas DataFrame containing the model's data.
+    """
     data_pd = pd.DataFrame(
         columns=[
             model.headerData(c, Qt.Orientation.Horizontal)
@@ -12,8 +23,8 @@ def tablemodel_to_dataframe(model: QAbstractItemModel, role: int) -> pd.DataFram
     for r in range(model.rowCount()):
         new_row = pd.Series(
             {
-                model.headerData(c, Qt.Orientation.Horizontal): model.index(r, c).data(
-                    role=role
+                model.headerData(c, Qt.Orientation.Horizontal): postprocess(
+                    model.index(r, c).data(role=role)
                 )
                 for c in range(model.columnCount())
             }
