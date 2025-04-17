@@ -1,0 +1,16 @@
+title: BN Modeller
+description: Application for feature dependency modeling and evaluation.
+show_downloads: false
+remote_theme: "just-the-docs/just-the-docs"
+site:
+  url: https://digiratory.github.io/bayes_model/
+plugins:
+  - jekyll-remote-theme
+defaults:
+  - scope:
+      path: "assets/img"
+    values:
+      image: true
+search_enabled: false
+nav_enabled: true
+heading_anchors: true

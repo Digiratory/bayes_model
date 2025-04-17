@@ -12,3 +12,4 @@ docs/.$DB_Diagram.drawio.bkp
 build/*
 dist/*
 app.spec
+*.drawio.bkp
