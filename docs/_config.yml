@@ -1,5 +1,5 @@
-title: Bayesian Networks Modeller
-description: Application for Bayesian modeling and inference.
+title: BN Modeller
+description: Application for feature dependency modeling and evaluation.
 show_downloads: false
 google_analytics:
 remote_theme: pages-themes/architect@v0.2.0
