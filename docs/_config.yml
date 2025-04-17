@@ -11,3 +11,6 @@ defaults:
       path: "assets/img"
     values:
       image: true
+search_enabled: false
+nav_enabled: true
+heading_anchors: true
