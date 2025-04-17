@@ -61,7 +61,7 @@ Experimentation: Don's be afraid to experiment with different settings and optio
 
 #### 1. Project Selection and Initialization
 
-![Project Selection Dialog](/assets/img/startup_dialog_1.png)
+![Project Selection Dialog](/bayes_model/assets/img/startup_dialog_1.png)
 
 Upon startup, the Project Selection Dialog appears. This dialog allows you to either:
 
@@ -72,7 +72,7 @@ Detailed instructions on how to use this dialog are provided on the page [Projec
 
 #### 2. Evaluation of Variables Correlation
 
-![Evaluation of Variables Correlation](/assets/img/evaluation_of_var_corr.png)
+![Evaluation of Variables Correlation](/bayes_model/assets/img/evaluation_of_var_corr.png)
 
 After selecting or creating a project and importing data, you'll be taken to the Pair-wise Correlation Evaluation page. This page provides a visual assessment of the relationships between your variables.
 
@@ -84,7 +84,7 @@ Interpretation: Examine the plots for patterns and trends. Strong correlations (
 
 #### 3. Bayesian Network Page
 
-![Bayesian Network Setup Page](/assets/img/bn_setup_page.png)
+![Bayesian Network Setup Page](/bayes_model/assets/img/bn_setup_page.png)
 
 The Bayesian Network page is the core of the network construction process. This page allows you to define the structure of your Bayesian network.
 
@@ -103,7 +103,7 @@ Key Sections & Elements:
 
 #### 4. Bayesian Network Visualization Page
 
-![Bayesian Network Visualization Page](/assets/img/bn_viz_page.png)
+![Bayesian Network Visualization Page](/bayes_model/assets/img/bn_viz_page.png)
 
 The Bayesian Network Visualization page provides a graphical representation of your network.
 
