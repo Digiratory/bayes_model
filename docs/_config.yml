@@ -2,7 +2,7 @@ title: BN Modeller
 description: Application for feature dependency modeling and evaluation.
 show_downloads: false
 google_analytics:
-remote_theme: pages-themes/cayman@v0.2.0
+remote_theme: just-the-docs/just-the-docs@v0.10.1
 site:
   url: https://digiratory.github.io/bayes_model/
 plugins:
