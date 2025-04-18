@@ -1,8 +1,9 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QSplitter,
     QTabWidget,
     QWidget,
@@ -117,7 +118,24 @@ class BayesianNetworkPageWidget(QWidget):
         )
 
         self._correlationModel = CorrelationSQLProxyModel(filterPairTableSQLProxyModel)
+        self._correlationModel.partialCorrGeneralError.connect(
+            self.onPartialCorrError, type=Qt.ConnectionType.QueuedConnection
+        )
 
         self._depTable.setModel(self._correlationModel)
 
         self.visualizationTabWidget.setModels(self._correlationModel)
+
+    @Slot()
+    def onPartialCorrError(self):
+        res = QMessageBox.critical(
+            self,
+            self.tr("Partial Correlation Error"),
+            self.tr(
+                "An error occurred while calculating the partial correlation. \n\n"
+                "Highly likely, it is caused by a missing value in the data set.\n"
+                "To resolve this issue, you can try to disable features with all NAN values in the correlation matrix or select additional features that might help fill in the gaps."
+            ),
+            QMessageBox.StandardButton.Ok,
+            QMessageBox.StandardButton.Ok,
+        )
