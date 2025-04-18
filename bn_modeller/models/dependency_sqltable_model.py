@@ -441,6 +441,8 @@ class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
 
 
 class CorrelationSQLProxyModel(QIdentityProxyModel):
+    partialCorrGeneralError = Signal()
+
     PartialCorrRole = Qt.ItemDataRole.UserRole + 4
 
     def __init__(
@@ -453,7 +455,11 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
 
     def data(self, item: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         if role == Qt.ItemDataRole.DisplayRole:
-            return f"{self.data(item=item, role=PairTableSQLProxyModel.SpearmanCorrRole):.2f} / {self.data(item=item, role=self.PartialCorrRole):.2f}"
+            spearmanCorr = self.data(
+                item=item, role=PairTableSQLProxyModel.SpearmanCorrRole
+            )
+            partialCorr = self.data(item=item, role=self.PartialCorrRole)
+            return f"{spearmanCorr:.2F} / {partialCorr:.2F}"
         elif role == self.PartialCorrRole:
             return self._partialPartialCorrelationMatrix()[item.row(), item.column()]
         else:
@@ -504,5 +510,9 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
             )
             d[r] = data_np[0]
         df = pd.DataFrame(d)
-        pcorrMatrix = df.pcorr().to_numpy()
+        try:
+            pcorrMatrix = df.pcorr().to_numpy()
+        except np.linalg.LinAlgError as e:
+            self.partialCorrGeneralError.emit()
+            pcorrMatrix = np.full((featuresCount, featuresCount), np.nan)
         return pcorrMatrix
