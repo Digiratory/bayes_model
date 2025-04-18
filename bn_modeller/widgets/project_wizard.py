@@ -160,7 +160,7 @@ class DataSourceTemplatePage(QWizardPage):
             "Comma-separated values File (*.csv);;Excel Workbook (*.xlsx)",
         )
         if len(fileName[0]) > 0:
-            if fileName.endswith[0](".csv"):
+            if fileName[0].endswith(".csv"):
                 shutil.copyfile(
                     os.path.join(
                         os.path.dirname(__file__),
