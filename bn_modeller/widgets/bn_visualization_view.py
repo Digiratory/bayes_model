@@ -117,6 +117,7 @@ class BayesianNetView(QSplitter):
             ["Pearson", "Spearman", "Partial Correlation"]
         )
         self.correlationTypeComboBox.currentIndexChanged.connect(self.drawBN)
+        self.correlationTypeComboBox.setCurrentIndex(1)
         self.correlationTypeComboBoxMapping = [
             PairTableSQLProxyModel.PearsonCorrRole,
             PairTableSQLProxyModel.SpearmanCorrRole,
@@ -127,7 +128,7 @@ class BayesianNetView(QSplitter):
         # Slider Widget for adjusting BN Visualization Threshold
         self.threadSliderWidget = ExtendedSliderWidget()
         self.threadSliderWidget.setRange(0, 1)
-        self.threadSliderWidget.setValue(0.5)
+        self.threadSliderWidget.setValue(0.3)
         self.threadSliderWidget.setTrackMovements(False)
         self.threadSliderWidget.valueChanged.connect(self.drawBN)
         settingsLayout.addWidget(self.threadSliderWidget)
