@@ -388,7 +388,7 @@ class ProjectLoadWizard(QWizard):
         query.exec("PRAGMA locking_mode = EXCLUSIVE;")
         # WARNING: IT IS NOT SAFE. It can cause a DB damage in case of a bad termination.
         query.exec("PRAGMA synchronous = OFF;")
-        self.openDb()
+        self.loadModelsFromDb()
 
         try:
             valueFixer = TableValueFixer(self)
@@ -405,20 +405,14 @@ class ProjectLoadWizard(QWizard):
             # TODO: handle the exception, ask the user to retry or quit
             print(e)
 
-    def openDb(self):
+    def loadModelsFromDb(self):
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)
         self.sampleSqlTableModel = SampleSqlTableModel(db=self._db)
 
     def connectDb(self):
-        for conn_name in QSqlDatabase.connectionNames():
-            self._db = None
-            db = QSqlDatabase.database(conn_name)
-            db.commit()
-            db.close()
-            QSqlDatabase.removeDatabase(conn_name)
-        self._db = QSqlDatabase.addDatabase("QSQLITE")
-        self._db.setDatabaseName(self.source_page.path_edit.file_path)
-        self._db.open()
+        self._db = None
+        ProjectLoadWizard.closeDb()
+        self._db = ProjectLoadWizard.openDb(self.source_page.path_edit.file_path)
 
     def done(self, result):
         if self._pre_done_handler is not None:
@@ -426,7 +420,7 @@ class ProjectLoadWizard(QWizard):
         if result:
             if self.source_page.radioOpen.isChecked():
                 self.connectDb()
-                self.openDb()
+                self.loadModelsFromDb()
             else:
                 if os.path.exists(self.source_page.path_edit.file_path):
                     # TODO: ask user to delete the file
@@ -435,3 +429,18 @@ class ProjectLoadWizard(QWizard):
                 self.createDb()
 
         return super().done(result)
+
+    @staticmethod
+    def closeDb():
+        for conn_name in QSqlDatabase.connectionNames():
+            db = QSqlDatabase.database(conn_name)
+            db.commit()
+            db.close()
+            QSqlDatabase.removeDatabase(conn_name)
+
+    @staticmethod
+    def openDb(path: str) -> QSqlDatabase:
+        db = QSqlDatabase.addDatabase("QSQLITE")
+        db.setDatabaseName(path)
+        db.open()
+        return db

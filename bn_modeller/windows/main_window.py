@@ -1,9 +1,18 @@
 import os
+import shutil
 
 from PySide6.QtCore import Qt, QUrl, Signal, Slot
 from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
-from PySide6.QtWidgets import QMenuBar, QStackedWidget, QStyle, QTabWidget, QWidget
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QLabel,
+    QMenuBar,
+    QStackedWidget,
+    QStyle,
+    QTabWidget,
+    QWidget,
+)
 
 from bn_modeller.dialogs import AboutDialog
 from bn_modeller.models import DependencyManyToManySqlTableModel, PairTableSQLProxyModel
@@ -39,7 +48,7 @@ class MainWindow(BaseWindow):
             None
         )
 
-        self.projectWizard: ProjectLoadWizard = None
+        self.projectWizardOpened: ProjectLoadWizard = False
 
         QGuiApplication.instance().applicationStateChanged.connect(
             self.application_state_changed
@@ -61,6 +70,8 @@ class MainWindow(BaseWindow):
         self.sampleSqlTableModel = None
 
     def _init_db(self):
+        self.project_path_widget.setText(self._project_path)
+
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)
         self.sampleSqlTableModel = SampleSqlTableModel(db=self._db)
         self._initCacheDbInMemory()
@@ -107,9 +118,9 @@ class MainWindow(BaseWindow):
         self._menu_bar = QMenuBar()
         self.setMenuBar(self._menu_bar)
 
-        ## Create the "File" menu
+        # Create the "File" menu
         self._file_menu = self._menu_bar.addMenu(self.tr("File"))
-        ### Create an action for the "Open" item in the "File" menu
+        # Create an action for the "Open" item in the "File" menu
         open_action = QAction(
             self.style().standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton),
             "&Open",
@@ -119,7 +130,17 @@ class MainWindow(BaseWindow):
         open_action.triggered.connect(self.open_file_clicked)
         self._file_menu.addAction(open_action)
 
-        ### Create an action for the "Exit" item in the "File" menu
+        # Create an action for the "Save as..." item in the "File" menu
+        save_as_action = QAction(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton),
+            self.tr("&Save As..."),
+            self,
+        )
+        save_as_action.setStatusTip(self.tr("Save project as a new file"))
+        save_as_action.triggered.connect(self.save_file_clicked)
+        self._file_menu.addAction(save_as_action)
+
+        # Create an action for the "Exit" item in the "File" menu
         self._file_menu.addSeparator()
         exit_action = QAction(
             self.style().standardIcon(QStyle.StandardPixmap.SP_DialogCloseButton),
@@ -130,10 +151,10 @@ class MainWindow(BaseWindow):
         exit_action.triggered.connect(self.close_app)
         self._file_menu.addAction(exit_action)
 
-        ## Create the "Help" menu
+        # Create the "Help" menu
         self._help_menu = self._menu_bar.addMenu(self.tr("Help"))
 
-        ### Create an action for the "Report Bug" item in the "Help" menu
+        # Create an action for the "Report Bug" item in the "Help" menu
         report_bug_action = QAction(
             self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxQuestion),
             "&Report Bug",
@@ -143,7 +164,7 @@ class MainWindow(BaseWindow):
         report_bug_action.triggered.connect(self.report_bug)
         self._help_menu.addAction(report_bug_action)
 
-        ### Create an action for the "About" item in the "Help" menu
+        # Create an action for the "About" item in the "Help" menu
         self._help_menu.addSeparator()
         about_action = QAction(
             self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation),
@@ -156,6 +177,10 @@ class MainWindow(BaseWindow):
         # Add the action to the "Help" menu
         self._help_menu.addAction(about_action)
 
+        # Add widget to status bar with a current path to project
+        self.project_path_widget = QLabel()
+        self.statusBar().addPermanentWidget(self.project_path_widget)
+
     @Slot()
     def report_bug(self):
         QDesktopServices.openUrl(
@@ -167,6 +192,26 @@ class MainWindow(BaseWindow):
     @Slot()
     def open_file_clicked(self):
         self._open_project()
+
+    @Slot()
+    def save_file_clicked(self):
+        print("'Save as...' clicked")
+        fileName = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save project as..."),
+            os.path.dirname(self._project_path),
+            self.tr("BNM Project File (*.sqlite)"),
+        )
+        if fileName[0]:
+            print(fileName)
+            ProjectLoadWizard.closeDb()
+            shutil.copyfile(
+                self._project_path,
+                fileName[0],
+            )
+            self._project_path = fileName[0]
+            self._db = ProjectLoadWizard.openDb(fileName[0])
+            self._init_db()
 
     def show_about_dialog(self):
         dialog = AboutDialog()
@@ -201,14 +246,15 @@ class MainWindow(BaseWindow):
             self._db = None
 
     def _open_project(self) -> bool:
-        self.projectWizard = ProjectLoadWizard(
+        self.projectWizardOpened = True
+        projectWizard = ProjectLoadWizard(
             pre_done_handler=self.projectLoadWizardFinalozationInterceptor
         )
-        wizard_ret = self.projectWizard.exec()
+        wizard_ret = projectWizard.exec()
         if wizard_ret != 1:
             return False
-        self._project_path = self.projectWizard.get_project_path()
-        self._db = self.projectWizard._db
+        self._project_path = projectWizard.get_project_path()
+        self._db = projectWizard._db
         self._init_db()
         return True
 
@@ -229,6 +275,6 @@ class MainWindow(BaseWindow):
 
     @Slot(Qt.ApplicationState)
     def application_state_changed(self, state: Qt.ApplicationState):
-        if self._project_path is None and self.projectWizard is None:
+        if self._project_path is None and not self.projectWizardOpened:
             if not self._open_project():
                 self.close_app()
