@@ -5,6 +5,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationTool
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QHBoxLayout,
     QLabel,
@@ -110,6 +111,11 @@ class BayesianNetView(QSplitter):
         settingsWidget = QWidget()
         settingsLayout = QHBoxLayout()
 
+        # Checkbox for filtering by p-value
+        self.filterByPValueCheckBox = QCheckBox(self.tr("Filter by P-Value"))
+        self.filterByPValueCheckBox.stateChanged.connect(self.drawBN)
+        settingsLayout.addWidget(self.filterByPValueCheckBox)
+
         # Dropdown for selecting BN Correlation Type
 
         self.correlationTypeComboBox = QComboBox()
@@ -122,6 +128,11 @@ class BayesianNetView(QSplitter):
             PairTableSQLProxyModel.PearsonCorrRole,
             PairTableSQLProxyModel.SpearmanCorrRole,
             CorrelationSQLProxyModel.PartialCorrRole,
+        ]
+        self.pvalueTypeComboBoxMapping = [
+            PairTableSQLProxyModel.PearsonPValueRole,
+            PairTableSQLProxyModel.SpearmanPValueRole,
+            CorrelationSQLProxyModel.PartialPValueRole,
         ]
         settingsLayout.addWidget(self.correlationTypeComboBox)
 
@@ -166,11 +177,25 @@ class BayesianNetView(QSplitter):
                 self.correlationTypeComboBox.currentIndex()
             ],
         )
+        pvalue_matrix = None
+
+        if self.filterByPValueCheckBox.isChecked():
+            pvalue_matrix = tablemodel_to_dataframe(
+                self.depModel,
+                role=self.pvalueTypeComboBoxMapping[
+                    self.correlationTypeComboBox.currentIndex()
+                ],
+            )
+
         linkTable = tablemodel_to_dataframe(
             self.depModel, role=Qt.ItemDataRole.CheckStateRole
         )
         graph = GraphPreparation(
-            corr_matrix, linkTable, self.threadSliderWidget.value()
+            corr_matrix,
+            linkTable,
+            self.threadSliderWidget.value(),
+            pvalue_matrix=pvalue_matrix,
+            pvalue_threshold=0.05,
         )
 
         graph.drop_cycle()
