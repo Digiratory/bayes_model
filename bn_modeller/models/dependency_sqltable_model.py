@@ -466,7 +466,6 @@ class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
 
 class CorrelationSQLProxyModel(QIdentityProxyModel):
     partialCorrGeneralError = Signal()
-
     PartialCorrRole = Qt.ItemDataRole.UserRole + 10
     PartialPValueRole = Qt.ItemDataRole.UserRole + 11
 
@@ -475,6 +474,7 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
     ):
         super().__init__(parent)
         self._partial_corr_matrix = None
+        self._partial_corr_pvalue_matrix = None
         self.sourceModelChanged.connect(self._sourceModelChangedHandler)
         self.setSourceModel(sourceModel)
 
@@ -487,6 +487,10 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
             return f"{spearmanCorr:.2F} / {partialCorr:.2F}"
         elif role == self.PartialCorrRole:
             return self._partialPartialCorrelationMatrix()[item.row(), item.column()]
+        elif role == self.PartialPValueRole:
+            return self._partialPartialCorrelationPvalueMatrix()[
+                item.row(), item.column()
+            ]
         else:
             return super().data(item, role)
 
@@ -500,6 +504,7 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
     def _invalidatePartialCorrelationMatrix(self):
         """Invalidate the cached partial correlation matrix."""
         self._partial_corr_matrix = None
+        self._partial_corr_pvalue_matrix = None
 
     def _partialPartialCorrelationMatrix(self) -> np.ndarray:
         """Returns the cached partial correlation matrix. If it is not cached, it will be evaluated and cached.
@@ -508,10 +513,19 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
             np.ndarray: Partial correlation matrix
         """
         if self._partial_corr_matrix is None:
-            self._partial_corr_matrix = self._evaluatePartialCorrelationMatrix()
+            self._partial_corr_matrix, self._partial_corr_pvalue_matrix = (
+                self._evaluatePartialCorrelationMatrix()
+            )
         return self._partial_corr_matrix
 
-    def _evaluatePartialCorrelationMatrix(self) -> np.ndarray:
+    def _partialPartialCorrelationPvalueMatrix(self) -> np.ndarray:
+        if self._partial_corr_pvalue_matrix is None:
+            self._partial_corr_matrix, self._partial_corr_pvalue_matrix = (
+                self._evaluatePartialCorrelationMatrix()
+            )
+        return self._partial_corr_pvalue_matrix
+
+    def _evaluatePartialCorrelationMatrix(self) -> tuple[np.ndarray, np.ndarray]:
         """Evaluate the partial correlation matrix.
 
         Returns:
@@ -535,9 +549,32 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
             )
             d[r] = data_np[0]
         df = pd.DataFrame(d)
-        try:
-            pcorrMatrix = df.pcorr().to_numpy()
-        except np.linalg.LinAlgError as e:
-            self.partialCorrGeneralError.emit()
-            pcorrMatrix = np.full((featuresCount, featuresCount), np.nan)
-        return pcorrMatrix
+
+        pcorrMatrix = np.eye(featuresCount, dtype=float)
+        pvalMatrix = np.eye(featuresCount, dtype=float)
+
+        hasNan = False
+        for i in range(featuresCount):
+            for j in range(i + 1, featuresCount):
+                covar_features = list(range(featuresCount))
+                covar_features.remove(i)
+                covar_features.remove(j)
+                try:
+                    pcorr_df = df.partial_corr(x=i, y=j, covar=covar_features)
+                    pcorrMatrix[i, j] = pcorrMatrix[j, i] = pcorr_df["r"].iloc[0]
+                    pvalMatrix[i, j] = pvalMatrix[j, i] = pcorr_df["p-val"].iloc[0]
+                except AssertionError:
+                    pcorrMatrix[i, j] = pcorrMatrix[j, i] = np.nan
+                    pvalMatrix[i, j] = pvalMatrix[j, i] = np.nan
+                    hasNan = True
+
+        if hasNan and np.isnan(pvalMatrix).sum() == (featuresCount**2 - featuresCount):
+            try:
+                self.partialCorrGeneralError.emit()
+                pcorrMatrix = df.pcorr().to_numpy()
+                pvalMatrix = np.full((featuresCount, featuresCount), np.nan)
+            except np.linalg.LinAlgError as e:
+                # self.partialCorrGeneralError.emit()
+                pcorrMatrix = np.full((featuresCount, featuresCount), np.nan)
+                pvalMatrix = np.full((featuresCount, featuresCount), np.nan)
+        return pcorrMatrix, pvalMatrix

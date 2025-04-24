@@ -179,10 +179,7 @@ class BayesianNetView(QSplitter):
         )
         pvalue_matrix = None
 
-        if (
-            self.filterByPValueCheckBox.isChecked()
-            and self.correlationTypeComboBox.currentIndex() != 2
-        ):
+        if self.filterByPValueCheckBox.isChecked():
             pvalue_matrix = tablemodel_to_dataframe(
                 self.depModel,
                 role=self.pvalueTypeComboBoxMapping[
