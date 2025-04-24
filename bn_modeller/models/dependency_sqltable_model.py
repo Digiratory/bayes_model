@@ -70,6 +70,8 @@ class PairTableSQLProxyModel(QAbstractTableModel):
     ValuePairsRole = Qt.ItemDataRole.UserRole + 1
     PearsonCorrRole = Qt.ItemDataRole.UserRole + 2
     SpearmanCorrRole = Qt.ItemDataRole.UserRole + 3
+    PearsonPValueRole = Qt.ItemDataRole.UserRole + 4
+    SpearmanPValueRole = Qt.ItemDataRole.UserRole + 5
 
     def __init__(
         self,
@@ -82,8 +84,12 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         self._featureSqlTableModel = featureSqlTableModel
 
         self._cacheValuePairsRole = {}
+
         self._cachePearsonCorrRole = {}
+        self._cachePearsonPValueRole = {}
+
         self._cacheSpearmanCorrRole = {}
+        self._cacheSpearmanPValueRole = {}
 
         self._settings = QSettings()
         self._correlationColormap = mpl.colormaps[
@@ -123,11 +129,19 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                     self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)] = (
                         pearsonCorr.correlation
                     )
+                    self._cachePearsonPValueRole[(firstFeatureId, secondFeatureId)] = (
+                        pearsonCorr.pvalue
+                    )
                 except ValueError:
                     self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)] = (
                         np.nan
                     )
             return self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)]
+        elif role == self.PearsonPValueRole:
+            firstFeatureId, secondFeatureId = self._indexToId(index=item)
+            if (firstFeatureId, secondFeatureId) not in self._cachePearsonPValueRole:
+                self.data(item=item, role=self.PearsonCorrRole)
+            return self._cachePearsonPValueRole[(firstFeatureId, secondFeatureId)]
         elif role == self.SpearmanCorrRole:
             firstFeatureId, secondFeatureId = self._indexToId(index=item)
             if (firstFeatureId, secondFeatureId) not in self._cacheSpearmanCorrRole:
@@ -137,7 +151,15 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                 self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)] = (
                     spearmanrCorr.statistic
                 )
+                self._cacheSpearmanPValueRole[(firstFeatureId, secondFeatureId)] = (
+                    spearmanrCorr.pvalue
+                )
             return self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)]
+        elif role == self.SpearmanPValueRole:
+            firstFeatureId, secondFeatureId = self._indexToId(index=item)
+            if (firstFeatureId, secondFeatureId) not in self._cacheSpearmanPValueRole:
+                self.data(item=item, role=self.SpearmanCorrRole)
+            return self._cacheSpearmanPValueRole[(firstFeatureId, secondFeatureId)]
         elif role == Qt.ItemDataRole.BackgroundRole:
             if item.column() == item.row():
                 return None
@@ -188,6 +210,8 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         d[self.ValuePairsRole] = "Values".encode()
         d[self.PearsonCorrRole] = "PearsonCorr".encode()
         d[self.SpearmanCorrRole] = "SpearmanCorr".encode()
+        d[self.PearsonPValueRole] = "PearsonPValue".encode()
+        d[self.SpearmanPValueRole] = "SpearmanPValue".encode()
         return d
 
     def setHeaderData(
@@ -443,7 +467,8 @@ class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
 class CorrelationSQLProxyModel(QIdentityProxyModel):
     partialCorrGeneralError = Signal()
 
-    PartialCorrRole = Qt.ItemDataRole.UserRole + 4
+    PartialCorrRole = Qt.ItemDataRole.UserRole + 10
+    PartialPValueRole = Qt.ItemDataRole.UserRole + 11
 
     def __init__(
         self, sourceModel: FilterPairTableSQLProxyModel, parent: QObject = None
