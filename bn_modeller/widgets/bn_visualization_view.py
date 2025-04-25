@@ -73,11 +73,16 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
         )
 
         # edge weight labels
-        edge_labels = nx.get_edge_attributes(graph, "weight")
+        edge_labels: dict = nx.get_edge_attributes(graph, "weight")
+        formatted_edge_labels = edge_labels.copy()
+
+        for key in edge_labels.keys():
+            formatted_edge_labels[key] = f"{edge_labels[key]:.2f}"
+
         nx.draw_networkx_edge_labels(
             graph,
             pos,
-            edge_labels,
+            formatted_edge_labels,
             font_size=12,
             connectionstyle=connectionstyle,
             ax=self.bn_ax,
