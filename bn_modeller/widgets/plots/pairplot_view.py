@@ -20,7 +20,9 @@ from bn_modeller.models.checkable_sort_filter_proxy_model import (
     CheckableSortFilterProxyModel,
 )
 
-matplotlib.use("Qt5Agg")
+for be in ["pdf", "pgf", "ps", "svg"]:
+    matplotlib.use(be)
+matplotlib.use("qt5agg")
 
 
 class PairplotMplCanvas(FigureCanvasQTAgg):
