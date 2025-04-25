@@ -57,8 +57,7 @@ If you have downloaded BN Modeller using the Windows executable, simply double-c
 2. Execute the following command:
 
 ```bash
-pyinstaller --onefile --add-data="./bn_modeller/resources/templates/*:./bn_modeller/resources/templates/" --add-data="./bn_modeller/resources/icon.ico:./bn_modeller/resources/icon.ico" --icon=./bn_modeller/resources/icon.ico --name=bn_modeller.exe --windowed ./bn_modeller/app.py
-
+pyinstaller bn_modeller.exe.spec
 ```
 
 ## Troubleshooting
