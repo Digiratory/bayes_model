@@ -54,7 +54,7 @@ class GraphPreparation:
         # Создание взвешенного графа
         self.G = nx.DiGraph()
 
-        e = [tuple([int(i[0]), int(i[1]), round(i[2], 3)]) for i in self.N.values]
+        e = [tuple([int(i[0]), int(i[1]), i[2]]) for i in self.N.values]
 
         self.G.add_weighted_edges_from(e)
 
