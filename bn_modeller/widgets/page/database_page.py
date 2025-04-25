@@ -25,6 +25,9 @@ class DatabasePageWidget(QSplitter):
         leftSideWidgetLayout = QVBoxLayout(leftSideWidget)
 
         self.featureSelectorView = SelectableListView()
+        self.featureSelectorView.setStatusTip(
+            self.tr("Select features for visualization.")
+        )
         leftSideWidgetLayout.addWidget(self.featureSelectorView)
 
         featureSelectorExplanationLabel = QLabel(
