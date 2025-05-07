@@ -494,6 +494,9 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
         else:
             return super().data(item, role)
 
+    def flags(self, index):
+        return Qt.ItemFlag.ItemIsSelectable | super().flags(index)
+
     @Slot()
     def _sourceModelChangedHandler(self):
         # self.sourceModel().dataChanged.connect(self._invalidatePartialCorrelationMatrix)
