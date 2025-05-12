@@ -1,8 +1,8 @@
 ---
 layout: default
+title: Bayesian Networks Modeler
+nav_order: 1
 ---
-
-# Bayesian Networks Modeler
 
 Welcome to the BN Modeller Documentation.
 
@@ -25,7 +25,7 @@ BN Modeller provides a comprehensive suite of tools designed to facilitate the c
 
 * **Data Import:** BN Modeller supports the import of datasets from common file formats, including CSV (Comma Separated Values) and Excel spreadsheets. This allows you to easily incorporate your existing data into the application for analysis.
 * **Project-Based Data Management:** To streamline your research, BN Modeller utilizes a project-based system. This allows you to organize and manage multiple datasets within a single project, preserving the state of your work and facilitating easy switching between different analyses.
-* **Bayesian Network Construction via Correlation Coefficients:** BN Modeller allows you to build and visualize Bayesian Networks based on statistical correlation measures. Specifically, you can utilize Pearson's correlation coefficient (measuring linear relationships), Spearman's rank correlation coefficient (measuring monotonic relationships), or partial correlation coefficients (accounting for the influence of other variables). A brief explanation of correlation coefficients is provided on the page [Understanding Correlation](./understanding-correlation.html).
+* **Bayesian Network Construction via Correlation Coefficients:** BN Modeller allows you to build and visualize Bayesian Networks based on statistical correlation measures. Specifically, you can utilize Pearson's correlation coefficient (measuring linear relationships), Spearman's rank correlation coefficient (measuring monotonic relationships), or partial correlation coefficients (accounting for the influence of other variables). A brief explanation of correlation coefficients is provided on the page [Understanding Correlation](./user-guide/understanding-correlation.html).
 * **Correlation Evaluation:** The application provides tools to evaluate the strength and significance of correlations between variables. This allows you to identify potential dependencies and inform the structure of your Bayesian Network.
 * **Manual Dependency Specification:** While BN Modeller can suggest potential dependencies based on correlation analysis, you retain full control over the network structure. You can manually select and specify the dependencies between variables, allowing you to incorporate domain expertise and refine the model.
 * **Bayesian Network Visualization and Export:** BN Modeller allows you to export your constructed Bayesian Networks as image files in various formats, including PNG and SVG. This enables you to easily share your findings and incorporate the visualizations into reports and presentations.

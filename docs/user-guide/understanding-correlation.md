@@ -1,4 +1,8 @@
-# Understanding Correlation Coefficients
+---
+title: Understanding Correlation Coefficients
+parent: User Guide - Welcome!
+nav_order: 2
+---
 
 BN Modeller utilizes several correlation coefficients to help you identify potential dependencies between variables when constructing Bayesian Networks. Here's a brief explanation of each:
 
