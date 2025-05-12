@@ -4,6 +4,8 @@ title: Bayesian Networks Modeler
 nav_order: 1
 ---
 
+# Bayesian Networks Modeler
+
 Welcome to the BN Modeller Documentation.
 
 BN Modeller is an open-source application designed to facilitate feature dependency modeling and evaluation using Bayesian Networks. In research fields like medicine and biology, understanding the complex relationships between different factors – such as genes, proteins, or patient characteristics – is crucial for advancing scientific discovery. BN Modeller provides a powerful tool to explore these relationships and gain deeper insights into the underlying biological or medical phenomena of interest.
