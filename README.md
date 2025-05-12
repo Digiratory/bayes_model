@@ -8,7 +8,22 @@
     <p align="center">An open-source application designed to facilitate feature dependency modeling and evaluation using Bayesian Networks.</p>
 </p>
 
+## User Guide
+
+You can obtain user guides for BN Modeller application with the following link https://digiratory.github.io/bayes_model/. It covers various aspects of using BN Modeller, including data analysis workflows, best practices, and more.
+
 ## Instalation
+
+### From sources
+
+You can install this project from sources by cloning this repository and installing it using pip:
+
+```bash
+git clone https://github.com/Digiratory/bayes_model.git && cd bayes_model
+pip install .
+```
+
+### Using PyPI
 
 You can install this project using pip:
 
@@ -16,11 +31,18 @@ You can install this project using pip:
 pip install bn_modeller
 ```
 
-or can download the latest Windows executable from the [BN Modeller GitHub Releases page](https://github.com/Digiratory/bayes_model/releases).
+### Using executable file (windows only)
+
+You can download the latest Windows executable from the [BN Modeller GitHub Releases page](https://github.com/Digiratory/bayes_model/releases).
 
 ### Graphviz
 
-A Graphviz error could arise. To solve the problem add the Graphviz executables on your systems' PATH as follows:
+A Graphviz error could arise. To solve the problem install and add the Graphviz executables on your systems' PATH as follows:
+
+<details>
+<summary>
+Windows
+</summary>
 
 1. Install windows package from: <https://graphviz.org/download/> (Linux and Mac instructions can be found here as well)
 2. Install python graphviz package
@@ -38,6 +60,19 @@ Anaconda Command prompt), restart this prompt as well to make sure the prompt fi
 environment variables.
 
 <https://pygraphviz.github.io/documentation/stable/install.html>
+
+</details>
+
+<details>
+<summary>
+Linux
+</summary>
+
+```bash
+sudo apt-get update && sudo apt-get install graphviz graphviz-dev
+```
+
+</details>
 
 ## Launch Application
 

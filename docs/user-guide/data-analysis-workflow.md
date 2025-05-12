@@ -1,3 +1,9 @@
+---
+title: Data Analysis Workflow
+parent: User Guide - Welcome!
+nav_order: 1
+---
+
 # Data Analysis Workflow
 
 After loading your data into BN Modeller, you can proceed with data analysis and model building. This section outlines the steps involved in this process.

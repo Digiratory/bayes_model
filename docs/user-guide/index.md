@@ -1,3 +1,9 @@
+---
+layout: default
+title: User Guide - Welcome!
+nav_order: 2
+---
+
 # User Guide - Welcome!
 
 This User Guide provides comprehensive instructions and explanations for using BN Modeller. Whether you're a novice or an experienced Bayesian network modeler, this guide will help you leverage the software's features to build, analyze, and visualize your networks.
