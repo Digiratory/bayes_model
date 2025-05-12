@@ -8,6 +8,10 @@
     <p align="center">An open-source application designed to facilitate feature dependency modeling and evaluation using Bayesian Networks.</p>
 </p>
 
+## User Guide
+
+You can obtain user guides for BN Modeller application with the following link https://digiratory.github.io/bayes_model/. It covers various aspects of using BN Modeller, including data analysis workflows, best practices, and more.
+
 ## Instalation
 
 ### From sources
