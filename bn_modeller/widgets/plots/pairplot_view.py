@@ -13,13 +13,16 @@ from PySide6.QtCore import (
     Slot,
 )
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget
+from scipy import stats
 
 from bn_modeller.models import RelationalSortFilterProxyModel
 from bn_modeller.models.checkable_sort_filter_proxy_model import (
     CheckableSortFilterProxyModel,
 )
 
-matplotlib.use("Qt5Agg")
+for be in ["pdf", "pgf", "ps", "svg"]:
+    matplotlib.use(be)
+matplotlib.use("qt5agg")
 
 
 class PairplotMplCanvas(FigureCanvasQTAgg):
@@ -71,9 +74,9 @@ class PairplotMplCanvas(FigureCanvasQTAgg):
                         df2_cleaned, join="inner"
                     )
 
-                    corr = np.corrcoef(df1_cleaned, df2_cleaned)[0, 1]
+                    corr = stats.spearmanr(df1_cleaned, df2_cleaned).statistic
                     ax.annotate(
-                        f"Corr: {corr:.2f}",
+                        f"{corr:.2f}",
                         xy=(0.5, 0.9),
                         xycoords="axes fraction",
                         ha="center",

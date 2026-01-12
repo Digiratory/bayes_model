@@ -18,6 +18,7 @@ class BaseWindow(QMainWindow):
         )
         self.setWindowIcon(my_icon)
         self.set_central_title(title)
+        self.statusBar().showMessage("Ready")
 
     def set_central_title(self, title):
         self.setWindowTitle(title)

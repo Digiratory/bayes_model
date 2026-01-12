@@ -14,7 +14,8 @@ dependencies = [
     "pyside6 (>=6.8.1.1,<7.0.0.0)",
     "py-banshee (>=1.1.2,<2.0.0)",
     "openpyxl (>=3.1.5,<4.0.0)",
-    "pygraphviz (>=1.14,<2.0)"
+    "pygraphviz (>=1.14,<2.0)",
+    "pingouin (>=0.5.5,<0.6.0)"
 ]
 
 [tool.poetry-dynamic-versioning]
@@ -24,6 +25,10 @@ pattern = '(?P<base>\d+\.\d+\.\d+)'
 
 [tool.poetry]
 version = "0.0.0"
+
+[tool.poetry.scripts]
+bn_modeller = "bn_modeller.app:main"
+
 [tool.poetry.requires-plugins]
 poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
 

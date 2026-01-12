@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QSplitter, QWidget
+from PySide6.QtWidgets import QLabel, QSplitter, QVBoxLayout, QWidget
 
 from bn_modeller.models import (
     CheckableSortFilterProxyModel,
@@ -20,14 +20,46 @@ class DatabasePageWidget(QSplitter):
     def _init_ui(self):
         self.setOrientation(Qt.Orientation.Horizontal)
 
-        self.featureSelectorView = SelectableListView()
-        self.addWidget(self.featureSelectorView)
+        # Left side widget with feature selector view
+        leftSideWidget = QWidget()
+        leftSideWidgetLayout = QVBoxLayout(leftSideWidget)
 
-        self.databaseView = AllSamplesView()
-        self.addWidget(self.databaseView)
+        self.featureSelectorView = SelectableListView()
+        self.featureSelectorView.setStatusTip(
+            self.tr("Select features for visualization.")
+        )
+        leftSideWidgetLayout.addWidget(self.featureSelectorView)
+
+        featureSelectorExplanationLabel = QLabel(
+            self.tr(
+                "Here you can select features to evaluate and visualize correlations between them in the pairplot view."
+            )
+        )
+        featureSelectorExplanationLabel.setWordWrap(True)
+        leftSideWidgetLayout.addWidget(featureSelectorExplanationLabel)
+
+        self.addWidget(leftSideWidget)
+
+        # Right side widget with pairplot view
+
+        rightSideWidget = QWidget()
+        rightSideWidgetLayout = QVBoxLayout(rightSideWidget)
 
         self.pairPlorView = PairplotView()
-        self.addWidget(self.pairPlorView)
+        rightSideWidgetLayout.addWidget(self.pairPlorView)
+
+        pairplotExplanationLabel = QLabel(
+            self.tr(
+                "Here you can see a pairplot of selected features. This allows you to visualize correlations between selected features. The number in the top of each subplot represents the Spearman correlation coefficient between the two features."
+            )
+        )
+        pairplotExplanationLabel.setWordWrap(True)
+        rightSideWidgetLayout.addWidget(pairplotExplanationLabel)
+
+        self.addWidget(rightSideWidget)
+
+        # self.databaseView = AllSamplesView()
+        # self.addWidget(self.databaseView)
 
     def setModels(
         self,
@@ -56,7 +88,7 @@ class DatabasePageWidget(QSplitter):
             self._sampleSqlTableModel.fieldIndex(SampleSqlTableModel.column_feature_id)
         )
 
-        self.databaseView.setModel(self.visualisationProxyModel)
+        # self.databaseView.setModel(self.visualisationProxyModel)
         self.pairPlorView.setModel(
             self.visualisationProxyModel,
             self._featureSqlTableModel.fieldIndex(FeatureSqlTableModel.column_name),

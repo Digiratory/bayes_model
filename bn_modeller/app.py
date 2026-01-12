@@ -54,6 +54,18 @@ def manage_cli_args(app: QCoreApplication) -> QCommandLineParser:
     return cl_parser
 
 
+def main():
+    app = create_application(sys.argv)
+    cl_parser = manage_cli_args(app)
+
+    if isinstance(app, QApplication):
+        main_window = MainWindow()
+        main_window.show()
+    else:
+        raise ValueError("Headless mode is not supported")
+    sys.exit(app.exec())
+
+
 if __name__ == "__main__":
     """
     Entry point of the application.
@@ -65,12 +77,4 @@ if __name__ == "__main__":
         ValueError: If headless mode is not supported.
 
     """
-    app = create_application(sys.argv)
-    cl_parser = manage_cli_args(app)
-
-    if isinstance(app, QApplication):
-        main_window = MainWindow()
-        main_window.show()
-    else:
-        raise ValueError("Headless mode is not supported")
-    sys.exit(app.exec())
+    main()

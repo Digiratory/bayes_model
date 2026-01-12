@@ -2,9 +2,12 @@ from typing import Any
 
 import matplotlib as mpl
 import numpy as np
+import pandas as pd
+import pingouin as pg
 from PySide6.QtCore import (
     QAbstractTableModel,
     QByteArray,
+    QIdentityProxyModel,
     QModelIndex,
     QObject,
     QPersistentModelIndex,
@@ -23,6 +26,7 @@ from bn_modeller.models.feature_sqltable_model import (
     PersistanceCheckableFeatureListProxyModel,
 )
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
+from bn_modeller.utils.model_adapters import tablemodel_to_dataframe
 
 
 class DependencyManyToManySqlTableModel(QSqlRelationalTableModel):
@@ -66,6 +70,8 @@ class PairTableSQLProxyModel(QAbstractTableModel):
     ValuePairsRole = Qt.ItemDataRole.UserRole + 1
     PearsonCorrRole = Qt.ItemDataRole.UserRole + 2
     SpearmanCorrRole = Qt.ItemDataRole.UserRole + 3
+    PearsonPValueRole = Qt.ItemDataRole.UserRole + 4
+    SpearmanPValueRole = Qt.ItemDataRole.UserRole + 5
 
     def __init__(
         self,
@@ -78,8 +84,12 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         self._featureSqlTableModel = featureSqlTableModel
 
         self._cacheValuePairsRole = {}
+
         self._cachePearsonCorrRole = {}
+        self._cachePearsonPValueRole = {}
+
         self._cacheSpearmanCorrRole = {}
+        self._cacheSpearmanPValueRole = {}
 
         self._settings = QSettings()
         self._correlationColormap = mpl.colormaps[
@@ -96,9 +106,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         return self._getFeaturesCount()
 
     def data(self, item: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        if role == Qt.ItemDataRole.DisplayRole:
-            return f"{self.data(item=item, role=self.PearsonCorrRole):.2f}/{self.data(item=item, role=self.SpearmanCorrRole):.2f}"
-        elif role == Qt.ItemDataRole.CheckStateRole:
+        if role == Qt.ItemDataRole.CheckStateRole:
             return (
                 Qt.CheckState.Checked
                 if self._getConnectionState(item)
@@ -121,11 +129,19 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                     self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)] = (
                         pearsonCorr.correlation
                     )
+                    self._cachePearsonPValueRole[(firstFeatureId, secondFeatureId)] = (
+                        pearsonCorr.pvalue
+                    )
                 except ValueError:
                     self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)] = (
                         np.nan
                     )
             return self._cachePearsonCorrRole[(firstFeatureId, secondFeatureId)]
+        elif role == self.PearsonPValueRole:
+            firstFeatureId, secondFeatureId = self._indexToId(index=item)
+            if (firstFeatureId, secondFeatureId) not in self._cachePearsonPValueRole:
+                self.data(item=item, role=self.PearsonCorrRole)
+            return self._cachePearsonPValueRole[(firstFeatureId, secondFeatureId)]
         elif role == self.SpearmanCorrRole:
             firstFeatureId, secondFeatureId = self._indexToId(index=item)
             if (firstFeatureId, secondFeatureId) not in self._cacheSpearmanCorrRole:
@@ -135,7 +151,15 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                 self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)] = (
                     spearmanrCorr.statistic
                 )
+                self._cacheSpearmanPValueRole[(firstFeatureId, secondFeatureId)] = (
+                    spearmanrCorr.pvalue
+                )
             return self._cacheSpearmanCorrRole[(firstFeatureId, secondFeatureId)]
+        elif role == self.SpearmanPValueRole:
+            firstFeatureId, secondFeatureId = self._indexToId(index=item)
+            if (firstFeatureId, secondFeatureId) not in self._cacheSpearmanPValueRole:
+                self.data(item=item, role=self.SpearmanCorrRole)
+            return self._cacheSpearmanPValueRole[(firstFeatureId, secondFeatureId)]
         elif role == Qt.ItemDataRole.BackgroundRole:
             if item.column() == item.row():
                 return None
@@ -186,6 +210,8 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         d[self.ValuePairsRole] = "Values".encode()
         d[self.PearsonCorrRole] = "PearsonCorr".encode()
         d[self.SpearmanCorrRole] = "SpearmanCorr".encode()
+        d[self.PearsonPValueRole] = "PearsonPValue".encode()
+        d[self.SpearmanPValueRole] = "SpearmanPValue".encode()
         return d
 
     def setHeaderData(
@@ -287,19 +313,55 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         )
         return v
 
+    def _getFeatureSamples(self, featureId: int) -> np.ndarray:
+        query = QSqlQuery(
+            f"select\
+            s.{SampleSqlTableModel.column_sample_id} sampleId,\
+            max(case when s.{SampleSqlTableModel.column_feature_id}={featureId} then s.{SampleSqlTableModel.column_value} end) feature\
+            from {SampleSqlTableModel.table_name} as s\
+            join {FeatureSqlTableModel.table_name} as f \
+            on f.{FeatureSqlTableModel.column_id}=s.{SampleSqlTableModel.column_feature_id}\
+            group by sampleId\
+            order by sampleId\
+            ",
+            self._db,
+        )
+        if not query.exec():
+            raise RuntimeError(
+                f"Unable to retrieve row count from DB: {query.lastError()}"
+            )
+        featureFieldNo = query.record().indexOf("feature")
+        values = []
+        while query.next():
+            # sampleTdValue: int = query.value(sampleTdValueFieldNo)
+            featureValue = query.value(featureFieldNo)
+            if isinstance(featureValue, str):
+                featureValue = float(featureValue) if len(featureValue) > 0 else np.nan
+            elif isinstance(featureValue, float):
+                featureValue = float(featureValue)
+            else:
+                raise RuntimeError(
+                    f"Unexpected type for firstFeatureFieldNo({featureFieldNo}): {type(featureValue)}"
+                )
+            values.append(featureValue)
+        return np.array(values)
+
     def _getFeaturePairSamples(
         self, firstFeatureId: int, secondFeatureId: int
     ) -> np.ndarray:
+        if firstFeatureId == secondFeatureId:
+            return np.tile(self._getFeatureSamples(firstFeatureId), (2, 1))
 
         query = QSqlQuery(
             f"select\
-            s.{SampleSqlTableModel.column_sample_id},\
+            s.{SampleSqlTableModel.column_sample_id} sampleId,\
             max(case when s.{SampleSqlTableModel.column_feature_id}={firstFeatureId} then s.{SampleSqlTableModel.column_value} end) firstFeature,\
             max(case when s.{SampleSqlTableModel.column_feature_id}={secondFeatureId} then s.{SampleSqlTableModel.column_value} end) secondFeature\
-            from {SampleSqlTableModel.table_name} s\
-            join {FeatureSqlTableModel.table_name} f on\
-            f.{FeatureSqlTableModel.column_id}=s.{SampleSqlTableModel.column_feature_id}\
-            group by s.{SampleSqlTableModel.column_sample_id}\
+            from {SampleSqlTableModel.table_name} as s\
+            join {FeatureSqlTableModel.table_name} as f \
+            on f.{FeatureSqlTableModel.column_id}=s.{SampleSqlTableModel.column_feature_id}\
+            group by sampleId\
+            order by sampleId\
             ",
             self._db,
         )
@@ -400,3 +462,122 @@ class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
             self._filter_cache[k] = v == Qt.CheckState.Checked
         self.invalidateFilter()
         self.filterInvalidated.emit()
+
+
+class CorrelationSQLProxyModel(QIdentityProxyModel):
+    partialCorrGeneralError = Signal()
+    PartialCorrRole = Qt.ItemDataRole.UserRole + 10
+    PartialPValueRole = Qt.ItemDataRole.UserRole + 11
+
+    def __init__(
+        self, sourceModel: FilterPairTableSQLProxyModel, parent: QObject = None
+    ):
+        super().__init__(parent)
+        self._partial_corr_matrix = None
+        self._partial_corr_pvalue_matrix = None
+        self.sourceModelChanged.connect(self._sourceModelChangedHandler)
+        self.setSourceModel(sourceModel)
+
+    def data(self, item: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
+        if role == Qt.ItemDataRole.DisplayRole:
+            spearmanCorr = self.data(
+                item=item, role=PairTableSQLProxyModel.SpearmanCorrRole
+            )
+            partialCorr = self.data(item=item, role=self.PartialCorrRole)
+            return f"{spearmanCorr:.2F} / {partialCorr:.2F}"
+        elif role == self.PartialCorrRole:
+            return self._partialPartialCorrelationMatrix()[item.row(), item.column()]
+        elif role == self.PartialPValueRole:
+            return self._partialPartialCorrelationPvalueMatrix()[
+                item.row(), item.column()
+            ]
+        else:
+            return super().data(item, role)
+
+    def flags(self, index):
+        return Qt.ItemFlag.ItemIsSelectable | super().flags(index)
+
+    @Slot()
+    def _sourceModelChangedHandler(self):
+        # self.sourceModel().dataChanged.connect(self._invalidatePartialCorrelationMatrix)
+        self.sourceModel().filterInvalidated.connect(
+            self._invalidatePartialCorrelationMatrix
+        )
+
+    def _invalidatePartialCorrelationMatrix(self):
+        """Invalidate the cached partial correlation matrix."""
+        self._partial_corr_matrix = None
+        self._partial_corr_pvalue_matrix = None
+
+    def _partialPartialCorrelationMatrix(self) -> np.ndarray:
+        """Returns the cached partial correlation matrix. If it is not cached, it will be evaluated and cached.
+
+        Returns:
+            np.ndarray: Partial correlation matrix
+        """
+        if self._partial_corr_matrix is None:
+            self._partial_corr_matrix, self._partial_corr_pvalue_matrix = (
+                self._evaluatePartialCorrelationMatrix()
+            )
+        return self._partial_corr_matrix
+
+    def _partialPartialCorrelationPvalueMatrix(self) -> np.ndarray:
+        if self._partial_corr_pvalue_matrix is None:
+            self._partial_corr_matrix, self._partial_corr_pvalue_matrix = (
+                self._evaluatePartialCorrelationMatrix()
+            )
+        return self._partial_corr_pvalue_matrix
+
+    def _evaluatePartialCorrelationMatrix(self) -> tuple[np.ndarray, np.ndarray]:
+        """Evaluate the partial correlation matrix.
+
+        Returns:
+            np.ndarray: Partial correlation matrix.
+        """
+        featuresCount = self.columnCount()
+        if featuresCount <= 1:
+            return np.array([[]])
+
+        data_pd = pd.DataFrame(
+            columns=[
+                self.headerData(c, Qt.Orientation.Horizontal)
+                for c in range(featuresCount)
+            ]
+        )
+
+        d = {}
+        for r in range(featuresCount):
+            data_np = self.data(
+                self.index(r, r), role=PairTableSQLProxyModel.ValuePairsRole
+            )
+            d[r] = data_np[0]
+        df = pd.DataFrame(d)
+
+        pcorrMatrix = np.eye(featuresCount, dtype=float)
+        pvalMatrix = np.eye(featuresCount, dtype=float)
+
+        hasNan = False
+        for i in range(featuresCount):
+            for j in range(i + 1, featuresCount):
+                covar_features = list(range(featuresCount))
+                covar_features.remove(i)
+                covar_features.remove(j)
+                try:
+                    pcorr_df = df.partial_corr(x=i, y=j, covar=covar_features)
+                    pcorrMatrix[i, j] = pcorrMatrix[j, i] = pcorr_df["r"].iloc[0]
+                    pvalMatrix[i, j] = pvalMatrix[j, i] = pcorr_df["p-val"].iloc[0]
+                except AssertionError:
+                    pcorrMatrix[i, j] = pcorrMatrix[j, i] = np.nan
+                    pvalMatrix[i, j] = pvalMatrix[j, i] = np.nan
+                    hasNan = True
+
+        if hasNan and np.isnan(pvalMatrix).sum() == (featuresCount**2 - featuresCount):
+            try:
+                self.partialCorrGeneralError.emit()
+                pcorrMatrix = df.pcorr().to_numpy()
+                pvalMatrix = np.full((featuresCount, featuresCount), np.nan)
+            except np.linalg.LinAlgError as e:
+                # self.partialCorrGeneralError.emit()
+                pcorrMatrix = np.full((featuresCount, featuresCount), np.nan)
+                pvalMatrix = np.full((featuresCount, featuresCount), np.nan)
+        return pcorrMatrix, pvalMatrix
