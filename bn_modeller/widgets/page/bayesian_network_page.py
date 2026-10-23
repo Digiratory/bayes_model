@@ -84,9 +84,9 @@ class BayesianNetworkPageWidget(QWidget):
 
         self.tabWidget.addTab(self.visualizationTabWidget, self.tr("Visulization"))
 
-        # Inference Tab
+        # Prediction Tab
         self.inferenceTabWidget = BayesianInferencePageWidget()
-        self.tabWidget.addTab(self.inferenceTabWidget, self.tr("Inference"))
+        self.tabWidget.addTab(self.inferenceTabWidget, self.tr("Prediction"))
 
         # Finalization
         self.mainLayout.addWidget(self.tabWidget)
@@ -130,6 +130,9 @@ class BayesianNetworkPageWidget(QWidget):
         self._depTable.setModel(self._correlationModel)
 
         self.visualizationTabWidget.setModels(self._correlationModel)
+
+        # Set correlation model for prediction tab
+        self.inferenceTabWidget.setModels(self._correlationModel)
 
     @Slot()
     def onPartialCorrError(self):
