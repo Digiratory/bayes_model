@@ -55,16 +55,34 @@ class _PredictionWorker(QObject):
     @Slot()
     def run(self):
         try:
+            # py-banshee builds the empirical margins with an ECDF normalized
+            # by the full row count, so NaN rows shrink the interpolation
+            # range below 1.0 and crash the inference. Quantify the network
+            # on complete observations only; predict for every sample with
+            # complete input values (missing targets still get predicted).
+            quantSamples = self._samples.dropna()
+            if quantSamples.empty:
+                self.failed.emit(
+                    self.tr(
+                        "No complete samples are available.\n\n"
+                        "Prediction requires at least one sample without "
+                        "missing values in the network features."
+                    )
+                )
+                return
+
             banshee = BansheeCalc(
                 list(range(len(self._connectedFeatures))),
                 self._edgeList,
-                self._samples,
+                quantSamples,
             )
             if banshee.getRankCorr() is None:
                 self.failed.emit(
                     self.tr(
                         "Failed to reconstruct the rank correlation matrix.\n\n"
-                        "This is likely caused by missing values in the dataset."
+                        "This is likely caused by degenerate features "
+                        "(e.g. features with constant or almost constant values) "
+                        "in the dataset."
                     )
                 )
                 return
@@ -90,8 +108,8 @@ class _PredictionWorker(QObject):
             for target in self._targetFeatures:
                 result[PREDICTED_PREFIX + target] = predictions[target].to_numpy()
         except Exception as e:
-            # py-banshee raises on invalid inputs (e.g. missing values in a
-            # target feature); report it instead of failing silently in a slot.
+            # py-banshee raises on invalid inputs (e.g. out-of-range values);
+            # report it instead of failing silently in a slot.
             self.failed.emit(str(e))
             return
         self.finished.emit(result)

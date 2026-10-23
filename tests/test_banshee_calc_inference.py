@@ -102,3 +102,27 @@ def test_rescale_feature_constant_vector_does_not_divide_by_zero():
     rescaled = rescale_feature(np.array([5.0, 5.0, 5.0]), 10.0, 20.0)
 
     assert rescaled == [10.0, 10.0, 10.0]
+
+
+def test_get_inference_quantified_on_complete_rows_handles_nan_targets():
+    # Regression: py-banshee normalizes its ECDF by the full row count, so
+    # NaN rows in the quantification data shrink the interpolation range
+    # below 1.0 and inference crashes with "above the interpolation range's
+    # maximum value". Quantifying on complete rows only (page behavior)
+    # must allow predicting every sample with complete inputs, including
+    # rows whose targets are missing.
+    np.random.seed(0)
+    df = make_dataset()
+    df.loc[5, "y_small"] = np.nan
+
+    calc = make_calc(df.dropna())
+    assert calc.getRankCorr() is not None
+
+    input_features = ["x1", "x2"]
+    predictions = calc.getInference(input_features, df[input_features].to_numpy())
+
+    assert predictions.shape == (len(df), 2)
+    assert list(predictions.columns) == ["y_small", "y_large"]
+    # The prediction for the row with the NaN target is still produced and
+    # tracks the target scale.
+    assert predictions["y_small"].corr(df["y_small"].dropna()) > 0.8
