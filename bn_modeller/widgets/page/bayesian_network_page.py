@@ -25,7 +25,10 @@ from bn_modeller.utils.model_adapters import tablemodel_to_dataframe
 from bn_modeller.widgets import DependencySetupTableView, SelectableListView
 from bn_modeller.widgets.bn_visualization_view import BayesianNetView
 from bn_modeller.widgets.page.bayesian_inference_page import BayesianInferencePageWidget
-from bn_modeller.widgets.prediction_results_dialog import PredictionResultsDialog
+from bn_modeller.widgets.prediction_results_dialog import (
+    PREDICTED_PREFIX,
+    PredictionResultsDialog,
+)
 from bn_modeller.widgets.vertical_label import QVertivalLabel
 
 
@@ -289,7 +292,7 @@ class BayesianNetworkPageWidget(QWidget):
         result = samples.loc[validMask, targetFeatures].reset_index(drop=True)
         for target in targetFeatures:
             lower, upper = samples[target].min(), samples[target].max()
-            result[self.tr("Predicted ") + target] = rescale_feature(
+            result[PREDICTED_PREFIX + target] = rescale_feature(
                 predictions[target].to_numpy(), lower, upper
             )
 
