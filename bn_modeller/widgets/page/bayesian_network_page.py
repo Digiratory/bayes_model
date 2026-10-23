@@ -1,17 +1,16 @@
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import QCoreApplication, QObject, Qt, QThread, Signal, Slot
 from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QMessageBox,
+    QProgressDialog,
     QSplitter,
     QTabWidget,
     QWidget,
 )
 
-from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
 from bn_modeller.bayesian_nets.pyBansheeCalculation import BansheeCalc
-from bn_modeller.bayesian_nets.utils import rescale_feature
 from bn_modeller.models import (
     CorrelationSQLProxyModel,
     FilterPairTableSQLProxyModel,
@@ -21,7 +20,6 @@ from bn_modeller.models.feature_sqltable_model import (
     FeatureSqlTableModel,
     PersistanceCheckableFeatureListProxyModel,
 )
-from bn_modeller.utils.model_adapters import tablemodel_to_dataframe
 from bn_modeller.widgets import DependencySetupTableView, SelectableListView
 from bn_modeller.widgets.bn_visualization_view import BayesianNetView
 from bn_modeller.widgets.page.bayesian_inference_page import BayesianInferencePageWidget
@@ -32,9 +30,78 @@ from bn_modeller.widgets.prediction_results_dialog import (
 from bn_modeller.widgets.vertical_label import QVertivalLabel
 
 
+class _PredictionWorker(QObject):
+    """Runs the CPU-bound Bayesian-network prediction off the GUI thread."""
+
+    finished = Signal(object)
+    failed = Signal(str)
+
+    def __init__(
+        self,
+        connectedFeatures,
+        edgeList,
+        samples,
+        inputFeatures,
+        targetFeatures,
+        parent=None,
+    ):
+        super().__init__(parent)
+        self._connectedFeatures = connectedFeatures
+        self._edgeList = edgeList
+        self._samples = samples
+        self._inputFeatures = inputFeatures
+        self._targetFeatures = targetFeatures
+
+    @Slot()
+    def run(self):
+        try:
+            banshee = BansheeCalc(
+                list(range(len(self._connectedFeatures))),
+                self._edgeList,
+                self._samples,
+            )
+            if banshee.getRankCorr() is None:
+                self.failed.emit(
+                    self.tr(
+                        "Failed to reconstruct the rank correlation matrix.\n\n"
+                        "This is likely caused by missing values in the dataset."
+                    )
+                )
+                return
+
+            inputSamples = self._samples[self._inputFeatures]
+            validMask = inputSamples.notna().all(axis=1).to_numpy()
+            if not validMask.any():
+                self.failed.emit(
+                    self.tr(
+                        "All samples contain missing values in the input features.\n\n"
+                        "Predictions require samples with complete input values."
+                    )
+                )
+                return
+
+            predictions = banshee.getInference(
+                self._inputFeatures, inputSamples.to_numpy()[validMask]
+            )
+
+            result = self._samples.loc[validMask, self._targetFeatures].reset_index(
+                drop=True
+            )
+            for target in self._targetFeatures:
+                result[PREDICTED_PREFIX + target] = predictions[target].to_numpy()
+        except Exception as e:
+            # py-banshee raises on invalid inputs (e.g. missing values in a
+            # target feature); report it instead of failing silently in a slot.
+            self.failed.emit(str(e))
+            return
+        self.finished.emit(result)
+
+
 class BayesianNetworkPageWidget(QWidget):
     def __init__(self, parent: QWidget | None = None, f=Qt.WindowType()):
         super().__init__(parent, f)
+        self._predictionThread = None
+        QCoreApplication.instance().aboutToQuit.connect(self._stopPredictionThread)
         self._init_ui()
 
     def _init_ui(self):
@@ -168,35 +235,11 @@ class BayesianNetworkPageWidget(QWidget):
 
     @Slot()
     def onPredict(self):
-        # Gather the visualization settings, mirroring BayesianNetView.drawBN
-        visualizationView = self.visualizationTabWidget
-        correlationTypeIndex = visualizationView.correlationTypeComboBox.currentIndex()
-        corrRole = visualizationView.correlationTypeComboBoxMapping[
-            correlationTypeIndex
-        ]
+        if self._predictionThread is not None:
+            return
 
-        pvalueMatrix = None
-        if visualizationView.filterByPValueCheckBox.isChecked():
-            pvalueRole = visualizationView.pvalueTypeComboBoxMapping[
-                correlationTypeIndex
-            ]
-            pvalueMatrix = tablemodel_to_dataframe(
-                self._correlationModel, role=pvalueRole
-            )
-
-        corrMatrix = tablemodel_to_dataframe(self._correlationModel, role=corrRole)
-        linkTable = tablemodel_to_dataframe(
-            self._correlationModel, role=Qt.ItemDataRole.CheckStateRole
-        )
-
-        graph = GraphPreparation(
-            corrMatrix,
-            linkTable,
-            visualizationView.threadSliderWidget.value(),
-            pvalue_matrix=pvalueMatrix,
-            pvalue_threshold=0.05,
-        )
-        graph.drop_cycle()
+        # Build exactly the network the user sees in the Visualization tab.
+        graph, corrMatrix = self.visualizationTabWidget.buildGraph()
 
         if len(graph.getEdgeList()) == 0:
             self._showPredictionError(
@@ -260,41 +303,72 @@ class BayesianNetworkPageWidget(QWidget):
             )
             return
 
+        # Qt SQL objects have thread affinity: extract the samples on the GUI
+        # thread and run only the CPU-bound inference in the worker.
         pairTableModel = self._correlationModel.sourceModel().sourceModel()
         samples = pairTableModel.getSamplesDataFrame()
         samples = samples[connectedFeatures]
 
-        banshee = BansheeCalc(list(range(len(connectedFeatures))), edgeList, samples)
-        if banshee.getRankCorr() is None:
-            self._showPredictionError(
-                self.tr(
-                    "Failed to reconstruct the rank correlation matrix.\n\n"
-                    "This is likely caused by missing values in the dataset."
-                )
-            )
-            return
-
-        inputSamples = samples[inputFeatures]
-        validMask = inputSamples.notna().all(axis=1).to_numpy()
-        if not validMask.any():
-            self._showPredictionError(
-                self.tr(
-                    "All samples contain missing values in the input features.\n\n"
-                    "Predictions require samples with complete input values."
-                )
-            )
-            return
-
-        predictions = banshee.getInference(
-            inputFeatures, inputSamples.to_numpy()[validMask]
+        self._startPredictionWorker(
+            connectedFeatures, edgeList, samples, inputFeatures, targetFeatures
         )
 
-        result = samples.loc[validMask, targetFeatures].reset_index(drop=True)
-        for target in targetFeatures:
-            lower, upper = samples[target].min(), samples[target].max()
-            result[PREDICTED_PREFIX + target] = rescale_feature(
-                predictions[target].to_numpy(), lower, upper
-            )
+    def _stopPredictionThread(self):
+        """Finish a running prediction before the widget tree is destroyed.
 
+        The worker cannot be interrupted, so this blocks until the current
+        inference completes; that is still safer than destroying a running
+        QThread, which aborts the process.
+        """
+        if self._predictionThread is not None:
+            self._predictionThread.quit()
+            self._predictionThread.wait()
+
+    def _startPredictionWorker(
+        self,
+        connectedFeatures,
+        edgeList,
+        samples,
+        inputFeatures,
+        targetFeatures,
+    ):
+        """Run the prediction in a worker thread with a busy progress dialog."""
+        self._predictionProgress = QProgressDialog(
+            self.tr("Computing predictions..."), None, 0, 0, self
+        )
+        self._predictionProgress.setWindowTitle(self.tr("Prediction"))
+        self._predictionProgress.setWindowModality(Qt.WindowModality.WindowModal)
+        self._predictionProgress.setMinimumDuration(0)
+        self._predictionProgress.show()
+
+        self._predictionThread = QThread(self)
+        self._predictionWorker = _PredictionWorker(
+            connectedFeatures, edgeList, samples, inputFeatures, targetFeatures
+        )
+        self._predictionWorker.moveToThread(self._predictionThread)
+
+        self._predictionThread.started.connect(self._predictionWorker.run)
+        self._predictionWorker.finished.connect(self._onPredictionFinished)
+        self._predictionWorker.failed.connect(self._onPredictionFailed)
+        self._predictionWorker.finished.connect(self._predictionThread.quit)
+        self._predictionWorker.failed.connect(self._predictionThread.quit)
+        self._predictionThread.finished.connect(self._onPredictionThreadFinished)
+        self._predictionThread.finished.connect(self._predictionWorker.deleteLater)
+        self._predictionThread.finished.connect(self._predictionThread.deleteLater)
+        self._predictionThread.start()
+
+    @Slot(object)
+    def _onPredictionFinished(self, result):
         dialog = PredictionResultsDialog(result, self)
         dialog.exec()
+
+    @Slot(str)
+    def _onPredictionFailed(self, message):
+        self._showPredictionError(self.tr("Prediction failed:\n{}").format(message))
+
+    @Slot()
+    def _onPredictionThreadFinished(self):
+        self._predictionProgress.close()
+        self._predictionProgress = None
+        self._predictionWorker = None
+        self._predictionThread = None

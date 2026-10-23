@@ -7,15 +7,19 @@ F = -1 / (2 ** (1 / 2) * erfcinv(3 / 2))
 
 
 def rescale_feature(input_vector, lower, upper):
-    """Rescale a vector to [lower, upper] keeping the observed min/max span."""
-    xmin, xmax = np.min(input_vector), np.max(
-        input_vector
-    )  # get max and min from input array
+    """Rescale a vector to [lower, upper] keeping the observed min/max span.
 
-    input_vector = [(x - xmin) / (xmax - xmin) for x in input_vector]
+    A constant input vector is mapped to ``lower`` instead of dividing by
+    zero (which would silently produce NaN).
+    """
+    input_vector = np.asarray(input_vector, dtype=float)
+    xmin, xmax = np.min(input_vector), np.max(input_vector)
+    span = xmax - xmin
+    if span == 0:
+        return [lower] * input_vector.size
 
-    input_vector = [lower + (upper - lower) * x for x in input_vector]
-    return input_vector
+    scaled = (input_vector - xmin) / span
+    return [lower + (upper - lower) * x for x in scaled]
 
 
 def check_non_select_table(df):

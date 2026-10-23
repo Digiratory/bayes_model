@@ -98,20 +98,3 @@ class ThresholdControlWidget(QWidget):
         self.threshold_slider.blockSignals(True)
         self.threshold_slider.setValue(round(value * _SLIDER_SCALE))
         self.threshold_slider.blockSignals(False)
-
-    def setThreshold(self, threshold_type: str, threshold_value: float):
-        """Set threshold type and value programmatically and notify"""
-        index = self.threshold_type_combo.findText(threshold_type)
-        if index >= 0:
-            self.threshold_type_combo.blockSignals(True)
-            self.threshold_type_combo.setCurrentIndex(index)
-            self.threshold_type_combo.blockSignals(False)
-
-        self._setValue(threshold_value)
-        self.thresholdChanged.emit(
-            self.threshold_type_combo.currentText(), self.threshold_display.value()
-        )
-
-    def getThreshold(self) -> tuple[str, float]:
-        """Get current threshold settings"""
-        return self.threshold_type_combo.currentText(), self.threshold_display.value()

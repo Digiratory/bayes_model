@@ -79,15 +79,6 @@ class FeatureSelectionTableModel(QAbstractTableModel):
         ]
         self.endResetModel()
 
-    def criterion(self) -> str:
-        return self._criterion
-
-    def setCriterion(self, criterion: str):
-        if criterion == self._criterion:
-            return
-        self._criterion = criterion
-        self._refreshAll()
-
     def setCriterionThreshold(self, criterion: str, threshold: float):
         """Set criterion and threshold atomically with a single refresh."""
         changed = criterion != self._criterion or threshold != self._threshold
@@ -95,15 +86,6 @@ class FeatureSelectionTableModel(QAbstractTableModel):
         self._threshold = threshold
         if changed:
             self._refreshAll()
-
-    def threshold(self) -> float:
-        return self._threshold
-
-    def setThreshold(self, threshold: float):
-        if threshold == self._threshold:
-            return
-        self._threshold = threshold
-        self._refreshAll()
 
     def metric(self, row: int) -> float:
         return self._rows[row]["metrics"][self._criterion]
@@ -129,19 +111,8 @@ class FeatureSelectionTableModel(QAbstractTableModel):
                 [Qt.ItemDataRole.DisplayRole],
             )
 
-    def featureNames(self) -> list[str]:
-        return [row["name"] for row in self._rows]
-
     def selectedNames(self) -> list[str]:
         return [row["name"] for row in self._rows if row["selected"]]
-
-    def availableNames(self) -> list[str]:
-        """Names of all unselected features.
-
-        This includes features currently filtered out by the threshold;
-        it is not the visible content of the left panel.
-        """
-        return [row["name"] for row in self._rows if not row["selected"]]
 
     def _refreshAll(self):
         if not self._rows:

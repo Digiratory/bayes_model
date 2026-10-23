@@ -153,10 +153,6 @@ class FeatureSelectionWidget(QWidget):
         """Get the names of the selected features"""
         return self._table_model.selectedNames()
 
-    def getAvailableFeatures(self) -> list[str]:
-        """Get the names of the available (not selected) features"""
-        return self._table_model.availableNames()
-
     def hasAvailableFeatures(self) -> bool:
         """Check the left panel: any not-selected feature passes the threshold"""
         return self.available_model.rowCount() > 0

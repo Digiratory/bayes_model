@@ -1,6 +1,6 @@
-from typing import Callable, Tuple
-
 import networkx as nx
+
+DEFAULT_PVALUE_THRESHOLD = 0.05
 
 
 def melt_matrix(matrix):
@@ -23,7 +23,7 @@ class GraphPreparation:
         table_connection,
         threshold,
         pvalue_matrix=None,
-        pvalue_threshold=0.05,
+        pvalue_threshold=DEFAULT_PVALUE_THRESHOLD,
     ):
         if pvalue_matrix is not None:
             assert (
@@ -60,7 +60,7 @@ class GraphPreparation:
 
         self.G.add_weighted_edges_from(e)
 
-    def drop_cycle(self, onRemoveEdgeHandler: Callable[[Tuple[int, int]], None] = None):
+    def drop_cycle(self):
         while True:
             try:
                 cycle_list = nx.find_cycle(self.G)
@@ -77,17 +77,12 @@ class GraphPreparation:
                     min_nodes = i
 
             self.G.remove_edge(*min_nodes)
-            if onRemoveEdgeHandler is not None:
-                onRemoveEdgeHandler(min_nodes)
 
     def getNodeList(self):
         return self.G.nodes
 
     def getEdgeList(self):
         return self.G.edges
-
-    def getInternalGraph(self):
-        return self.G
 
     def getGraph(self) -> nx.Graph:
         k = {val: key for key, val in self.code_columns.items()}

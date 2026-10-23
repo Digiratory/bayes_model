@@ -94,3 +94,11 @@ def test_rescale_feature():
     assert rescaled[0] == pytest.approx(10.0)
     assert rescaled[1] == pytest.approx(15.0)
     assert rescaled[2] == pytest.approx(20.0)
+
+
+def test_rescale_feature_constant_vector_does_not_divide_by_zero():
+    # A constant predicted vector (e.g. a single valid sample row) must not
+    # produce all-NaN output; it maps to the lower bound instead.
+    rescaled = rescale_feature(np.array([5.0, 5.0, 5.0]), 10.0, 20.0)
+
+    assert rescaled == [10.0, 10.0, 10.0]

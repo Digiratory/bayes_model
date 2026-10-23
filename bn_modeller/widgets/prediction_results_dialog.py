@@ -22,6 +22,15 @@ from PySide6.QtWidgets import (
 from bn_modeller.bayesian_nets.utils import get_outliers_cooks
 
 PREDICTED_PREFIX = "Predicted "
+_CSV_FORMULA_PREFIXES = ("=", "+", "-", "@")
+
+
+def _csvSafeHeader(name) -> str:
+    """Neutralize spreadsheet formula injection in exported CSV headers."""
+    text = str(name)
+    if text.startswith(_CSV_FORMULA_PREFIXES):
+        return "'" + text
+    return text
 
 
 class PredictionScatterCanvas(FigureCanvasQTAgg):
@@ -123,12 +132,13 @@ class PredictionResultsDialog(QDialog):
         table.setHorizontalHeaderLabels(
             [str(column) for column in self._results.columns]
         )
-        for row in range(len(self._results)):
-            for column_index, column in enumerate(self._results.columns):
+        values = self._results.to_numpy(dtype=object)
+        for row in range(values.shape[0]):
+            for column_index in range(values.shape[1]):
                 table.setItem(
                     row,
                     column_index,
-                    QTableWidgetItem(self._format(self._results.iloc[row][column])),
+                    QTableWidgetItem(self._format(values[row, column_index])),
                 )
         return table
 
@@ -158,7 +168,9 @@ class PredictionResultsDialog(QDialog):
         if not path:
             return
         try:
-            self._results.to_csv(path)
+            export = self._results.copy()
+            export.columns = [_csvSafeHeader(column) for column in export.columns]
+            export.to_csv(path)
         except OSError as e:
             QMessageBox.critical(
                 self,

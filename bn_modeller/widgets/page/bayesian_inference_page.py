@@ -35,10 +35,6 @@ class BayesianInferencePageWidget(QWidget):
         """Get the list of selected features"""
         return self.feature_selection_widget.getSelectedFeatures()
 
-    def getAvailableFeatures(self) -> list[str]:
-        """Get the list of available features"""
-        return self.feature_selection_widget.getAvailableFeatures()
-
     def hasAvailableFeatures(self) -> bool:
         """Check the available panel: any not-selected feature passes the threshold"""
         return self.feature_selection_widget.hasAvailableFeatures()
