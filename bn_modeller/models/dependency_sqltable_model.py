@@ -99,6 +99,28 @@ class PairTableSQLProxyModel(QAbstractTableModel):
     def getFeatureSqlTableModel(self):
         return self._featureSqlTableModel
 
+    def getSamplesDataFrame(self) -> pd.DataFrame:
+        """Assemble the samples table from the database.
+
+        Columns are the feature names (in feature order), rows are the
+        samples (ordered by sample id). Missing feature values are NaN.
+
+        Returns:
+            pd.DataFrame: Samples per feature.
+        """
+        names = []
+        columns = []
+        for feature_index in range(self._getFeaturesCount()):
+            names.append(self._getFeatureName(feature_index))
+            feature_id = self._rowToFeatureId(feature_index)
+            columns.append(self._getFeatureSamples(feature_id))
+
+        # Positional keys keep duplicated feature names from collapsing
+        # columns before the rename.
+        samples = pd.DataFrame({i: column for i, column in enumerate(columns)})
+        samples.columns = names
+        return samples
+
     def columnCount(self, index: QModelIndex = QModelIndex()) -> int:
         return self._getFeaturesCount()
 
@@ -274,6 +296,16 @@ class PairTableSQLProxyModel(QAbstractTableModel):
                 f"Unable to retrieve row count from DB: {query.lastError()}"
             )
 
+    def _rowToFeatureId(self, feature_index: int):
+        return self._featureSqlTableModel.data(
+            self._featureSqlTableModel.index(
+                feature_index,
+                self._featureSqlTableModel.fieldIndex(
+                    self._featureSqlTableModel.column_id
+                ),
+            )
+        )
+
     def _indexToId(self, index: QModelIndex) -> tuple[int, int]:
         source_id = self._featureSqlTableModel.data(
             self._featureSqlTableModel.index(
@@ -335,7 +367,10 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         while query.next():
             # sampleTdValue: int = query.value(sampleTdValueFieldNo)
             featureValue = query.value(featureFieldNo)
-            if isinstance(featureValue, str):
+            if featureValue is None:
+                # SQL NULL marks a sample without a value for this feature
+                featureValue = np.nan
+            elif isinstance(featureValue, str):
                 featureValue = float(featureValue) if len(featureValue) > 0 else np.nan
             elif isinstance(featureValue, float):
                 featureValue = float(featureValue)
