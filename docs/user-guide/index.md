@@ -15,6 +15,11 @@ This User Guide provides comprehensive instructions and explanations for using B
   * [Launching BN Modeller](#launching-bn-modeller)
   * [Understanding the Interface and workflow](#understanding-the-interface-and-workflow)
 
+* [Guides](#guides)
+  * [Data Analysis Workflow](data-analysis-workflow.html)
+  * [Understanding Correlation Coefficients](understanding-correlation.html)
+  * [Predicting Values](prediction.html)
+
 * [Troubleshooting](#troubleshooting)
 * [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 
@@ -74,7 +79,7 @@ Upon startup, the Project Selection Dialog appears. This dialog allows you to ei
 Open an Existing Project: Select a previously saved project from the list. This will load the data and any existing network structure.
 Create a New Project: Choose this option to start a new project from scratch. You'll be prompted to specify a project name and location.
 
-Detailed instructions on how to use this dialog are provided on the page [Project Selection](/user-guide/project_selection.html).
+Detailed instructions on how to use this dialog are provided on the page Project Selection.
 
 #### 2. Evaluation of Variables Correlation
 
@@ -128,6 +133,12 @@ The Bayesian Network Visualization page provides a graphical representation of y
 * Partial Correlation
 
 **Threshold Adjustment:** A slider or input field allows you to adjust the threshold for edge visualization. This controls which dependencies are displayed as edges in the network graph. Lower thresholds show more edges, while higher thresholds show fewer edges.
+
+## Guides
+
+* [Data Analysis Workflow](data-analysis-workflow.html) — from imported data to a constructed network.
+* [Understanding Correlation Coefficients](understanding-correlation.html) — Pearson, Spearman and partial correlation explained.
+* [Predicting Values](prediction.html) — estimate (impute) feature values with the constructed network.
 
 ## Troubleshooting
 
