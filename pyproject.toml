@@ -8,13 +8,13 @@ authors = [
 ]
 license = "GPL-3.0-or-later"
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<3.15"
 dynamic = ["version"]
 dependencies = [
     "pyside6 (>=6.8.1.1,<7.0.0.0)",
     "py-banshee (>=1.1.2,<2.0.0)",
     "openpyxl (>=3.1.5,<4.0.0)",
-    "pygraphviz (>=1.14,<2.0)",
+    "pygraphviz (>=1.14,<3.0)",
     "pingouin (>=0.5.5,<0.6.0)"
 ]
 
