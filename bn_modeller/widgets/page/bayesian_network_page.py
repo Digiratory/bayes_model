@@ -9,6 +9,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
+from bn_modeller.bayesian_nets.pyBansheeCalculation import BansheeCalc
+from bn_modeller.bayesian_nets.utils import rescale_feature
 from bn_modeller.models import (
     CorrelationSQLProxyModel,
     FilterPairTableSQLProxyModel,
@@ -18,9 +21,11 @@ from bn_modeller.models.feature_sqltable_model import (
     FeatureSqlTableModel,
     PersistanceCheckableFeatureListProxyModel,
 )
+from bn_modeller.utils.model_adapters import tablemodel_to_dataframe
 from bn_modeller.widgets import DependencySetupTableView, SelectableListView
 from bn_modeller.widgets.bn_visualization_view import BayesianNetView
 from bn_modeller.widgets.page.bayesian_inference_page import BayesianInferencePageWidget
+from bn_modeller.widgets.prediction_results_dialog import PredictionResultsDialog
 from bn_modeller.widgets.vertical_label import QVertivalLabel
 
 
@@ -86,6 +91,7 @@ class BayesianNetworkPageWidget(QWidget):
 
         # Prediction Tab
         self.inferenceTabWidget = BayesianInferencePageWidget()
+        self.inferenceTabWidget.predictRequested.connect(self.onPredict)
         self.tabWidget.addTab(self.inferenceTabWidget, self.tr("Prediction"))
 
         # Finalization
@@ -147,3 +153,145 @@ class BayesianNetworkPageWidget(QWidget):
             QMessageBox.StandardButton.Ok,
             QMessageBox.StandardButton.Ok,
         )
+
+    def _showPredictionError(self, message: str):
+        QMessageBox.critical(
+            self,
+            self.tr("Prediction Error"),
+            message,
+            QMessageBox.StandardButton.Ok,
+            QMessageBox.StandardButton.Ok,
+        )
+
+    @Slot()
+    def onPredict(self):
+        # Gather the visualization settings, mirroring BayesianNetView.drawBN
+        visualizationView = self.visualizationTabWidget
+        correlationTypeIndex = visualizationView.correlationTypeComboBox.currentIndex()
+        corrRole = visualizationView.correlationTypeComboBoxMapping[
+            correlationTypeIndex
+        ]
+
+        pvalueMatrix = None
+        if visualizationView.filterByPValueCheckBox.isChecked():
+            pvalueRole = visualizationView.pvalueTypeComboBoxMapping[
+                correlationTypeIndex
+            ]
+            pvalueMatrix = tablemodel_to_dataframe(
+                self._correlationModel, role=pvalueRole
+            )
+
+        corrMatrix = tablemodel_to_dataframe(self._correlationModel, role=corrRole)
+        linkTable = tablemodel_to_dataframe(
+            self._correlationModel, role=Qt.ItemDataRole.CheckStateRole
+        )
+
+        graph = GraphPreparation(
+            corrMatrix,
+            linkTable,
+            visualizationView.threadSliderWidget.value(),
+            pvalue_matrix=pvalueMatrix,
+            pvalue_threshold=0.05,
+        )
+        graph.drop_cycle()
+
+        if len(graph.getEdgeList()) == 0:
+            self._showPredictionError(
+                self.tr(
+                    "The Bayesian Network is empty: no links are defined in the "
+                    "dependency table (or none survive the visualization threshold).\n\n"
+                    "Please define dependencies in the 'Dependency' tab and check the "
+                    "'Visualization' tab settings."
+                )
+            )
+            return
+
+        # Only features connected to the network take part in the Bayesian
+        # network; graph node ids are positions within the filtered features.
+        sortedNodes = sorted(graph.getNodeList())
+        connectedFeatures = [corrMatrix.columns[node] for node in sortedNodes]
+        nodeRemap = {node: new for new, node in enumerate(sortedNodes)}
+        edgeList = [(nodeRemap[u], nodeRemap[v]) for u, v in graph.getEdgeList()]
+
+        inputFeatures = self.inferenceTabWidget.getSelectedFeatures()
+        targetFeatures = [
+            feature for feature in connectedFeatures if feature not in inputFeatures
+        ]
+
+        if not inputFeatures and not self.inferenceTabWidget.hasAvailableFeatures():
+            self._showPredictionError(
+                self.tr(
+                    "No features pass the current threshold.\n\n"
+                    "Lower the threshold value or switch the criterion in the "
+                    "'Prediction' tab."
+                )
+            )
+            return
+        if not inputFeatures:
+            self._showPredictionError(
+                self.tr(
+                    "No input features are selected.\n\n"
+                    "Transfer at least one feature to the 'Selected Features' panel."
+                )
+            )
+            return
+        unconnectedInputs = [
+            feature for feature in inputFeatures if feature not in connectedFeatures
+        ]
+        if unconnectedInputs:
+            self._showPredictionError(
+                self.tr(
+                    "The selected input features are not connected to the Bayesian "
+                    "Network: {}.\n\nAdd dependencies for them in the 'Dependency' "
+                    "tab or select other input features."
+                ).format(", ".join(unconnectedInputs))
+            )
+            return
+        if not targetFeatures:
+            self._showPredictionError(
+                self.tr(
+                    "All features are selected as inputs.\n\n"
+                    "Leave at least one feature in the 'Available Features' panel to "
+                    "predict."
+                )
+            )
+            return
+
+        pairTableModel = self._correlationModel.sourceModel().sourceModel()
+        samples = pairTableModel.getSamplesDataFrame()
+        samples = samples[connectedFeatures]
+
+        banshee = BansheeCalc(list(range(len(connectedFeatures))), edgeList, samples)
+        if banshee.getRankCorr() is None:
+            self._showPredictionError(
+                self.tr(
+                    "Failed to reconstruct the rank correlation matrix.\n\n"
+                    "This is likely caused by missing values in the dataset."
+                )
+            )
+            return
+
+        inputSamples = samples[inputFeatures]
+        validMask = inputSamples.notna().all(axis=1).to_numpy()
+        if not validMask.any():
+            self._showPredictionError(
+                self.tr(
+                    "All samples contain missing values in the input features.\n\n"
+                    "Predictions require samples with complete input values."
+                )
+            )
+            return
+
+        predictions = banshee.getInference(
+            inputFeatures, inputSamples.to_numpy()[validMask]
+        )
+
+        result = samples.loc[validMask, targetFeatures].reset_index(drop=True)
+        for target in targetFeatures:
+            lower, upper = samples[target].min(), samples[target].max()
+            result[self.tr("Predicted ") + target] = rescale_feature(
+                predictions[target].to_numpy(), lower, upper
+            )
+
+        dialog = PredictionResultsDialog(result, self)
+        dialog.exec()
