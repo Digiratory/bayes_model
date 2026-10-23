@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from py_banshee.bn_plot import bn_visualize
 from py_banshee.prediction import conditional_margins_hist, inference
 from py_banshee.rankcorr import bn_rankcorr
@@ -46,16 +48,51 @@ class BansheeCalc:
     def getRankCorr(self):
         return self.R
 
-    def getInference(self, len_input_list):
-        nodes = list(
-            range(len_input_list)
-        )  # all variables except for value of interest
-        values = self.df.iloc[:, nodes].to_numpy()  # data for predictions
+    def getTargetFeatures(self, input_features: list[str]) -> list[str]:
+        """Return the features to predict: dataset columns minus the inputs."""
+        return [column for column in self.columns_data if column not in input_features]
+
+    def getInference(self, input_features: list[str], values) -> pd.DataFrame:
+        """Predict the target features for the given input samples.
+
+        Args:
+            input_features: Names of the conditioning (input) features.
+            values: Array-like with one row of input values per sample.
+
+        Returns:
+            pd.DataFrame: Mean predictions, one column per target feature,
+            in dataset column order.
+        """
+        missing = [name for name in input_features if name not in self.columns_data]
+        if missing:
+            raise ValueError(f"Input features not present in the dataset: {missing}")
+
+        nodes = [self.columns_data.index(name) for name in input_features]
+        target_features = self.getTargetFeatures(input_features)
+
+        values = np.asarray(values, dtype=float)
+        if values.ndim == 1:
+            values = values.reshape(1, -1)
+        if values.shape[1] != len(input_features):
+            raise ValueError(
+                f"Expected {len(input_features)} value columns "
+                f"for {list(input_features)}, got {values.shape[1]}"
+            )
+
+        # py-banshee conditions the inputs through an interpolation bounded
+        # by the quantification data's observed range. Clamp out-of-range
+        # inputs to that range so samples without empirical support (e.g.
+        # imputation rows with extreme values) get the nearest supported
+        # prediction instead of failing the whole run.
+        values = np.clip(
+            values,
+            self.df[input_features].min().to_numpy(),
+            self.df[input_features].max().to_numpy(),
+        )
+
         output = "mean"  # show only mean of the uncertainty distribution
         sampleSize = 10000  # draw 10,000 samples when conditionalizing the BN
-        # interp = 'next'  # use the 'next' method to interpolate the empirical
         interp = "linear"
-        # interp = 'nearest'
 
         F = inference(
             Nodes=nodes,
@@ -67,8 +104,7 @@ class BansheeCalc:
             Interp=interp,
         )
         self.F = F
-        # self.plotHist(len_input_list)
-        return F
+        return pd.DataFrame(F, columns=target_features)
 
     def plotHist(self, len_input_list):
         nodes = list(

@@ -1,5 +1,7 @@
 import networkx as nx
 
+DEFAULT_PVALUE_THRESHOLD = 0.05
+
 
 def melt_matrix(matrix):
     """
@@ -21,7 +23,7 @@ class GraphPreparation:
         table_connection,
         threshold,
         pvalue_matrix=None,
-        pvalue_threshold=0.05,
+        pvalue_threshold=DEFAULT_PVALUE_THRESHOLD,
     ):
         if pvalue_matrix is not None:
             assert (
@@ -82,10 +84,6 @@ class GraphPreparation:
     def getEdgeList(self):
         return self.G.edges
 
-    def getGraph(self):
-        return self.G
-
-    def renaming(self):
+    def getGraph(self) -> nx.Graph:
         k = {val: key for key, val in self.code_columns.items()}
-
         return nx.relabel_nodes(self.G, k)

@@ -14,7 +14,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
+from bn_modeller.bayesian_nets.graph_preparation import (
+    DEFAULT_PVALUE_THRESHOLD,
+    GraphPreparation,
+)
 from bn_modeller.models import CorrelationSQLProxyModel, PairTableSQLProxyModel
 from bn_modeller.utils.model_adapters import tablemodel_to_dataframe
 from bn_modeller.widgets.extended_slider_widget import ExtendedSliderWidget
@@ -26,7 +29,7 @@ class BayesianNetCanvas(FigureCanvasQTAgg):
         super().__init__(self.fig)
         self.bn_ax = self.fig.add_subplot(1, 1, 1)
 
-    def update_plot(self, graph):
+    def update_plot(self, graph: nx.Graph):
         self.bn_ax.clear()
         # self.bn_ax = self.fig.add_subplot(1, 1, 1)
 
@@ -170,12 +173,16 @@ class BayesianNetView(QSplitter):
 
         self.drawBN()
 
-    @Slot()
-    def drawBN(self):
-        if self.depModel is None or not self.isVisible():
-            return
-        print("BayesianNetView.drawBN")
+    def buildGraph(self):
+        """Build the dependency graph exactly as shown in the visualization tab.
 
+        Shared by drawBN and the Prediction page so both always operate on
+        the same network.
+
+        Returns:
+            tuple: (GraphPreparation, pd.DataFrame) - the prepared graph
+            with cycles dropped and the correlation matrix it was built from.
+        """
         corr_matrix = tablemodel_to_dataframe(
             self.depModel,
             role=self.correlationTypeComboBoxMapping[
@@ -200,13 +207,21 @@ class BayesianNetView(QSplitter):
             linkTable,
             self.threadSliderWidget.value(),
             pvalue_matrix=pvalue_matrix,
-            pvalue_threshold=0.05,
+            pvalue_threshold=DEFAULT_PVALUE_THRESHOLD,
         )
 
         graph.drop_cycle()
-        # self.changeLinkTable()
+        return graph, corr_matrix
 
-        self.bn_canvas.update_plot(graph.renaming())
+    @Slot()
+    def drawBN(self):
+        if self.depModel is None or not self.isVisible():
+            return
+        print("BayesianNetView.drawBN")
+
+        graph, _corr_matrix = self.buildGraph()
+
+        self.bn_canvas.update_plot(graph.getGraph())
         # import pickle
         # pickle.dump(self.graph, open('graph.txt', 'w'))
         # print(self.graph.G.nodes())
