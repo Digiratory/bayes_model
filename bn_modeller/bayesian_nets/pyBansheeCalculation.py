@@ -79,6 +79,17 @@ class BansheeCalc:
                 f"for {list(input_features)}, got {values.shape[1]}"
             )
 
+        # py-banshee conditions the inputs through an interpolation bounded
+        # by the quantification data's observed range. Clamp out-of-range
+        # inputs to that range so samples without empirical support (e.g.
+        # imputation rows with extreme values) get the nearest supported
+        # prediction instead of failing the whole run.
+        values = np.clip(
+            values,
+            self.df[input_features].min().to_numpy(),
+            self.df[input_features].max().to_numpy(),
+        )
+
         output = "mean"  # show only mean of the uncertainty distribution
         sampleSize = 10000  # draw 10,000 samples when conditionalizing the BN
         interp = "linear"

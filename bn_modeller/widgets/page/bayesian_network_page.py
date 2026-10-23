@@ -98,6 +98,8 @@ class _PredictionWorker(QObject):
                 )
                 return
 
+            # getInference clamps inputs without empirical support to the
+            # quantification range, so imputation rows still get predictions.
             predictions = banshee.getInference(
                 self._inputFeatures, inputSamples.to_numpy()[validMask]
             )
@@ -108,8 +110,8 @@ class _PredictionWorker(QObject):
             for target in self._targetFeatures:
                 result[PREDICTED_PREFIX + target] = predictions[target].to_numpy()
         except Exception as e:
-            # py-banshee raises on invalid inputs (e.g. out-of-range values);
-            # report it instead of failing silently in a slot.
+            # py-banshee raises on inputs without empirical support; report
+            # it instead of failing silently in a slot.
             self.failed.emit(str(e))
             return
         self.finished.emit(result)

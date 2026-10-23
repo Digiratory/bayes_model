@@ -126,3 +126,26 @@ def test_get_inference_quantified_on_complete_rows_handles_nan_targets():
     # The prediction for the row with the NaN target is still produced and
     # tracks the target scale.
     assert predictions["y_small"].corr(df["y_small"].dropna()) > 0.8
+
+
+def test_get_inference_with_inputs_clamped_to_quantification_range():
+    # Regression: an imputation row whose input value lies outside the
+    # complete rows' observed range has no empirical support in py-banshee
+    # (the conditioning interpolation raises "above the interpolation
+    # range's maximum"). The page clamps such inputs to the quantification
+    # range; inference must then succeed for every row.
+    np.random.seed(0)
+    df = make_dataset()
+    extreme_row = df["x1"].idxmax()
+    df.loc[extreme_row, ["y_small", "y_large"]] = np.nan
+    # Push the imputation row's input far beyond the complete rows' range,
+    # like real datasets where the highest inputs lack target values.
+    df.loc[extreme_row, "x1"] = df.drop(index=[extreme_row])["x1"].max() + 5.0
+
+    assert df.loc[extreme_row, "x1"] > df.dropna()["x1"].max() + 0.1
+
+    calc = make_calc(df.dropna())
+    predictions = calc.getInference(["x1", "x2"], df[["x1", "x2"]].to_numpy())
+
+    assert predictions.shape == (len(df), 2)
+    assert np.isfinite(predictions.to_numpy()).all()
