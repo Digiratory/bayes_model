@@ -279,47 +279,59 @@ class BayesianNetworkPageWidget(QWidget):
         nodeRemap = {node: new for new, node in enumerate(sortedNodes)}
         edgeList = [(nodeRemap[u], nodeRemap[v]) for u, v in graph.getEdgeList()]
 
-        inputFeatures = self.inferenceTabWidget.getSelectedFeatures()
+        # Inputs are implicit: every connected feature that is not marked
+        # for prediction conditions the inference. Connected features are
+        # the only ones carrying information, so disconnected inputs are
+        # simply left out.
+        availableInputFeatures = self.inferenceTabWidget.getInputFeatures()
+        inputFeatures = [
+            feature
+            for feature in connectedFeatures
+            if feature in availableInputFeatures
+        ]
+        outputFeatures = self.inferenceTabWidget.getOutputFeatures()
         targetFeatures = [
-            feature for feature in connectedFeatures if feature not in inputFeatures
+            feature for feature in connectedFeatures if feature in outputFeatures
         ]
 
-        if not inputFeatures and not self.inferenceTabWidget.hasAvailableFeatures():
-            self._showPredictionError(
-                self.tr(
-                    "No features pass the current threshold.\n\n"
-                    "Lower the threshold value or switch the criterion in the "
-                    "'Prediction' tab."
+        if not outputFeatures:
+            if not self.inferenceTabWidget.hasVisibleInputFeatures():
+                self._showPredictionError(
+                    self.tr(
+                        "No features pass the current threshold.\n\n"
+                        "Lower the threshold value or switch the criterion in the "
+                        "'Prediction' tab, then transfer features to the "
+                        "'Features to Predict' panel."
+                    )
                 )
-            )
+            else:
+                self._showPredictionError(
+                    self.tr(
+                        "No features are marked for prediction.\n\n"
+                        "Transfer at least one feature to the 'Features to Predict' "
+                        "panel."
+                    )
+                )
             return
         if not inputFeatures:
             self._showPredictionError(
                 self.tr(
-                    "No input features are selected.\n\n"
-                    "Transfer at least one feature to the 'Selected Features' panel."
+                    "All features connected to the Bayesian Network are marked "
+                    "for prediction.\n\nKeep at least one connected feature in "
+                    "the 'Input Features' panel to condition the prediction."
                 )
             )
             return
-        unconnectedInputs = [
-            feature for feature in inputFeatures if feature not in connectedFeatures
+        unconnectedOutputs = [
+            feature for feature in outputFeatures if feature not in connectedFeatures
         ]
-        if unconnectedInputs:
+        if unconnectedOutputs:
             self._showPredictionError(
                 self.tr(
-                    "The selected input features are not connected to the Bayesian "
-                    "Network: {}.\n\nAdd dependencies for them in the 'Dependency' "
-                    "tab or select other input features."
-                ).format(", ".join(unconnectedInputs))
-            )
-            return
-        if not targetFeatures:
-            self._showPredictionError(
-                self.tr(
-                    "All features are selected as inputs.\n\n"
-                    "Leave at least one feature in the 'Available Features' panel to "
-                    "predict."
-                )
+                    "The features marked for prediction are not connected to the "
+                    "Bayesian Network: {}.\n\nAdd dependencies for them in the "
+                    "'Dependency' tab or mark other features for prediction."
+                ).format(", ".join(unconnectedOutputs))
             )
             return
 

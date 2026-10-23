@@ -1,11 +1,12 @@
-"""Feature selection model for the Prediction page.
+"""Feature roles model for the Prediction page.
 
 A single :class:`FeatureSelectionTableModel` holds every feature with its
-per-criterion metrics and a selected flag. Two filter proxies provide the
-panel views: the left panel shows features that are not selected and pass
-the threshold, the right panel shows the selected ones. Because both panels
-read from one source of truth, exclusivity between panels holds by
-construction.
+per-criterion metrics and an output flag. Features start as inputs (all
+features are observable initially); marking a feature as output moves it
+to the prediction targets. Two filter proxies provide the panel views:
+the left panel shows input features that pass the threshold, the right
+panel shows the outputs to predict. Because both panels read from one
+source of truth, exclusivity between panels holds by construction.
 """
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QSortFilterProxyModel, Qt
@@ -48,7 +49,7 @@ def feature_metrics_from_correlation_model(
 
 
 class FeatureSelectionTableModel(QAbstractTableModel):
-    """Table of features with selection metrics and a selected flag.
+    """Table of features with selection metrics and an output flag.
 
     Columns: Feature | Value. The Value column shows the metric of the
     current criterion. Criterion and threshold are part of the model state
@@ -66,7 +67,7 @@ class FeatureSelectionTableModel(QAbstractTableModel):
         self._threshold: float = 0.0
 
     def setMetrics(self, metrics: dict[str, dict[str, float]]):
-        """Replace all features and clear selection.
+        """Replace all features; every feature starts as an input.
 
         Expects the metric dicts produced by
         :func:`extract_feature_metrics`: every feature must provide all
@@ -74,7 +75,7 @@ class FeatureSelectionTableModel(QAbstractTableModel):
         """
         self.beginResetModel()
         self._rows = [
-            {"name": name, "metrics": dict(feature_metrics), "selected": False}
+            {"name": name, "metrics": dict(feature_metrics), "is_output": False}
             for name, feature_metrics in metrics.items()
         ]
         self.endResetModel()
@@ -96,23 +97,26 @@ class FeatureSelectionTableModel(QAbstractTableModel):
             return value <= self._threshold
         return value >= self._threshold
 
-    def isSelected(self, row: int) -> bool:
-        return self._rows[row]["selected"]
+    def isOutput(self, row: int) -> bool:
+        return self._rows[row]["is_output"]
 
-    def setSelected(self, rows, selected: bool):
-        """Set the selected flag for the given source rows."""
+    def setOutput(self, rows, is_output: bool):
+        """Set the output flag for the given source rows."""
         for row in rows:
-            if self._rows[row]["selected"] == selected:
+            if self._rows[row]["is_output"] == is_output:
                 continue
-            self._rows[row]["selected"] = selected
+            self._rows[row]["is_output"] = is_output
             self.dataChanged.emit(
                 self.index(row, self._COLUMN_FEATURE),
                 self.index(row, self._COLUMN_VALUE),
                 [Qt.ItemDataRole.DisplayRole],
             )
 
-    def selectedNames(self) -> list[str]:
-        return [row["name"] for row in self._rows if row["selected"]]
+    def inputNames(self) -> list[str]:
+        return [row["name"] for row in self._rows if not row["is_output"]]
+
+    def outputNames(self) -> list[str]:
+        return [row["name"] for row in self._rows if row["is_output"]]
 
     def _refreshAll(self):
         if not self._rows:
@@ -166,20 +170,20 @@ class FeatureSelectionTableModel(QAbstractTableModel):
         return super().headerData(section, orientation, role)
 
 
-class AvailableFeaturesProxyModel(QSortFilterProxyModel):
-    """Left panel view: not selected and passing the threshold."""
+class InputFeaturesProxyModel(QSortFilterProxyModel):
+    """Left panel view: input features passing the threshold."""
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
         if source_parent.isValid():
             return False
         model = self.sourceModel()
-        return not model.isSelected(source_row) and model.passesThreshold(source_row)
+        return not model.isOutput(source_row) and model.passesThreshold(source_row)
 
 
-class SelectedFeaturesProxyModel(QSortFilterProxyModel):
-    """Right panel view: selected features only."""
+class OutputFeaturesProxyModel(QSortFilterProxyModel):
+    """Right panel view: features marked for prediction."""
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
         if source_parent.isValid():
             return False
-        return self.sourceModel().isSelected(source_row)
+        return self.sourceModel().isOutput(source_row)

@@ -31,10 +31,14 @@ class BayesianInferencePageWidget(QWidget):
         """Set the correlation model for feature selection"""
         self.feature_selection_widget.setSourceModel(correlation_model)
 
-    def getSelectedFeatures(self) -> list[str]:
-        """Get the list of selected features"""
-        return self.feature_selection_widget.getSelectedFeatures()
+    def getInputFeatures(self) -> list[str]:
+        """Get the list of input (observable) features"""
+        return self.feature_selection_widget.getInputFeatures()
 
-    def hasAvailableFeatures(self) -> bool:
-        """Check the available panel: any not-selected feature passes the threshold"""
-        return self.feature_selection_widget.hasAvailableFeatures()
+    def getOutputFeatures(self) -> list[str]:
+        """Get the list of features marked for prediction"""
+        return self.feature_selection_widget.getOutputFeatures()
+
+    def hasVisibleInputFeatures(self) -> bool:
+        """Check the input panel: any input feature passes the threshold"""
+        return self.feature_selection_widget.hasVisibleInputFeatures()
