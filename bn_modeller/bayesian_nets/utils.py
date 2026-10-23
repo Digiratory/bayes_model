@@ -6,6 +6,18 @@ from scipy.special import erfcinv
 F = -1 / (2 ** (1 / 2) * erfcinv(3 / 2))
 
 
+def rescale_feature(input_vector, lower, upper):
+    """Rescale a vector to [lower, upper] keeping the observed min/max span."""
+    xmin, xmax = np.min(input_vector), np.max(
+        input_vector
+    )  # get max and min from input array
+
+    input_vector = [(x - xmin) / (xmax - xmin) for x in input_vector]
+
+    input_vector = [lower + (upper - lower) * x for x in input_vector]
+    return input_vector
+
+
 def check_non_select_table(df):
     k = []
     for i in df.columns:

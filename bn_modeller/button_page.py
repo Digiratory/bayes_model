@@ -14,18 +14,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from bn_modeller.bayesian_nets import CorrMatrix, PartCorrMatrix
 from bn_modeller.bayesian_nets.graph_preparation import GraphPreparation
 from bn_modeller.bayesian_nets.pyBansheeCalculation import BansheeCalc
-from bn_modeller.bayesian_nets.utils import get_outliers_cooks
-
-
-def rescale_feature(input_vector, lower, upper):
-    xmin, xmax = np.min(input_vector), np.max(
-        input_vector
-    )  # get max and min from input array
-
-    input_vector = [(x - xmin) / (xmax - xmin) for x in input_vector]
-
-    input_vector = [lower + (upper - lower) * x for x in input_vector]
-    return input_vector
+from bn_modeller.bayesian_nets.utils import get_outliers_cooks, rescale_feature
 
 
 def test(y_pred, y_true):
@@ -449,10 +438,13 @@ class ButtonWindow(QtWidgets.QWidget):
         self.calcInferenceButton.setEnabled(True)
 
     def onInferenceButton(self):
-        y_predict = self.banshee.getInference(self.len_input)
-
         self.columnsForPredict = self.input_df.columns[self.len_input :]
         self.columnsFeatures = self.input_df.columns[: self.len_input]
+
+        y_predict = self.banshee.getInference(
+            list(self.columnsFeatures),
+            self.input_df[list(self.columnsFeatures)].to_numpy(),
+        ).to_numpy()
 
         pred_column = ["Predicted " + i for i in self.columnsForPredict]
         self.df_predicted = pd.DataFrame(
