@@ -48,6 +48,13 @@ To move features between the panels, select one or more rows in a panel and
 click the **>** (or **<**) button between the panels. A feature can appear in
 only one panel at a time.
 
+The panels follow the **Dependency** tab automatically: unchecking a feature
+there removes it from both panels, and checking it brings it back as an
+input. A feature moved to **Features to Predict** keeps its role across
+these updates for as long as it remains selected in the Dependency tab;
+unchecking it resets the role, so it reappears on the input side when
+selected again.
+
 When you click **Predict**, the application conditions on **all input
 features** (i.e. treats them as given, known values) and predicts **all marked
 features**. Three rules apply:
@@ -93,9 +100,11 @@ For background on the correlation coefficients see
 2. Click **Predict**. The computation runs in the background; a progress
    window is shown.
 3. The **Prediction Results** dialog appears with:
-   * a **Table** tab — one row per sample. Each predicted feature adds a
-     `Predicted <name>` column next to the observed values. Rows whose input
-     values are incomplete are not shown (see
+   * a **Table** tab — one row per sample. The first column, `Sample Id`,
+     carries the original sample identifier from the project, so the rows
+     stay matchable to the source data. Each predicted feature adds a
+     `Predicted <name>` column next to the observed values. Rows whose
+     input values are incomplete are not shown (see
      [How the prediction is computed](#how-the-prediction-is-computed)).
    * one **plot tab per predicted feature** — a scatter plot with the
      *predicted* values on the horizontal axis and the *observed* values on
@@ -109,8 +118,9 @@ For background on the correlation coefficients see
    `R: 0.682 → 0.141`) means the apparent quality of the prediction is driven
    by a few influential samples rather than a general trend — worth
    investigating those samples in the source data.
-5. **Save CSV...** exports the whole table (observed and predicted columns) to
-   a comma-separated file for further processing or archiving.
+5. **Save CSV...** exports the whole table (the `Sample Id` column followed
+   by the observed and predicted columns) to a comma-separated file for
+   further processing or archiving.
 
 ## How the prediction is computed
 
