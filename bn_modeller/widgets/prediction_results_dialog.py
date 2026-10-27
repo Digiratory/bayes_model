@@ -195,7 +195,9 @@ class PredictionResultsDialog(QDialog):
         try:
             export = self._results.copy()
             export.columns = [_csvSafeHeader(column) for column in export.columns]
-            export.to_csv(path)
+            # The sample ids are a real column; the positional index is not
+            # part of the result table.
+            export.to_csv(path, index=False)
         except OSError as e:
             QMessageBox.critical(
                 self,

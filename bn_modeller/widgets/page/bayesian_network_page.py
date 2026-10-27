@@ -11,7 +11,8 @@ from PySide6.QtWidgets import (
 )
 
 from bn_modeller.bayesian_nets.prediction_results import (
-    PREDICTED_PREFIX,
+    SAMPLE_ID_COLUMN,
+    assemble_prediction_results,
     find_predicted_name_conflicts,
 )
 from bn_modeller.bayesian_nets.pyBansheeCalculation import BansheeCalc
@@ -105,11 +106,9 @@ class _PredictionWorker(QObject):
                 self._inputFeatures, inputSamples.to_numpy()[validMask]
             )
 
-            result = self._samples.loc[validMask, self._targetFeatures].reset_index(
-                drop=True
+            result = assemble_prediction_results(
+                self._samples, validMask, self._targetFeatures, predictions
             )
-            for target in self._targetFeatures:
-                result[PREDICTED_PREFIX + target] = predictions[target].to_numpy()
         except Exception as e:
             # py-banshee raises on inputs without empirical support; report
             # it instead of failing silently in a slot.
@@ -337,19 +336,26 @@ class BayesianNetworkPageWidget(QWidget):
             return
 
         # The result frame keeps the observed values of every predicted
-        # feature next to the 'Predicted <feature>' columns, so a feature
-        # named like another predicted column would overwrite the observed
-        # values of that feature.
+        # feature next to the 'Predicted <feature>' columns and a leading
+        # 'Sample Id' column, so a feature named like another result column
+        # would overwrite it.
         conflictingNames = find_predicted_name_conflicts(outputFeatures)
-        if conflictingNames:
+        reservedNames = [SAMPLE_ID_COLUMN] if SAMPLE_ID_COLUMN in outputFeatures else []
+        if conflictingNames or reservedNames:
             details = "; ".join(
-                self.tr("'{}' (the predicted values of '{}')").format(second, first)
-                for first, second in conflictingNames
+                [
+                    self.tr("'{}' (the predicted values of '{}')").format(second, first)
+                    for first, second in conflictingNames
+                ]
+                + [
+                    self.tr("'{}' (reserved for the sample identifier)").format(name)
+                    for name in reservedNames
+                ]
             )
             self._showPredictionError(
                 self.tr(
                     "The features marked for prediction contain conflicting "
-                    "names: {}.\n\nThe predicted values would overwrite the "
+                    "names: {}.\n\nThe result columns would overwrite the "
                     "observed values of another predicted feature. Rename the "
                     "feature in the project or exclude it from prediction."
                 ).format(details)

@@ -103,11 +103,12 @@ class PairTableSQLProxyModel(QAbstractTableModel):
     def getSamplesDataFrame(self) -> pd.DataFrame:
         """Assemble the samples table from the database.
 
-        Columns are the feature names (in feature order), rows are the
-        samples (ordered by sample id). Missing feature values are NaN.
+        Columns are the feature names (in feature order); the index holds
+        the original sample ids (ascending), so rows stay traceable to the
+        source samples. Missing feature values are NaN.
 
         Returns:
-            pd.DataFrame: Samples per feature.
+            pd.DataFrame: Samples per feature, indexed by sample id.
         """
         pivoted = self._getAllFeatureSamples()
         names = []
@@ -122,7 +123,9 @@ class PairTableSQLProxyModel(QAbstractTableModel):
 
         # Positional keys keep duplicated feature names from collapsing
         # columns before the rename.
-        samples = pd.DataFrame({i: column for i, column in enumerate(columns)})
+        samples = pd.DataFrame(
+            {i: column for i, column in enumerate(columns)}, index=pivoted.index
+        )
         samples.columns = names
         return samples
 
