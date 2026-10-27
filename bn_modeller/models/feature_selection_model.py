@@ -48,6 +48,28 @@ def feature_metrics_from_correlation_model(
     return extract_feature_metrics(spearman_corr, spearman_pvalue, partial_corr)
 
 
+def merge_preserving_outputs(
+    old_rows: list[dict], metrics: dict[str, dict[str, float]]
+) -> list[dict]:
+    """Build model rows from a fresh metric extraction, keeping roles.
+
+    Features that remain present keep their ``is_output`` role by name;
+    features that are no longer selected are dropped; newly appearing
+    features start as inputs. Duplicate names collapse (last wins), which
+    is acceptable because the underlying DB can hold duplicated feature
+    names only as an anomaly.
+    """
+    preserved_outputs = {row["name"]: row["is_output"] for row in old_rows}
+    return [
+        {
+            "name": name,
+            "metrics": dict(feature_metrics),
+            "is_output": preserved_outputs.get(name, False),
+        }
+        for name, feature_metrics in metrics.items()
+    ]
+
+
 class FeatureSelectionTableModel(QAbstractTableModel):
     """Table of features with selection metrics and an output flag.
 
@@ -67,17 +89,18 @@ class FeatureSelectionTableModel(QAbstractTableModel):
         self._threshold: float = 0.0
 
     def setMetrics(self, metrics: dict[str, dict[str, float]]):
-        """Replace all features; every feature starts as an input.
+        """Replace the features with a fresh metric extraction.
 
         Expects the metric dicts produced by
         :func:`extract_feature_metrics`: every feature must provide all
-        criterion keys with non-NaN values.
+        criterion keys with non-NaN values. Features keep their output
+        role by name from the previous rows, so the roles survive a
+        re-extraction after the Dependency selection changed; features
+        that are no longer selected are dropped and new features start
+        as inputs.
         """
         self.beginResetModel()
-        self._rows = [
-            {"name": name, "metrics": dict(feature_metrics), "is_output": False}
-            for name, feature_metrics in metrics.items()
-        ]
+        self._rows = merge_preserving_outputs(self._rows, metrics)
         self.endResetModel()
 
     def setCriterionThreshold(self, criterion: str, threshold: float):

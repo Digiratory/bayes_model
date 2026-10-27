@@ -554,6 +554,7 @@ class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
 
 class CorrelationSQLProxyModel(QIdentityProxyModel):
     partialCorrGeneralError = Signal()
+    featuresInvalidated = Signal()
     PartialCorrRole = Qt.ItemDataRole.UserRole + 10
     PartialPValueRole = Qt.ItemDataRole.UserRole + 11
 
@@ -596,6 +597,10 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
         """Invalidate the cached partial correlation matrix."""
         self._partial_corr_matrix = None
         self._partial_corr_pvalue_matrix = None
+        # The feature set behind the matrix changed; let the pages that
+        # extracted per-feature data (e.g. the prediction feature list)
+        # re-extract it.
+        self.featuresInvalidated.emit()
 
     def _partialPartialCorrelationMatrix(self) -> np.ndarray:
         """Returns the cached partial correlation matrix. If it is not cached, it will be evaluated and cached.

@@ -1,3 +1,4 @@
+from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
@@ -105,6 +106,7 @@ class FeatureSelectionWidget(QWidget):
         # Single source of truth shared by both panel views; exclusivity
         # between the panels holds by construction.
         self._table_model = FeatureSelectionTableModel()
+        self._sourceModel: CorrelationSQLProxyModel | None = None
 
         self.input_model = InputFeaturesProxyModel()
         self.input_model.setSourceModel(self._table_model)
@@ -123,9 +125,24 @@ class FeatureSelectionWidget(QWidget):
             table.setSortingEnabled(False)
 
     def setSourceModel(self, source_model: CorrelationSQLProxyModel):
-        """Extract feature metrics from the correlation model"""
+        """Extract feature metrics from the correlation model.
+
+        Also keeps the panels in sync with the model: it emits
+        ``featuresInvalidated`` whenever the Dependency selection changes.
+        """
+        if self._sourceModel is not None:
+            self._sourceModel.featuresInvalidated.disconnect(self._refreshMetrics)
+        self._sourceModel = source_model
+        self._refreshMetrics()
+        source_model.featuresInvalidated.connect(self._refreshMetrics)
+
+    @Slot()
+    def _refreshMetrics(self):
+        """Re-extract the metrics after the feature selection changed."""
+        if self._sourceModel is None:
+            return
         self._table_model.setMetrics(
-            feature_metrics_from_correlation_model(source_model)
+            feature_metrics_from_correlation_model(self._sourceModel)
         )
 
     def _onThresholdChanged(self, threshold_type: str, threshold_value: float):
