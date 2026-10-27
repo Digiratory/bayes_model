@@ -10,6 +10,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from bn_modeller.bayesian_nets.prediction_results import (
+    PREDICTED_PREFIX,
+    find_predicted_name_conflicts,
+)
 from bn_modeller.bayesian_nets.pyBansheeCalculation import BansheeCalc
 from bn_modeller.models import (
     CorrelationSQLProxyModel,
@@ -23,10 +27,7 @@ from bn_modeller.models.feature_sqltable_model import (
 from bn_modeller.widgets import DependencySetupTableView, SelectableListView
 from bn_modeller.widgets.bn_visualization_view import BayesianNetView
 from bn_modeller.widgets.page.bayesian_inference_page import BayesianInferencePageWidget
-from bn_modeller.widgets.prediction_results_dialog import (
-    PREDICTED_PREFIX,
-    PredictionResultsDialog,
-)
+from bn_modeller.widgets.prediction_results_dialog import PredictionResultsDialog
 from bn_modeller.widgets.vertical_label import QVertivalLabel
 
 
@@ -332,6 +333,26 @@ class BayesianNetworkPageWidget(QWidget):
                     "Bayesian Network: {}.\n\nAdd dependencies for them in the "
                     "'Dependency' tab or mark other features for prediction."
                 ).format(", ".join(unconnectedOutputs))
+            )
+            return
+
+        # The result frame keeps the observed values of every predicted
+        # feature next to the 'Predicted <feature>' columns, so a feature
+        # named like another predicted column would overwrite the observed
+        # values of that feature.
+        conflictingNames = find_predicted_name_conflicts(outputFeatures)
+        if conflictingNames:
+            details = "; ".join(
+                self.tr("'{}' (the predicted values of '{}')").format(second, first)
+                for first, second in conflictingNames
+            )
+            self._showPredictionError(
+                self.tr(
+                    "The features marked for prediction contain conflicting "
+                    "names: {}.\n\nThe predicted values would overwrite the "
+                    "observed values of another predicted feature. Rename the "
+                    "feature in the project or exclude it from prediction."
+                ).format(details)
             )
             return
 

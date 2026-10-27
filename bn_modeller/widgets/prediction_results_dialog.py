@@ -20,9 +20,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from bn_modeller.bayesian_nets.prediction_results import PREDICTED_PREFIX
 from bn_modeller.bayesian_nets.utils import get_outliers_cooks
 
-PREDICTED_PREFIX = "Predicted "
 _CSV_FORMULA_PREFIXES = ("=", "+", "-", "@")
 
 
