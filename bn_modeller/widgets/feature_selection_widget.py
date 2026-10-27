@@ -133,6 +133,11 @@ class FeatureSelectionWidget(QWidget):
         if self._sourceModel is not None:
             self._sourceModel.featuresInvalidated.disconnect(self._refreshMetrics)
         self._sourceModel = source_model
+        # A new source model means a new project: stale output roles from
+        # the previous project must not leak into the fresh extraction.
+        # Role preservation only applies to later refreshes of the same
+        # model, when the Dependency selection changed.
+        self._table_model.setMetrics({})
         self._refreshMetrics()
         source_model.featuresInvalidated.connect(self._refreshMetrics)
 
