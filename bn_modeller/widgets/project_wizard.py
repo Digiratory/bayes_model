@@ -2,9 +2,18 @@ import os
 import shutil
 
 import numpy as np
-from PySide6.QtCore import QObject, QSettings, QStandardPaths, Qt, QUrl, Slot
+from PySide6.QtCore import (
+    QObject,
+    QSettings,
+    QStandardPaths,
+    Qt,
+    QThread,
+    QTimer,
+    QUrl,
+    Slot,
+)
 from PySide6.QtGui import QDesktopServices, QDoubleValidator
-from PySide6.QtSql import QSqlDatabase, QSqlQuery
+from PySide6.QtSql import QSqlDatabase
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -14,6 +23,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QProgressBar,
     QPushButton,
     QRadioButton,
     QSizePolicy,
@@ -25,7 +35,7 @@ from PySide6.QtWidgets import (
 
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
-from bn_modeller.utils.db_model_handler import add_values_from_csv
+from bn_modeller.utils.data_import_worker import DataImportWorker, ImportSpec
 from bn_modeller.widgets.file_path_widget import FilePathWidget
 from bn_modeller.widgets.separator_widget import QSeparator
 
@@ -348,6 +358,169 @@ class DataImportPage(QWizardPage):
         )
 
 
+class ImportProgressPage(QWizardPage):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTitle(self.tr("Importing data"))
+        self._thread: QThread | None = None
+        self._worker: DataImportWorker | None = None
+        self._valueFixer: TableValueFixer | None = None
+        self._succeeded = False
+        self._closing = False
+        self._init_ui()
+
+    def _init_ui(self):
+        main_layout = QVBoxLayout()
+
+        self._messageLabel = QLabel()
+        main_layout.addWidget(self._messageLabel)
+
+        self._progressBar = QProgressBar()
+        main_layout.addWidget(self._progressBar)
+
+        self._errorLabel = QLabel()
+        self._errorLabel.setWordWrap(True)
+        self._errorLabel.hide()
+        main_layout.addWidget(self._errorLabel)
+
+        retryLayout = QHBoxLayout()
+        retryLayout.addStretch(1)
+        self._retryButton = QPushButton(self.tr("Retry"))
+        self._retryButton.hide()
+        self._retryButton.clicked.connect(self._onRetryClicked)
+        retryLayout.addWidget(self._retryButton)
+        main_layout.addLayout(retryLayout)
+
+        main_layout.addStretch(1)
+        self.setLayout(main_layout)
+
+    def isImportRunning(self) -> bool:
+        return self._thread is not None and self._thread.isRunning()
+
+    def cancelImport(self):
+        """Stop a running import (blocking) so the wizard can close safely.
+
+        The worker rolls its transaction back and removes its database
+        connection before the thread finishes. No-op when idle.
+        """
+        if self.isImportRunning():
+            self._closing = True
+            self._worker.cancel()
+            self._thread.quit()
+            self._thread.wait()
+
+    def initializePage(self):
+        super().initializePage()
+        wizard = self.wizard()
+        # A previous attempt (Retry path) must be fully stopped first.
+        self.cancelImport()
+
+        spec = ImportSpec(
+            sheet_file_path=wizard.field("DataImportPage/csvPath"),
+            transposed=not wizard.field("DataImportPage/isSampleInRows"),
+            skip_rows=wizard.field("DataImportPage/skipRows"),
+            skip_cols=wizard.field("DataImportPage/skipColumns"),
+            db_file_path=wizard.get_project_path(),
+        )
+        self._valueFixer = TableValueFixer(wizard)
+        self._resetUi()
+
+        # Create New always imports into a fresh project file; the Save
+        # dialog has already asked about overwriting an existing one.
+        if os.path.exists(spec.db_file_path):
+            try:
+                os.remove(spec.db_file_path)
+            except PermissionError:
+                # Locked by another connection; import into the existing file.
+                pass
+
+        self._startImportWorker(spec)
+
+    def _resetUi(self):
+        self._succeeded = False
+        self._closing = False
+        self._messageLabel.show()
+        self._messageLabel.setText(self.tr("Reading file..."))
+        self._progressBar.setRange(0, 0)  # indeterminate until the file is read
+        self._errorLabel.hide()
+        self._retryButton.hide()
+        wizard = self.wizard()
+        wizard.button(QWizard.BackButton).setEnabled(False)
+        wizard.button(QWizard.FinishButton).setEnabled(False)
+
+    def _startImportWorker(self, spec: ImportSpec):
+        self._thread = QThread(self)
+        self._worker = DataImportWorker(spec)
+        self._worker.moveToThread(self._thread)
+
+        self._thread.started.connect(self._worker.run)
+        self._worker.progress.connect(self._onImportProgress)
+        self._worker.fixValuesRequested.connect(self._onFixValuesRequested)
+        self._worker.finished.connect(self._onImportFinished)
+        self._worker.failed.connect(self._onImportFailed)
+        self._worker.finished.connect(self._thread.quit)
+        self._worker.failed.connect(self._thread.quit)
+        self._worker.cancelled.connect(self._thread.quit)
+        self._thread.finished.connect(self._onImportThreadFinished)
+        self._thread.finished.connect(self._worker.deleteLater)
+        self._thread.finished.connect(self._thread.deleteLater)
+        self._thread.start()
+
+    @Slot(float, str)
+    def _onImportProgress(self, fraction: float, message: str):
+        if fraction < 0:
+            self._progressBar.setRange(0, 0)  # indeterminate
+        else:
+            self._progressBar.setRange(0, 100)
+            self._progressBar.setValue(int(fraction * 100))
+        self._messageLabel.setText(message)
+
+    @Slot(list)
+    def _onFixValuesRequested(self, values: list):
+        value_map = {}
+        for value in values:
+            value_map[value] = self._valueFixer.fixValue(value)
+        self._worker.provideFixedValues(value_map)
+
+    @Slot(object)
+    def _onImportFinished(self, stats):
+        self._succeeded = True
+        self._progressBar.setRange(0, 100)
+        self._progressBar.setValue(100)
+        self._messageLabel.setText(
+            self.tr(
+                "Imported {} features and {} samples ({} empty values skipped)."
+            ).format(stats.features, stats.samples, stats.nan_values)
+        )
+
+    @Slot(str)
+    def _onImportFailed(self, message: str):
+        self._progressBar.setRange(0, 100)
+        self._errorLabel.setText(self.tr("Import failed:\n{}").format(message))
+        self._errorLabel.show()
+        self._retryButton.show()
+        self.wizard().button(QWizard.BackButton).setEnabled(True)
+
+    @Slot()
+    def _onRetryClicked(self):
+        self.wizard().back()
+
+    @Slot()
+    def _onImportThreadFinished(self):
+        self._thread = None
+        self._worker = None
+        if self._succeeded and not self._closing:
+            # Close the wizard only after the thread has fully finished.
+            QTimer.singleShot(0, self._finishAccepted)
+
+    @Slot()
+    def _finishAccepted(self):
+        wizard = self.wizard()
+        if self._succeeded and wizard.isVisible():
+            wizard.done(QDialog.Accepted)
+
+
 class ProjectLoadWizard(QWizard):
     def __init__(self, pre_done_handler=None, parent=None):
         super().__init__(parent)
@@ -363,6 +536,9 @@ class ProjectLoadWizard(QWizard):
         self.importDataPage = DataImportPage()
         self.importDataPageId = self.addPage(self.importDataPage)
 
+        self.importProgressPage = ImportProgressPage()
+        self.importProgressPageId = self.addPage(self.importProgressPage)
+
         self.button(QWizard.FinishButton).clicked.connect(self.close)
 
     def get_title(self):
@@ -377,33 +553,22 @@ class ProjectLoadWizard(QWizard):
                 return -1
             else:
                 return self.datasourceTemplatePageId
+        if self.currentPage() == self.importDataPage:
+            return self.importProgressPageId
         return super().nextId()
 
-    def createDb(self):
-        query = QSqlQuery()
-        query.exec("PRAGMA page_size = 4096;")
-        query.exec("PRAGMA cache_size = 16384;")
-        query.exec("PRAGMA temp_store = MEMORY;")
-        query.exec("PRAGMA journal_mode = PERSIST;")
-        query.exec("PRAGMA locking_mode = EXCLUSIVE;")
-        # WARNING: IT IS NOT SAFE. It can cause a DB damage in case of a bad termination.
-        query.exec("PRAGMA synchronous = OFF;")
-        self.loadModelsFromDb()
+    def reject(self):
+        if self.currentPage() == self.importProgressPage:
+            # Stop the worker (blocking) before the wizard is destroyed.
+            self.importProgressPage.cancelImport()
+        super().reject()
 
-        try:
-            valueFixer = TableValueFixer(self)
-            add_values_from_csv(
-                self.field("DataImportPage/csvPath"),
-                not self.field("DataImportPage/isSampleInRows"),
-                self.featureSqlTableModel,
-                self.sampleSqlTableModel,
-                skip_rows=self.field("DataImportPage/skipRows"),
-                skip_cols=self.field("DataImportPage/skipColumns"),
-                value_fixer_callback=valueFixer.fixValue,
-            )
-        except Exception as e:
-            # TODO: handle the exception, ask the user to retry or quit
-            print(e)
+    def accept(self):
+        if self.currentPage() == self.importProgressPage:
+            if self.importProgressPage.isImportRunning():
+                # The page closes the wizard itself once the import finishes.
+                return
+        super().accept()
 
     def loadModelsFromDb(self):
         self.featureSqlTableModel = FeatureSqlTableModel(db=self._db)
@@ -418,16 +583,11 @@ class ProjectLoadWizard(QWizard):
         if self._pre_done_handler is not None:
             self._pre_done_handler(self, result)
         if result:
-            if self.source_page.radioOpen.isChecked():
-                self.connectDb()
-                self.loadModelsFromDb()
-            else:
-                if os.path.exists(self.source_page.path_edit.file_path):
-                    # TODO: ask user to delete the file
-                    os.remove(self.source_page.path_edit.file_path)
-                self.connectDb()
-                self.createDb()
-
+            # Open existing: reconnect to the selected file.
+            # Create New: the import progress page has already prepared a
+            # fresh project file with the imported data; just connect to it.
+            self.connectDb()
+            self.loadModelsFromDb()
         return super().done(result)
 
     @staticmethod
