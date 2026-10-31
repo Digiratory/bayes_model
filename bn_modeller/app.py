@@ -10,6 +10,15 @@ from bn_modeller.windows.main_window import MainWindow
 
 
 def create_application(argv: list[str]) -> QApplication:
+    """
+    Create a QApplication instance.
+
+    Args:
+        argv (list[str]): List of command-line arguments.
+
+    Returns:
+        QApplication: A new QApplication instance.
+    """
     QCoreApplication.setOrganizationName("Digiratory")
     QCoreApplication.setOrganizationDomain("digiratory.ru")
     QCoreApplication.setApplicationName("bn_modeller")
@@ -25,6 +34,15 @@ def create_application(argv: list[str]) -> QApplication:
 
 
 def manage_cli_args(app: QCoreApplication) -> QCommandLineParser:
+    """
+    Manage command-line arguments.
+
+    Args:
+        app (QCoreApplication): QCoreApplication instance.
+
+    Returns:
+        QCommandLineParser: A new QCommandLineParser instance.
+    """
     cl_parser: QCommandLineParser = QCommandLineParser()
     cl_parser.setApplicationDescription("Bayesian Network Modeller")
     cl_parser.addHelpOption()
@@ -49,4 +67,14 @@ def main():
 
 
 if __name__ == "__main__":
+    """
+    Entry point of the application.
+    Args:
+        app (QCoreApplication): QCoreApplication instance.
+        cl_parser (QCommandLineParser): A new QCommandLineParser instance.
+
+    Raises:
+        ValueError: If headless mode is not supported.
+
+    """
     main()

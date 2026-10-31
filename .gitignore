@@ -13,3 +13,4 @@ build/*
 dist/*
 app.spec
 *.drawio.bkp
+.kilo/plans/*

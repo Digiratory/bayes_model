@@ -83,6 +83,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         self._db = db
         self._featureSqlTableModel = featureSqlTableModel
 
+        self._cacheConnectionState = {}
         self._cacheValuePairsRole = {}
 
         self._cachePearsonCorrRole = {}
@@ -98,6 +99,35 @@ class PairTableSQLProxyModel(QAbstractTableModel):
 
     def getFeatureSqlTableModel(self):
         return self._featureSqlTableModel
+
+    def getSamplesDataFrame(self) -> pd.DataFrame:
+        """Assemble the samples table from the database.
+
+        Columns are the feature names (in feature order); the index holds
+        the original sample ids (ascending), so rows stay traceable to the
+        source samples. Missing feature values are NaN.
+
+        Returns:
+            pd.DataFrame: Samples per feature, indexed by sample id.
+        """
+        pivoted = self._getAllFeatureSamples()
+        names = []
+        columns = []
+        for feature_index in range(self._getFeaturesCount()):
+            names.append(self._getFeatureName(feature_index))
+            feature_id = self._rowToFeatureId(feature_index)
+            if pivoted.empty or feature_id not in pivoted.columns:
+                columns.append(np.full(len(pivoted), np.nan))
+            else:
+                columns.append(pivoted[feature_id].to_numpy())
+
+        # Positional keys keep duplicated feature names from collapsing
+        # columns before the rename.
+        samples = pd.DataFrame(
+            {i: column for i, column in enumerate(columns)}, index=pivoted.index
+        )
+        samples.columns = names
+        return samples
 
     def columnCount(self, index: QModelIndex = QModelIndex()) -> int:
         return self._getFeaturesCount()
@@ -241,16 +271,19 @@ class PairTableSQLProxyModel(QAbstractTableModel):
 
     def _getConnectionState(self, index: QModelIndex):
         source_id, target_id = self._indexToId(index)
-        query = QSqlQuery(
-            f"SELECT COUNT(*) FROM {self.pairs_table_name} WHERE {self.column_source_feature_id} = {source_id} AND {self.column_target_feature_id} = {target_id};",
-            self._db,
-        )
-        if not query.exec():
-            raise RuntimeError(
-                f"Unable to retrieve row count from DB: {query.lastError()}"
+        key = (source_id, target_id)
+        if key not in self._cacheConnectionState:
+            query = QSqlQuery(
+                f"SELECT COUNT(*) FROM {self.pairs_table_name} WHERE {self.column_source_feature_id} = {source_id} AND {self.column_target_feature_id} = {target_id};",
+                self._db,
             )
-        query.next()
-        return bool(query.value(0))
+            if not query.exec():
+                raise RuntimeError(
+                    f"Unable to retrieve row count from DB: {query.lastError()}"
+                )
+            query.next()
+            self._cacheConnectionState[key] = bool(query.value(0))
+        return self._cacheConnectionState[key]
 
     def _setConnection(self, index: QModelIndex):
         source_id, target_id = self._indexToId(index)
@@ -262,6 +295,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
             raise RuntimeError(
                 f"Unable to retrieve row count from DB: {query.lastError()}"
             )
+        self._cacheConnectionState[(source_id, target_id)] = True
 
     def _removeConnection(self, index: QModelIndex):
         source_id, target_id = self._indexToId(index)
@@ -273,6 +307,17 @@ class PairTableSQLProxyModel(QAbstractTableModel):
             raise RuntimeError(
                 f"Unable to retrieve row count from DB: {query.lastError()}"
             )
+        self._cacheConnectionState[(source_id, target_id)] = False
+
+    def _rowToFeatureId(self, feature_index: int):
+        return self._featureSqlTableModel.data(
+            self._featureSqlTableModel.index(
+                feature_index,
+                self._featureSqlTableModel.fieldIndex(
+                    self._featureSqlTableModel.column_id
+                ),
+            )
+        )
 
     def _indexToId(self, index: QModelIndex) -> tuple[int, int]:
         source_id = self._featureSqlTableModel.data(
@@ -313,6 +358,62 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         )
         return v
 
+    @staticmethod
+    def _convertFeatureValue(featureValue) -> float:
+        """Convert a raw DB sample value to float (NaN when missing)."""
+        if featureValue is None:
+            # SQL NULL marks a sample without a value for this feature
+            return np.nan
+        if isinstance(featureValue, str):
+            return float(featureValue) if len(featureValue) > 0 else np.nan
+        if isinstance(featureValue, float):
+            return float(featureValue)
+        raise RuntimeError(f"Unexpected type for sample value: {type(featureValue)}")
+
+    def _getAllFeatureSamples(self) -> pd.DataFrame:
+        """Fetch all sample values with a single query, pivoted per feature.
+
+        Returns:
+            pd.DataFrame: index = sample id (ascending), columns = feature id;
+            missing feature values are NaN.
+        """
+        query = QSqlQuery(
+            f"select\
+            s.{SampleSqlTableModel.column_sample_id} sampleId,\
+            s.{SampleSqlTableModel.column_feature_id} featureId,\
+            s.{SampleSqlTableModel.column_value} feature\
+            from {SampleSqlTableModel.table_name} as s\
+            join {FeatureSqlTableModel.table_name} as f \
+            on f.{FeatureSqlTableModel.column_id}=s.{SampleSqlTableModel.column_feature_id}\
+            order by sampleId\
+            ",
+            self._db,
+        )
+        if not query.exec():
+            raise RuntimeError(
+                f"Unable to retrieve samples from DB: {query.lastError()}"
+            )
+        records = []
+        while query.next():
+            records.append(
+                (
+                    query.value(0),
+                    query.value(1),
+                    self._convertFeatureValue(query.value(2)),
+                )
+            )
+        if not records:
+            return pd.DataFrame()
+        frame = pd.DataFrame(records, columns=["sampleId", "featureId", "feature"])
+        # Defensive: collapse duplicate (sample, feature) rows exactly like
+        # the former per-feature GROUP BY ... max(...) queries did.
+        frame = (
+            frame.groupby(["sampleId", "featureId"], sort=True)["feature"]
+            .max()
+            .reset_index()
+        )
+        return frame.pivot(index="sampleId", columns="featureId", values="feature")
+
     def _getFeatureSamples(self, featureId: int) -> np.ndarray:
         query = QSqlQuery(
             f"select\
@@ -333,17 +434,7 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         featureFieldNo = query.record().indexOf("feature")
         values = []
         while query.next():
-            # sampleTdValue: int = query.value(sampleTdValueFieldNo)
-            featureValue = query.value(featureFieldNo)
-            if isinstance(featureValue, str):
-                featureValue = float(featureValue) if len(featureValue) > 0 else np.nan
-            elif isinstance(featureValue, float):
-                featureValue = float(featureValue)
-            else:
-                raise RuntimeError(
-                    f"Unexpected type for firstFeatureFieldNo({featureFieldNo}): {type(featureValue)}"
-                )
-            values.append(featureValue)
+            values.append(self._convertFeatureValue(query.value(featureFieldNo)))
         return np.array(values)
 
     def _getFeaturePairSamples(
@@ -466,6 +557,7 @@ class FilterPairTableSQLProxyModel(QSortFilterProxyModel):
 
 class CorrelationSQLProxyModel(QIdentityProxyModel):
     partialCorrGeneralError = Signal()
+    featuresInvalidated = Signal()
     PartialCorrRole = Qt.ItemDataRole.UserRole + 10
     PartialPValueRole = Qt.ItemDataRole.UserRole + 11
 
@@ -508,6 +600,10 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
         """Invalidate the cached partial correlation matrix."""
         self._partial_corr_matrix = None
         self._partial_corr_pvalue_matrix = None
+        # The feature set behind the matrix changed; let the pages that
+        # extracted per-feature data (e.g. the prediction feature list)
+        # re-extract it.
+        self.featuresInvalidated.emit()
 
     def _partialPartialCorrelationMatrix(self) -> np.ndarray:
         """Returns the cached partial correlation matrix. If it is not cached, it will be evaluated and cached.
