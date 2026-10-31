@@ -6,6 +6,7 @@ from PySide6.QtCore import QCommandLineOption, QCommandLineParser, QCoreApplicat
 from PySide6.QtWidgets import QApplication
 
 from bn_modeller import __version__
+from bn_modeller.utils.settings_service import SettingsService
 from bn_modeller.windows.main_window import MainWindow
 
 
@@ -23,6 +24,7 @@ def create_application(argv: list[str]) -> QApplication:
     QCoreApplication.setOrganizationDomain("digiratory.ru")
     QCoreApplication.setApplicationName("bn_modeller")
     QCoreApplication.setApplicationVersion(__version__)
+    SettingsService.instance()
     bn_modeller_appid = "digiratory.bn_modeller.{__version__}"
     if os.name == "nt":
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(bn_modeller_appid)
