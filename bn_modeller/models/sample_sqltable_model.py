@@ -15,6 +15,14 @@ class SampleSqlTableModel(QSqlRelationalTableModel):
     column_sample_id = "sample_id"
     column_feature_id = "feature_id"
     column_value = "value"
+    create_table_sql = f"CREATE TABLE IF NOT EXISTS {table_name} (\
+                          {column_id} INTEGER PRIMARY KEY AUTOINCREMENT, \
+                          {column_sample_id} INTEGER, \
+                          {column_feature_id} INTEGER, \
+                          {column_value} REAL,\
+                          FOREIGN KEY({column_feature_id}) REFERENCES {FeatureSqlTableModel.table_name}({FeatureSqlTableModel.column_id})\
+                          );\
+                          "
 
     def __init__(self, parent: QObject = None, db: QSqlDatabase = None):
         super().__init__(parent, db)
@@ -29,16 +37,7 @@ class SampleSqlTableModel(QSqlRelationalTableModel):
         )
         self.setJoinMode(QSqlRelationalTableModel.JoinMode.LeftJoin)
 
-        query = QSqlQuery(
-            f"CREATE TABLE IF NOT EXISTS {SampleSqlTableModel.table_name} (\
-                          {SampleSqlTableModel.column_id} INTEGER PRIMARY KEY AUTOINCREMENT, \
-                          {SampleSqlTableModel.column_sample_id} INTEGER, \
-                          {SampleSqlTableModel.column_feature_id} INTEGER, \
-                          {SampleSqlTableModel.column_value} REAL,\
-                          FOREIGN KEY({SampleSqlTableModel.column_feature_id}) REFERENCES {FeatureSqlTableModel.table_name}({FeatureSqlTableModel.column_id})\
-                          );\
-                          "
-        )
+        query = QSqlQuery(self.create_table_sql)
 
         if not query.exec():
             raise RuntimeError(f"Unable to connect to DB: {query.lastError()}")
