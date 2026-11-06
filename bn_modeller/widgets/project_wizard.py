@@ -437,6 +437,16 @@ class ImportProgressPage(QWizardPage):
 
         self._startImportWorker(spec)
 
+    def isComplete(self) -> bool:
+        """Allow moving forward only after a successful import.
+
+        QWizard keeps the Next/Finish buttons disabled while this returns
+        False, i.e. while the import is running or has failed. Leaving the
+        page is then possible only via Cancel or the Retry/Back path
+        offered after a failure.
+        """
+        return self._succeeded
+
     def _resetUi(self):
         self._succeeded = False
         self._closing = False
@@ -446,8 +456,13 @@ class ImportProgressPage(QWizardPage):
         self._errorLabel.hide()
         self._retryButton.hide()
         wizard = self.wizard()
-        wizard.button(QWizard.BackButton).setEnabled(False)
         wizard.button(QWizard.FinishButton).setEnabled(False)
+        # QWizard recomputes the button states after initializePage() and
+        # would re-enable Back (this page has no mandatory fields); re-apply
+        # the disable afterwards. Finish/Next stay disabled via isComplete().
+        QTimer.singleShot(
+            0, lambda: wizard.button(QWizard.BackButton).setEnabled(False)
+        )
 
     def _startImportWorker(self, spec: ImportSpec):
         self._thread = QThread(self)
@@ -493,6 +508,7 @@ class ImportProgressPage(QWizardPage):
                 "Imported {} features and {} samples ({} empty values skipped)."
             ).format(stats.features, stats.samples, stats.nan_values)
         )
+        self.completeChanged.emit()
 
     @Slot(str)
     def _onImportFailed(self, message: str):
@@ -501,6 +517,7 @@ class ImportProgressPage(QWizardPage):
         self._errorLabel.show()
         self._retryButton.show()
         self.wizard().button(QWizard.BackButton).setEnabled(True)
+        self.completeChanged.emit()
 
     @Slot()
     def _onRetryClicked(self):
@@ -539,8 +556,6 @@ class ProjectLoadWizard(QWizard):
         self.importProgressPage = ImportProgressPage()
         self.importProgressPageId = self.addPage(self.importProgressPage)
 
-        self.button(QWizard.FinishButton).clicked.connect(self.close)
-
     def get_title(self):
         return self.tr("Open project")
 
@@ -557,17 +572,26 @@ class ProjectLoadWizard(QWizard):
             return self.importProgressPageId
         return super().nextId()
 
+    def back(self):
+        if self.importProgressPage.isImportRunning():
+            return
+        super().back()
+
+    def next(self):
+        if self.importProgressPage.isImportRunning():
+            return
+        super().next()
+
     def reject(self):
-        if self.currentPage() == self.importProgressPage:
-            # Stop the worker (blocking) before the wizard is destroyed.
-            self.importProgressPage.cancelImport()
+        # Stop a running import regardless of the current page (Esc and the
+        # window close button route here too); blocks until rollback is done.
+        self.importProgressPage.cancelImport()
         super().reject()
 
     def accept(self):
-        if self.currentPage() == self.importProgressPage:
-            if self.importProgressPage.isImportRunning():
-                # The page closes the wizard itself once the import finishes.
-                return
+        if self.importProgressPage.isImportRunning():
+            # The page closes the wizard itself once the import finishes.
+            return
         super().accept()
 
     def loadModelsFromDb(self):
