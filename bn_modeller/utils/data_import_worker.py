@@ -72,6 +72,15 @@ class DataImportWorker(QObject):
         self._cancel_event = threading.Event()
         self._fix_event = threading.Event()
         self._value_map: dict = {}
+        self._committed = False
+
+    def isCommitted(self) -> bool:
+        """True once the import transaction has been committed.
+
+        Thread-safe to read from other threads, but a False result is only
+        meaningful while the worker thread is still running.
+        """
+        return self._committed
 
     def cancel(self):
         """Request cancellation; safe to call from any thread."""
@@ -120,6 +129,9 @@ class DataImportWorker(QObject):
                 ),
                 cancel_check=self._cancel_event.is_set,
             )
+            # Flag the commit before emitting: a cancel arriving from now on
+            # must close the wizard as Accepted (the data is on disk).
+            self._committed = True
             self.finished.emit(stats)
         except ImportCancelled:
             self.cancelled.emit()

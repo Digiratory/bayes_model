@@ -430,6 +430,7 @@ def _insert_samples(
     column_names = [str(column) for column in data_pd.columns]
     total_rows = max(len(data_pd.index), 1)
     nan_values = 0
+    progress.emit(PROGRESS_SAMPLES_START, message, force=True)
     for row_number, (index, row_pd) in enumerate(data_pd.iterrows()):
         if cancel_check():
             raise ImportCancelled()

@@ -259,9 +259,15 @@ def test_import_dataframe_to_db_progress(project_db):
         PROGRESS_FEATURES_START <= fraction < PROGRESS_FEATURES_END
         for fraction in fractions
     )
+    # The samples phase must report its own emissions (with its own message),
+    # not only the 0.45 boundary shared with the features phase.
+    samples_message = QCoreApplication.translate(
+        "db_model_handler", "Inserting samples..."
+    )
     assert any(
         PROGRESS_SAMPLES_START <= fraction < PROGRESS_SAMPLES_END
-        for fraction in fractions
+        and message == samples_message
+        for fraction, message in emissions
     )
     assert fractions[-1] == PROGRESS_SAMPLES_END
     assert all(isinstance(message, str) and message for _, message in emissions)

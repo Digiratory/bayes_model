@@ -360,6 +360,12 @@ class DataImportPage(QWizardPage):
 
 class ImportProgressPage(QWizardPage):
 
+    # Cancel grace period before falling back to a UI-friendly poll, and the
+    # poll interval for closing once the worker stopped (e.g. it is still
+    # reading a large file and cannot check the cancel flag).
+    CANCEL_WAIT_MS = 500
+    CANCEL_POLL_MS = 100
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle(self.tr("Importing data"))
@@ -410,6 +416,51 @@ class ImportProgressPage(QWizardPage):
             self._thread.quit()
             self._thread.wait()
 
+    def requestClose(self):
+        """Prepare closing the wizard while an import may be running.
+
+        Returns the close outcome:
+        - "accept" when the import has already been committed (the wizard
+          must close as Accepted so the result matches the on-disk state);
+        - "reject" when the wizard may close immediately (import idle,
+          stopped or rolled back);
+        - "deferred" when the worker is still stopping (e.g. reading a
+          large file, which cannot poll the cancel flag): the page closes
+          the wizard itself once the worker stops.
+        """
+        if self._succeeded:
+            if self._thread is not None:
+                self._thread.wait(self.CANCEL_WAIT_MS)
+            return "accept"
+        if self._worker is not None and self._worker.isCommitted():
+            # Committed before the GUI slot ran: wait for the cleanup.
+            self.cancelImport()
+            return "accept"
+        if self._closing:
+            return "deferred"
+        if not self.isImportRunning():
+            return "reject"
+        self._closing = True
+        self._worker.cancel()
+        self._thread.quit()
+        if self._thread.wait(self.CANCEL_WAIT_MS):
+            committed = self._worker is not None and self._worker.isCommitted()
+            return "accept" if committed else "reject"
+        self._showCancellingUi()
+        QTimer.singleShot(self.CANCEL_POLL_MS, self._closeWhenStopped)
+        return "deferred"
+
+    def _closeWhenStopped(self):
+        if self.isImportRunning():
+            QTimer.singleShot(self.CANCEL_POLL_MS, self._closeWhenStopped)
+            return
+        if self._succeeded:
+            self.wizard().accept()
+        else:
+            # Close directly: reject() would re-enter requestClose(), which
+            # still reports "deferred" while _closing is set.
+            self.wizard().done(QDialog.Rejected)
+
     def initializePage(self):
         super().initializePage()
         wizard = self.wizard()
@@ -431,11 +482,42 @@ class ImportProgressPage(QWizardPage):
         if os.path.exists(spec.db_file_path):
             try:
                 os.remove(spec.db_file_path)
-            except PermissionError:
-                # Locked by another connection; import into the existing file.
-                pass
+            except PermissionError as e:
+                # The file is locked (e.g. open in another application).
+                # Importing into it would append samples to existing rows,
+                # so report the error instead of starting the worker.
+                self._showImportError(
+                    self.tr(
+                        "Unable to replace the existing project file:\n{}\n\n"
+                        "The file may be open in another application. Go back "
+                        "and choose a different file or try again."
+                    ).format(e)
+                )
+                return
 
         self._startImportWorker(spec)
+
+    def _applyInitialButtonStates(self):
+        # Runs after QWizard's own button-state recompute triggered by the
+        # page switch (see _resetUi).
+        if self.isImportRunning():
+            self.wizard().button(QWizard.BackButton).setEnabled(False)
+
+    def _showCancellingUi(self):
+        self._retryButton.hide()
+        self._errorLabel.hide()
+        self._messageLabel.setText(self.tr("Cancelling the import..."))
+
+    def _showImportError(self, message: str):
+        """Show a failure state (Retry/Back offered) with no running worker."""
+        self._progressBar.setRange(0, 100)
+        self._progressBar.setValue(0)
+        self._errorLabel.setText(message)
+        self._errorLabel.show()
+        self._retryButton.show()
+        wizard = self.wizard()
+        wizard.button(QWizard.BackButton).setEnabled(True)
+        self.completeChanged.emit()  # keeps Finish disabled via isComplete()
 
     def isComplete(self) -> bool:
         """Allow moving forward only after a successful import.
@@ -460,9 +542,7 @@ class ImportProgressPage(QWizardPage):
         # QWizard recomputes the button states after initializePage() and
         # would re-enable Back (this page has no mandatory fields); re-apply
         # the disable afterwards. Finish/Next stay disabled via isComplete().
-        QTimer.singleShot(
-            0, lambda: wizard.button(QWizard.BackButton).setEnabled(False)
-        )
+        QTimer.singleShot(0, self._applyInitialButtonStates)
 
     def _startImportWorker(self, spec: ImportSpec):
         self._thread = QThread(self)
@@ -512,12 +592,7 @@ class ImportProgressPage(QWizardPage):
 
     @Slot(str)
     def _onImportFailed(self, message: str):
-        self._progressBar.setRange(0, 100)
-        self._errorLabel.setText(self.tr("Import failed:\n{}").format(message))
-        self._errorLabel.show()
-        self._retryButton.show()
-        self.wizard().button(QWizard.BackButton).setEnabled(True)
-        self.completeChanged.emit()
+        self._showImportError(self.tr("Import failed:\n{}").format(message))
 
     @Slot()
     def _onRetryClicked(self):
@@ -584,9 +659,13 @@ class ProjectLoadWizard(QWizard):
 
     def reject(self):
         # Stop a running import regardless of the current page (Esc and the
-        # window close button route here too); blocks until rollback is done.
-        self.importProgressPage.cancelImport()
-        super().reject()
+        # window close button route here too). A committed import closes as
+        # Accepted so the result matches the on-disk state.
+        outcome = self.importProgressPage.requestClose()
+        if outcome == "accept":
+            self.accept()
+        elif outcome != "deferred":
+            super().reject()
 
     def accept(self):
         if self.importProgressPage.isImportRunning():
