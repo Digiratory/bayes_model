@@ -117,7 +117,7 @@ class DataImportWorker(QObject):
 
             self.progress.emit(PROGRESS_READ_END, self.tr("Normalizing values..."))
             non_numeric = collect_non_numeric_values(data_pd)
-            if non_numeric:
+            if non_numeric and not self._cancel_event.is_set():
                 self._request_value_fixes(non_numeric)
             data_pd = apply_value_map(data_pd, self._value_map)
 

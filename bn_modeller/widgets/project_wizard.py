@@ -573,10 +573,19 @@ class ImportProgressPage(QWizardPage):
 
     @Slot(list)
     def _onFixValuesRequested(self, values: list):
+        worker = self._worker
+        if worker is None:
+            return  # stale signal after the thread finished
+        if self._closing:
+            # Cancellation is in progress: never open modal dialogs. The
+            # empty mapping releases the worker, which then observes the
+            # cancel flag and rolls back.
+            worker.provideFixedValues({})
+            return
         value_map = {}
         for value in values:
             value_map[value] = self._valueFixer.fixValue(value)
-        self._worker.provideFixedValues(value_map)
+        worker.provideFixedValues(value_map)
 
     @Slot(object)
     def _onImportFinished(self, stats):
