@@ -93,11 +93,15 @@ def test_sync(service):
     assert service.sync() is True
 
 
-def test_reset_to_defaults(service):
+def test_reset_to_defaults(service, qtbot):
     """reset_to_defaults removes registered keys; unregistered keys survive."""
     service.set_value("depTable/colormap", "viridis")
     service.set_value("unregistered/custom", "keepme")
-    service.reset_to_defaults()
+    received = []
+    service.settingChanged.connect(lambda key, value: received.append((key, value)))
+    with qtbot.waitSignal(service.settingsReset):
+        service.reset_to_defaults()
+    assert received == [("depTable/colormap", "coolwarm")]
     assert not service.contains("depTable/colormap")
     assert service.get_value("depTable/colormap", value_type=str) == "coolwarm"
     assert service.contains("unregistered/custom")
@@ -108,7 +112,10 @@ def test_reset_to_defaults_group_scoped(service):
     """reset_to_defaults with a group only clears that group's keys."""
     service.set_value("projectLoadWizard/lastProjectLocation", "a.sqlite")
     service.set_value("DataImportPage/lastSourceLocationDir", "C:/data")
+    received = []
+    service.settingChanged.connect(lambda key, value: received.append((key, value)))
     service.reset_to_defaults("projectLoadWizard")
+    assert received == [("projectLoadWizard/lastProjectLocation", None)]
     assert not service.contains("projectLoadWizard/lastProjectLocation")
     assert service.contains("DataImportPage/lastSourceLocationDir")
 
@@ -133,6 +140,16 @@ def test_no_setting_changed_on_identical_write(service):
     service.settingChanged.connect(lambda key, value: received.append((key, value)))
     assert service.set_value("depTable/colormap", "viridis") is True
     assert received == []
+
+
+def test_no_setting_changed_on_identical_unregistered_float(service):
+    """Identical numeric writes to unregistered keys emit no settingChanged."""
+    service.set_value("test/someFloat", 0.75)
+    received = []
+    service.settingChanged.connect(lambda key, value: received.append((key, value)))
+    assert service.set_value("test/someFloat", 0.75) is True
+    assert received == []
+    assert service.get_value("test/someFloat", value_type=float) == pytest.approx(0.75)
 
 
 def test_persistence_across_singleton_reset(service):

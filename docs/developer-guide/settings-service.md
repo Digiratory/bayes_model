@@ -35,7 +35,7 @@ SettingsService.instance().set_value("depTable/colormap", "viridis")
 
 ## Subscribing to changes
 
-Connect a slot to `settingChanged` to react to any setting change while the application runs:
+Connect a slot to `settingChanged` to react to any setting change while the application runs. Values come from user-editable settings, so validate them before use — for example, `depTable/colormap` has no registered validator and an invalid colormap name must fall back to a safe default:
 
 ```python
 from PySide6.QtCore import Slot
@@ -44,12 +44,17 @@ from PySide6.QtCore import Slot
 def _onSettingChanged(self, key: str, value):
     if key != "depTable/colormap":
         return
-    self._colormap = matplotlib.colormaps[value]
+    try:
+        self._colormap = matplotlib.colormaps[value]
+    except (KeyError, TypeError, ValueError):
+        self._colormap = matplotlib.colormaps["coolwarm"]
 
 SettingsService.instance().settingChanged.connect(self._onSettingChanged)
 ```
 
-This is how `PairTableSQLProxyModel` live-refreshes its correlation heatmap colors. Other signals: `settingsReset()` fires after `reset_to_defaults()`, and `hierarchyChanged(group_path)` fires when a new key (for example, via `register_setting`) changes the tree structure.
+This mirrors `PairTableSQLProxyModel._onSettingChanged`, which resolves names through `_resolveColormap` and additionally emits `dataChanged` so the correlation heatmap repaints with the new colors.
+
+Other signals: `settingsReset()` fires after `reset_to_defaults()` (which also emits per-key `settingChanged(key, <effective default>)` for every removed key, so subscribers refresh without connecting to `settingsReset`), and `hierarchyChanged(group_path)` fires when a new key (for example, via `register_setting`) changes the tree structure.
 
 ## Adding a new settings group
 

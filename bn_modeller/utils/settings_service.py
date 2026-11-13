@@ -103,7 +103,8 @@ class SettingsService(QAbstractItemModel):
     :meth:`set_value`.
 
     Signals:
-        settingChanged(key, new_value): A setting was written or removed.
+        settingChanged(key, new_value): A setting was written, removed, or
+            reset to its registry default.
         settingsReset(): ``reset_to_defaults`` removed registered keys.
         hierarchyChanged(group_path): The tree structure of a group changed.
     """
@@ -190,8 +191,17 @@ class SettingsService(QAbstractItemModel):
         ):
             return False
         node = self._findNode(key)
-        if node is not None and self.contains(key) and self.get_value(key) == value:
-            return True
+        if node is not None and self.contains(key):
+            value_type = type(value)
+            if value_type in (bool, int, float, str):
+                # Backends may degrade the stored type; read through the same
+                # coercion used on the next read so identical writes stay
+                # no-ops regardless of backend.
+                current = self.get_value(key, value_type=value_type)
+            else:
+                current = self.get_value(key)
+            if current == value:
+                return True
         self._settings.setValue(key, value)
         if node is None:
             self._rebuildTree()
@@ -226,24 +236,39 @@ class SettingsService(QAbstractItemModel):
         return key in self._settings.allKeys()
 
     def sync(self) -> bool:
-        """Flush pending changes to permanent storage."""
+        """Flush pending changes to permanent storage.
+
+        Returns:
+            bool: ``True`` when the backend reports no error after the flush.
+        """
         self._settings.sync()
-        return True
+        return self._settings.status() == QSettings.Status.NoError
 
     def reset_to_defaults(self, group: str | None = None) -> None:
         """Remove registered keys from storage so defaults apply again.
 
         Unregistered keys are untouched. Values lazily fall back to their
-        registry defaults on the next read. Emits ``settingsReset()``.
+        registry defaults on the next read. Emits ``settingChanged(key,
+        <post-removal effective value>)`` for every removed key so live
+        subscribers (e.g. the correlation colormap) pick up the defaults,
+        followed by ``settingsReset()``.
 
         Args:
             group: Optional group prefix (e.g. ``"projectLoadWizard"``) to
                 restrict the reset to; ``None`` resets all registered keys.
         """
         prefix = "" if group is None else group.rstrip("/") + "/"
-        for key in [key for key in _registered_settings if key.startswith(prefix)]:
+        removed_keys = [
+            key
+            for key in _registered_settings
+            if key.startswith(prefix) and self.contains(key)
+        ]
+        for key in removed_keys:
             self._settings.remove(key)
-        self._rebuildTree()
+        if removed_keys:
+            self._rebuildTree()
+        for key in removed_keys:
+            self.settingChanged.emit(key, self.get_value(key))
         self.settingsReset.emit()
 
     def index(
