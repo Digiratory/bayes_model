@@ -317,11 +317,14 @@ def test_model_passes_qabstractitemmodeltester(service):
 
     Fatal mode aborts the process on the first violated Qt model rule, so a
     clean test run certifies index/parent/flags consistency across tree
-    rebuilds and value edits.
+    rebuilds and value edits. The tester is a parentless QObject, so it must
+    stay referenced for the whole test: a temporary would be garbage-collected
+    immediately and monitor nothing.
     """
-    QAbstractItemModelTester(
+    tester = QAbstractItemModelTester(
         service, QAbstractItemModelTester.FailureReportingMode.Fatal
     )
+    assert tester is not None
     service.set_value("depTable/colormap", "viridis")
     service.set_value("UI/windows/last_project_path", "p.sqlite")
     service.set_value("test/someFloat", 0.75)
