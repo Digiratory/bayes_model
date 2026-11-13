@@ -19,7 +19,7 @@ from bn_modeller.bayesian_nets.pyBansheeCalculation import BansheeCalc
 from bn_modeller.models import (
     CorrelationSQLProxyModel,
     FilterPairTableSQLProxyModel,
-    PairTableSQLProxyModel,
+    PairTableStyledProxyModel,
 )
 from bn_modeller.models.feature_sqltable_model import (
     FeatureSqlTableModel,
@@ -188,7 +188,7 @@ class BayesianNetworkPageWidget(QWidget):
         self.mainLayout.addWidget(self.tabWidget)
         self.setLayout(self.mainLayout)
 
-    def setModels(self, pairTableSQLProxyModel: PairTableSQLProxyModel):
+    def setModels(self, pairTableStyledProxyModel: PairTableStyledProxyModel):
         # TODO: т.к. при реализации обсчета байесовских сетей нужно использовать
         # self._pairTableSQLProxyModel, вероятно, её нужно будет вытащить наружу
         # или сделать рассчеты дочерним объектом этой страницы
@@ -197,23 +197,23 @@ class BayesianNetworkPageWidget(QWidget):
             PersistanceCheckableFeatureListProxyModel()
         )
         self._featureCheckableSortFilterProxyModel.setSourceModel(
-            pairTableSQLProxyModel.getFeatureSqlTableModel()
+            pairTableStyledProxyModel.getFeatureSqlTableModel()
         )
 
         self.featureSelectorView.setModel(self._featureCheckableSortFilterProxyModel)
         self.featureSelectorView.setModelColumn(
-            pairTableSQLProxyModel.getFeatureSqlTableModel().fieldIndex(
-                pairTableSQLProxyModel.getFeatureSqlTableModel().column_name
+            pairTableStyledProxyModel.getFeatureSqlTableModel().fieldIndex(
+                pairTableStyledProxyModel.getFeatureSqlTableModel().column_name
             )
         )
 
         filterPairTableSQLProxyModel: FilterPairTableSQLProxyModel = (
             FilterPairTableSQLProxyModel()
         )
-        filterPairTableSQLProxyModel.setSourceModel(pairTableSQLProxyModel)
+        filterPairTableSQLProxyModel.setSourceModel(pairTableStyledProxyModel)
         filterPairTableSQLProxyModel.setFilterModel(
             self._featureCheckableSortFilterProxyModel,
-            pairTableSQLProxyModel.getFeatureSqlTableModel().fieldIndex(
+            pairTableStyledProxyModel.getFeatureSqlTableModel().fieldIndex(
                 FeatureSqlTableModel.column_id
             ),
         )
