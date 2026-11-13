@@ -21,19 +21,18 @@ class FeatureSqlTableModel(QSqlRelationalTableModel):
     column_name = "name"
     column_description = "description"
     column_is_active = "is_active"
+    create_table_sql = f"CREATE TABLE IF NOT EXISTS {table_name} (\
+                          {column_id} INTEGER PRIMARY KEY AUTOINCREMENT, \
+                          {column_name} TEXT, \
+                          {column_description} TEXT, \
+                          {column_is_active} INTEGER\
+                          );\
+                          "
 
     def __init__(self, parent: QObject = None, db: QSqlDatabase = None):
         super().__init__(parent, db)
 
-        query = QSqlQuery(
-            f"CREATE TABLE IF NOT EXISTS {FeatureSqlTableModel.table_name} (\
-                          {FeatureSqlTableModel.column_id} INTEGER PRIMARY KEY AUTOINCREMENT, \
-                          {FeatureSqlTableModel.column_name} TEXT, \
-                          {FeatureSqlTableModel.column_description} TEXT, \
-                          {FeatureSqlTableModel.column_is_active} INTEGER\
-                          );\
-                          "
-        )
+        query = QSqlQuery(self.create_table_sql)
 
         if not query.exec():
             raise RuntimeError(f"Unable to connect to DB: {query.lastError()}")
