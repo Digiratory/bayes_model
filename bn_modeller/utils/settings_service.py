@@ -192,15 +192,7 @@ class SettingsService(QAbstractItemModel):
             return False
         node = self._findNode(key)
         if node is not None and self.contains(key):
-            value_type = type(value)
-            if value_type in (bool, int, float, str):
-                # Backends may degrade the stored type; read through the same
-                # coercion used on the next read so identical writes stay
-                # no-ops regardless of backend.
-                current = self.get_value(key, value_type=value_type)
-            else:
-                current = self.get_value(key)
-            if current == value:
+            if self._isSameValue(self.get_value(key), value):
                 return True
         self._settings.setValue(key, value)
         if node is None:
@@ -208,6 +200,38 @@ class SettingsService(QAbstractItemModel):
             self.hierarchyChanged.emit(_group_path(key))
         self.settingChanged.emit(key, value)
         return True
+
+    @staticmethod
+    def _isSameValue(current: Any, value: Any) -> bool:
+        """Check equality without lossy type coercion.
+
+        ``current`` is the value as ``get_value`` returns it: coerced to the
+        registry ``value_type`` for registered keys, raw for unregistered
+        keys. String-degraded numbers from backends that store scalars as
+        strings are tolerated only when the string parses exactly to the new
+        numeric value; no rounding or truncation is applied, so e.g. writing
+        ``0`` never matches a stored ``0.75``.
+
+        Args:
+            current: Stored (possibly coerced) value.
+            value: Value about to be written.
+
+        Returns:
+            bool: ``True`` when writing ``value`` would not change the
+            effective stored value.
+        """
+        if current == value:
+            return True
+        if (
+            isinstance(current, str)
+            and isinstance(value, (int, float))
+            and not isinstance(value, bool)
+        ):
+            try:
+                return float(current) == float(value)
+            except ValueError:
+                return False
+        return False
 
     def remove(self, key: str) -> bool:
         """Remove a key from storage.

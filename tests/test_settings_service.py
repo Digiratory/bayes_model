@@ -152,6 +152,29 @@ def test_no_setting_changed_on_identical_unregistered_float(service):
     assert service.get_value("test/someFloat", value_type=float) == pytest.approx(0.75)
 
 
+def test_write_int_over_stored_float_is_not_a_noop(service, qtbot):
+    """Writing 0 over a stored 0.75 must store, not compare lossy-equal."""
+    service.set_value("test/someFloat", 0.75)
+    with qtbot.waitSignal(service.settingChanged) as blocker:
+        assert service.set_value("test/someFloat", 0) is True
+    assert blocker.args == ["test/someFloat", 0]
+    assert service.get_value("test/someFloat", value_type=float) == 0.0
+
+
+def test_is_same_value_without_lossy_coercion():
+    """Equality tolerates string-degraded numbers only via exact parses."""
+    assert SettingsService._isSameValue("coolwarm", "coolwarm")
+    assert SettingsService._isSameValue(0.75, 0.75)
+    assert SettingsService._isSameValue("0.75", 0.75)
+    assert SettingsService._isSameValue("5", 5)
+    assert SettingsService._isSameValue("5.0", 5)
+    assert not SettingsService._isSameValue("0.75", 0)
+    assert not SettingsService._isSameValue("0.4", 0)
+    assert not SettingsService._isSameValue("abc", 5)
+    assert not SettingsService._isSameValue("true", True)
+    assert not SettingsService._isSameValue(0.75, 0)
+
+
 def test_persistence_across_singleton_reset(service):
     """Values survive reset_for_testing() plus a fresh instance()."""
     service.set_value("depTable/colormap", "viridis")
