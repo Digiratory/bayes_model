@@ -298,6 +298,8 @@ class SettingsService(QAbstractItemModel):
     def index(
         self, row: int, column: int, parent: QModelIndex = QModelIndex()
     ) -> QModelIndex:
+        if parent.isValid() and parent.column() != 0:
+            return QModelIndex()
         parent_node = self._nodeForIndex(parent)
         if row < 0 or column < 0 or column > 1 or row >= len(parent_node.children):
             return QModelIndex()
@@ -315,6 +317,8 @@ class SettingsService(QAbstractItemModel):
         return self.createIndex(row, 0, parent_node)
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        if parent.isValid() and parent.column() != 0:
+            return 0
         return len(self._nodeForIndex(parent).children)
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
@@ -353,13 +357,15 @@ class SettingsService(QAbstractItemModel):
             return False
         return self.set_value(node.key, value)
 
-    def flags(self, index: QModelIndex = QModelIndex()) -> Qt.ItemFlag:
+    def flags(self, index: QModelIndex = QModelIndex()) -> Qt.ItemFlags:
         if not index.isValid():
-            return Qt.ItemFlag.ItemIsEnabled
+            return Qt.ItemFlags()
         node = index.internalPointer()
-        item_flags = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+        item_flags = Qt.ItemFlags(Qt.ItemFlag.ItemIsEnabled) | Qt.ItemFlags(
+            Qt.ItemFlag.ItemIsSelectable
+        )
         if index.column() == 1 and node.key is not None:
-            item_flags |= Qt.ItemFlag.ItemIsEditable
+            item_flags |= Qt.ItemFlags(Qt.ItemFlag.ItemIsEditable)
         return item_flags
 
     def headerData(

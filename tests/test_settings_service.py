@@ -2,6 +2,7 @@
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QSettings, Qt
+from PySide6.QtTest import QAbstractItemModelTester
 from PySide6.QtWidgets import QTreeView
 
 from bn_modeller.utils import settings_service as settings_service_module
@@ -309,3 +310,32 @@ def test_model_tree_view_smoke(service, qtbot):
     view.setModel(service)
     view.expandAll()
     assert view.model() is service
+
+
+def test_model_passes_qabstractitemmodeltester(service):
+    """The model survives QAbstractItemModelTester under mutations.
+
+    Fatal mode aborts the process on the first violated Qt model rule, so a
+    clean test run certifies index/parent/flags consistency across tree
+    rebuilds and value edits.
+    """
+    QAbstractItemModelTester(
+        service, QAbstractItemModelTester.FailureReportingMode.Fatal
+    )
+    service.set_value("depTable/colormap", "viridis")
+    service.set_value("UI/windows/last_project_path", "p.sqlite")
+    service.set_value("test/someFloat", 0.75)
+    service.set_value("test/someFloat", 0.75)
+    service.set_value("test/someFloat", 0)
+    service.remove("test/someFloat")
+    for parent_row in range(service.rowCount()):
+        parent = service.index(parent_row, 0)
+        for row in range(service.rowCount(parent)):
+            for column in range(service.columnCount(parent)):
+                index = service.index(row, column, parent)
+                assert index.isValid()
+                service.data(index)
+                service.flags(index)
+                assert service.parent(index) == parent
+                if column != 0:
+                    assert service.rowCount(index) == 0
