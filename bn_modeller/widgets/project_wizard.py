@@ -4,7 +4,6 @@ import shutil
 import numpy as np
 from PySide6.QtCore import (
     QObject,
-    QSettings,
     QStandardPaths,
     Qt,
     QThread,
@@ -36,6 +35,8 @@ from PySide6.QtWidgets import (
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 from bn_modeller.utils.data_import_worker import DataImportWorker, ImportSpec
+from bn_modeller.utils.db_model_handler import add_values_from_csv
+from bn_modeller.utils.settings_service import SettingsService
 from bn_modeller.widgets.file_path_widget import FilePathWidget
 from bn_modeller.widgets.separator_widget import QSeparator
 
@@ -228,9 +229,9 @@ class ProjectLocationPage(QWizardPage):
         self.path_edit = FilePathWidget(
             self.tr("Select file"),
             self.tr("BNM Project File (*.sqlite)"),
-            QSettings().value(
+            SettingsService.instance().get_value(
                 "projectLoadWizard/lastProjectLocationDir",
-                QStandardPaths.standardLocations(
+                default=QStandardPaths.standardLocations(
                     QStandardPaths.StandardLocation.DocumentsLocation
                 )[0],
             ),
@@ -246,7 +247,7 @@ class ProjectLocationPage(QWizardPage):
 
     def initializePage(self):
         res = super().initializePage()
-        self.path_edit.file_path = QSettings().value(
+        self.path_edit.file_path = SettingsService.instance().get_value(
             "projectLoadWizard/lastProjectLocation", ""
         )
         return res
@@ -264,10 +265,11 @@ class ProjectLocationPage(QWizardPage):
 
     @Slot(str)
     def saveLastFilePath(self, newFilePath: str):
-        QSettings().setValue(
+        settings = SettingsService.instance()
+        settings.set_value(
             "projectLoadWizard/lastProjectLocationDir", os.path.dirname(newFilePath)
         )
-        QSettings().setValue("projectLoadWizard/lastProjectLocation", newFilePath)
+        settings.set_value("projectLoadWizard/lastProjectLocation", newFilePath)
 
 
 class DataImportPage(QWizardPage):
@@ -285,9 +287,9 @@ class DataImportPage(QWizardPage):
             self.tr(
                 "Comma-separated values File (*.csv);;Excel Workbook (*.xlsx *.xls)"
             ),
-            QSettings().value(
+            SettingsService.instance().get_value(
                 "DataImportPage/lastSourceLocationDir",
-                QStandardPaths.standardLocations(
+                default=QStandardPaths.standardLocations(
                     QStandardPaths.StandardLocation.DocumentsLocation
                 )[0],
             ),
@@ -353,7 +355,7 @@ class DataImportPage(QWizardPage):
 
     @Slot(str)
     def saveLastFilePath(self, newFilePath: str):
-        QSettings().setValue(
+        SettingsService.instance().set_value(
             "DataImportPage/lastSourceLocationDir", os.path.dirname(newFilePath)
         )
 

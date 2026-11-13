@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import pytest
+import shiboken6
 from PySide6.QtCore import QCoreApplication
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
@@ -174,10 +175,20 @@ def test_apply_value_map_with_non_numeric_index():
 
 @pytest.fixture(scope="module")
 def qcore_app():
-    app = QCoreApplication.instance()
-    if app is None:
-        app = QCoreApplication([])
-    yield app
+    """Provide a QCoreApplication for tests that need the Qt core.
+
+    A fixture-created instance is destroyed at module teardown; leaving it
+    alive would make pytest-qt reuse it as the application for later test
+    modules, so widget tests would run without a real QApplication.
+    """
+    created = None
+    if QCoreApplication.instance() is None:
+        created = QCoreApplication([])
+    yield QCoreApplication.instance()
+    if created is not None:
+        # PySide6 keeps core-app singletons alive on its own, so the
+        # reference must be deleted explicitly.
+        shiboken6.delete(created)
 
 
 @pytest.fixture()

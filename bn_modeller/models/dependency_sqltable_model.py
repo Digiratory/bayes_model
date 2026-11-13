@@ -11,7 +11,6 @@ from PySide6.QtCore import (
     QModelIndex,
     QObject,
     QPersistentModelIndex,
-    QSettings,
     QSortFilterProxyModel,
     Qt,
     Signal,
@@ -27,6 +26,7 @@ from bn_modeller.models.feature_sqltable_model import (
 )
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 from bn_modeller.utils.model_adapters import tablemodel_to_dataframe
+from bn_modeller.utils.settings_service import SettingsService
 
 
 class DependencyManyToManySqlTableModel(QSqlRelationalTableModel):
@@ -67,6 +67,9 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         DependencyManyToManySqlTableModel.column_target_feature_id
     )
 
+    colormapSettingKey = "depTable/colormap"
+    defaultColormapName = "coolwarm"
+
     ValuePairsRole = Qt.ItemDataRole.UserRole + 1
     PearsonCorrRole = Qt.ItemDataRole.UserRole + 2
     SpearmanCorrRole = Qt.ItemDataRole.UserRole + 3
@@ -92,10 +95,43 @@ class PairTableSQLProxyModel(QAbstractTableModel):
         self._cacheSpearmanCorrRole = {}
         self._cacheSpearmanPValueRole = {}
 
-        self._settings = QSettings()
-        self._correlationColormap = mpl.colormaps[
-            self._settings.value("depTable/colormap", "coolwarm")
-        ]
+        self._settings = SettingsService.instance()
+        self._correlationColormap = self._resolveColormap(
+            self._settings.get_value(self.colormapSettingKey, value_type=str)
+        )
+        self._settings.settingChanged.connect(self._onSettingChanged)
+
+    def _resolveColormap(self, name):
+        """Resolve a colormap name, falling back to the default when invalid.
+
+        Args:
+            name (str): Matplotlib colormap name from user-editable settings.
+
+        Returns:
+            matplotlib.colors.Colormap: Resolved colormap object.
+        """
+        try:
+            return mpl.colormaps[name]
+        except (KeyError, TypeError, ValueError):
+            return mpl.colormaps[self.defaultColormapName]
+
+    @Slot(str, object)
+    def _onSettingChanged(self, key: str, value):
+        """Refresh the correlation colormap when its setting changes.
+
+        Args:
+            key (str): Changed settings key.
+            value (Any): New stored value for the key.
+        """
+        if key != self.colormapSettingKey:
+            return
+        self._correlationColormap = self._resolveColormap(value)
+        row_count = self.rowCount()
+        column_count = self.columnCount()
+        if row_count > 0 and column_count > 0:
+            self.dataChanged.emit(
+                self.index(0, 0), self.index(row_count - 1, column_count - 1)
+            )
 
     def getFeatureSqlTableModel(self):
         return self._featureSqlTableModel
