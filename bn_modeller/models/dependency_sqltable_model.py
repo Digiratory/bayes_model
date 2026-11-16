@@ -2,7 +2,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-import pingouin as pg
 from PySide6.QtCore import (
     QAbstractTableModel,
     QByteArray,
@@ -614,6 +613,11 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
         Returns:
             np.ndarray: Partial correlation matrix.
         """
+        # pingouin registers the pandas partial_corr/pcorr accessors used
+        # below; imported on use so importing this data layer does not pull
+        # its heavy scientific dependencies.
+        import pingouin
+
         featuresCount = self.columnCount()
         if featuresCount <= 1:
             return np.array([[]])

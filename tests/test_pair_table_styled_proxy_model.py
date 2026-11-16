@@ -1,6 +1,9 @@
 """Tests for bn_modeller.models.pair_table_styled_proxy_model."""
 
 import inspect
+import subprocess
+import sys
+from pathlib import Path
 
 import matplotlib as mpl
 import pandas as pd
@@ -9,6 +12,7 @@ from PySide6.QtCore import QCoreApplication, QSettings, Qt
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtSql import QSqlDatabase
 
+import bn_modeller
 import bn_modeller.models.dependency_sqltable_model as dependency_sqltable_module
 from bn_modeller.models import (
     DependencyManyToManySqlTableModel,
@@ -184,3 +188,28 @@ def test_data_layer_module_has_no_styling_dependencies():
     source = inspect.getsource(dependency_sqltable_module)
     assert "matplotlib" not in source
     assert "settings_service" not in source
+
+
+def test_package_import_pulls_no_styling_dependencies():
+    """Importing bn_modeller.models must not load matplotlib or settings.
+
+    The styled model (and the pingouin-backed partial correlations) are
+    loaded lazily, so headless consumers of the data layer work without the
+    styling stack. Checked in a subprocess because this test process already
+    imports both dependencies.
+    """
+    probe = (
+        "import sys; import bn_modeller.models; "
+        "print(any(m == 'matplotlib' or m.startswith('matplotlib.') "
+        "for m in sys.modules)); "
+        "print(any(m.startswith('bn_modeller.utils.settings_service') "
+        "for m in sys.modules))"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe],
+        capture_output=True,
+        cwd=Path(bn_modeller.__file__).resolve().parent.parent,
+        check=True,
+        text=True,
+    )
+    assert result.stdout.split() == ["False", "False"]
