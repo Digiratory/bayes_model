@@ -613,9 +613,7 @@ class CorrelationSQLProxyModel(QIdentityProxyModel):
         Returns:
             np.ndarray: Partial correlation matrix.
         """
-        # pingouin registers the pandas partial_corr/pcorr accessors used
-        # below; imported on use so importing this data layer does not pull
-        # its heavy scientific dependencies.
+        # Registers the pandas partial_corr/pcorr accessors used below.
         import pingouin
 
         featuresCount = self.columnCount()

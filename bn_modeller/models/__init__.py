@@ -15,9 +15,7 @@ from .sample_sqltable_model import SampleSqlTableModel
 
 
 def __getattr__(name):
-    # PairTableStyledProxyModel is loaded lazily so that importing the data
-    # layer (e.g. PairTableSQLProxyModel for headless use) does not pull the
-    # styling stack (matplotlib, SettingsService) through this package (#34).
+    # Lazy loading of the heavy subpackages.
     if name == "PairTableStyledProxyModel":
         from .pair_table_styled_proxy_model import PairTableStyledProxyModel
 
