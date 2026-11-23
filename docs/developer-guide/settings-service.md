@@ -52,7 +52,7 @@ def _onSettingChanged(self, key: str, value):
 SettingsService.instance().settingChanged.connect(self._onSettingChanged)
 ```
 
-This mirrors `PairTableSQLProxyModel._onSettingChanged`, which resolves names through `_resolveColormap` and additionally emits `dataChanged` so the correlation heatmap repaints with the new colors.
+This mirrors `PairTableStyledProxyModel._onSettingChanged`, which resolves names through `_resolveColormap` and additionally emits `dataChanged` so the correlation heatmap repaints with the new colors.
 
 Other signals: `settingsReset()` fires after `reset_to_defaults()` (which also emits per-key `settingChanged(key, <effective default>)` for every removed key, so subscribers refresh without connecting to `settingsReset`), and `hierarchyChanged(group_path)` fires when a new key (for example, via `register_setting`) changes the tree structure.
 

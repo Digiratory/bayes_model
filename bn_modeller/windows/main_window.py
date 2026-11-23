@@ -15,7 +15,11 @@ from PySide6.QtWidgets import (
 )
 
 from bn_modeller.dialogs import AboutDialog
-from bn_modeller.models import DependencyManyToManySqlTableModel, PairTableSQLProxyModel
+from bn_modeller.models import (
+    DependencyManyToManySqlTableModel,
+    PairTableSQLProxyModel,
+    PairTableStyledProxyModel,
+)
 from bn_modeller.models.feature_sqltable_model import FeatureSqlTableModel
 from bn_modeller.models.sample_sqltable_model import SampleSqlTableModel
 from bn_modeller.widgets.page.bayesian_network_page import BayesianNetworkPageWidget
@@ -44,6 +48,7 @@ class MainWindow(BaseWindow):
         self.featureSqlTableModel: FeatureSqlTableModel = None
         self.sampleSqlTableModel: SampleSqlTableModel = None
         self._dependPairModel: PairTableSQLProxyModel = None
+        self._dependPairStyledModel: PairTableStyledProxyModel = None
         self._dependencyManyToManySqlTableModel: DependencyManyToManySqlTableModel = (
             None
         )
@@ -60,6 +65,7 @@ class MainWindow(BaseWindow):
         self._dependencyManyToManySqlTableModel = None
 
         self._dependPairModel = None
+        self._dependPairStyledModel = None
 
         if self.featureSqlTableModel is not None:
             self.featureSqlTableModel.clear()
@@ -82,6 +88,7 @@ class MainWindow(BaseWindow):
         self._dependPairModel = PairTableSQLProxyModel(
             self.featureSqlTableModel, db=self._db
         )
+        self._dependPairStyledModel = PairTableStyledProxyModel(self._dependPairModel)
 
         self.databasePageWidget.setModels(
             featureSqlTableModel=self.featureSqlTableModel,
@@ -89,7 +96,7 @@ class MainWindow(BaseWindow):
         )
 
         self.dependencySetupPageWidget.setModels(
-            pairTableSQLProxyModel=self._dependPairModel
+            pairTableStyledProxyModel=self._dependPairStyledModel
         )
 
     def _init_ui(self):
